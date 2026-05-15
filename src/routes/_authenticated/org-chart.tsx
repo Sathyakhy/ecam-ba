@@ -115,7 +115,7 @@ function MenteeChain({ nodes }: { nodes: Node[] }) {
     );
   }
   return (
-    <div className="flex flex-col items-stretch mt-2">
+    <div className="flex flex-col items-stretch mt-2 self-start" style={{ marginLeft: 79 }}>
       {nodes.map((m, i) => {
         const isLast = i === nodes.length - 1;
         return (
