@@ -403,6 +403,13 @@ function RelationshipDialog({
   const [managerId, setManagerId] = useState<string>(person.manager_id ?? "__none__");
   const [mentorId, setMentorId] = useState<string>((person as any).mentor_id ?? "__none__");
   const [jobTitle, setJobTitle] = useState<string>(person.job_title ?? "__none__");
+  const [fullName, setFullName] = useState(person.full_name);
+  const [username, setUsername] = useState(person.username);
+  const [email, setEmail] = useState(person.email);
+  const [department, setDepartment] = useState(person.department ?? "");
+  const [startDate, setStartDate] = useState(person.start_date ?? "");
+  const [statusVal, setStatusVal] = useState<"active" | "inactive">((person.status as "active" | "inactive") ?? "active");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(person.avatar_url ?? null);
   const [phone, setPhone] = useState(p.phone ?? "");
   const [dob, setDob] = useState(p.date_of_birth ?? "");
   const [gender, setGender] = useState(p.gender ?? "");
