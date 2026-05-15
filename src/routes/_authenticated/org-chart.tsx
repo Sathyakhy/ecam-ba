@@ -17,14 +17,14 @@ function buildTree(list: Profile[]): Node[] {
   list.forEach((p) => map.set(p.id, { ...p, children: [], mentees: [] }));
   const roots: Node[] = [];
   map.forEach((n) => {
-    if (n.manager_id && map.has(n.manager_id)) {
+    const mentorId = (n as any).mentor_id as string | null;
+    // Mentor takes priority over manager — place under mentor when present
+    if (mentorId && map.has(mentorId)) {
+      map.get(mentorId)!.mentees.push(n);
+    } else if (n.manager_id && map.has(n.manager_id)) {
       map.get(n.manager_id)!.children.push(n);
     } else {
       roots.push(n);
-    }
-    const mentorId = (n as any).mentor_id as string | null;
-    if (mentorId && map.has(mentorId) && mentorId !== n.manager_id) {
-      map.get(mentorId)!.mentees.push(map.get(n.id)!);
     }
   });
   return roots;
