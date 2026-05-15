@@ -42,6 +42,12 @@ function StaffPage() {
     return Array.from(set).sort();
   }, [staff.data]);
 
+  const positions = useMemo(() => {
+    const set = new Set<string>();
+    (staff.data ?? []).forEach((p) => p.job_title && set.add(p.job_title));
+    return Array.from(set).sort();
+  }, [staff.data]);
+
   const filtered = useMemo(() => {
     let list = staff.data ?? [];
     if (q) {
