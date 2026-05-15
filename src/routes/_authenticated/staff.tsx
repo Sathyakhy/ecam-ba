@@ -238,6 +238,7 @@ function StaffPage() {
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
+                <SelectItem value="priority">Position priority</SelectItem>
                 <SelectItem value="name">Name (A–Z)</SelectItem>
                 <SelectItem value="name_desc">Name (Z–A)</SelectItem>
                 <SelectItem value="department">Department</SelectItem>
@@ -248,8 +249,8 @@ function StaffPage() {
           </div>
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>{filtered.length} of {staff.data?.length ?? 0} {filtered.length === 1 ? "person" : "people"}</span>
-            {(q || dept !== "__all__" || position !== "__all__" || status !== "__all__" || sortBy !== "name") && (
-              <button className="text-primary hover:underline" onClick={() => { setQ(""); setDept("__all__"); setPosition("__all__"); setStatus("__all__"); setSortBy("name"); }}>
+            {(q || dept !== "__all__" || position !== "__all__" || status !== "__all__" || sortBy !== "priority") && (
+              <button className="text-primary hover:underline" onClick={() => { setQ(""); setDept("__all__"); setPosition("__all__"); setStatus("__all__"); setSortBy("priority"); }}>
                 Clear filters
               </button>
             )}
