@@ -107,12 +107,34 @@ function PlanPage() {
           <div className="flex-1 min-w-0">
             <div className="text-xs uppercase tracking-wide text-muted-foreground">Onboarding for</div>
             <h1 className="text-xl sm:text-2xl font-semibold tracking-tight truncate">{p.full_name}</h1>
-            <div className="flex flex-wrap gap-2 mt-2 text-xs text-muted-foreground">
+            <div className="flex flex-wrap gap-2 mt-2 text-xs text-muted-foreground items-center">
               {p.job_title && <Badge variant="secondary">{p.job_title}</Badge>}
               {p.department && <Badge variant="outline">{p.department}</Badge>}
               {p.start_date && <span>Started {new Date(p.start_date).toLocaleDateString()}</span>}
+              {p.onboarded ? (
+                <Badge className="bg-emerald-500/15 text-emerald-600 border border-emerald-500/30">Onboarded</Badge>
+              ) : (
+                <Badge variant="outline" className="border-amber-500/40 text-amber-600">Onboarding in progress</Badge>
+              )}
             </div>
           </div>
+          {canEdit && (
+            <Button
+              size="sm"
+              variant={p.onboarded ? "outline" : "default"}
+              onClick={async () => {
+                const { error } = await supabase
+                  .from("profiles")
+                  .update({ onboarded: !p.onboarded } as never)
+                  .eq("id", profileId);
+                if (error) return toast.error(error.message);
+                toast.success(p.onboarded ? "Marked as not onboarded" : "Marked as onboarded");
+                qc.invalidateQueries({ queryKey: ["plan-profile", profileId] });
+              }}
+            >
+              {p.onboarded ? "Mark as not onboarded" : "Mark as onboarded"}
+            </Button>
+          )}
         </div>
         <PlanHeaderEditor plan={planQ.data} canEdit={canEdit} onSaved={invalidateAll} />
       </Card>
