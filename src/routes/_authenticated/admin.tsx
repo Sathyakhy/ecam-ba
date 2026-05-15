@@ -212,13 +212,12 @@ function EditUserDialog({
   user,
   onClose,
   onSaved,
-  updateFn,
 }: {
   user: UserRow;
   onClose: () => void;
   onSaved: () => void;
-  updateFn: ReturnType<typeof useServerFn<typeof adminUpdateUser>>;
 }) {
+  const updateFn = useServerFn(adminUpdateUser);
   const [form, setForm] = useState({
     full_name: user.full_name,
     email: user.email,
