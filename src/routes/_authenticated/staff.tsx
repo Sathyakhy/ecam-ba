@@ -22,6 +22,9 @@ export const Route = createFileRoute("/_authenticated/staff")({
 
 function StaffPage() {
   const [q, setQ] = useState("");
+  const [dept, setDept] = useState<string>("__all__");
+  const [status, setStatus] = useState<string>("__all__");
+  const [sortBy, setSortBy] = useState<string>("name");
   const { isAdmin } = useAuth();
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
