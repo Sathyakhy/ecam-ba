@@ -142,7 +142,7 @@ function groupByPosition(children: Node[]): Node[][] {
   return groups;
 }
 
-/** Render a horizontal spread of siblings with a shared connector bar. */
+/** Render siblings: single child = arrow down; multiple = vertical spine with right arrows. */
 function SiblingRow({ nodes }: { nodes: Node[] }) {
   if (nodes.length === 1) {
     return (
@@ -152,27 +152,44 @@ function SiblingRow({ nodes }: { nodes: Node[] }) {
       </div>
     );
   }
+  // Vertical spine on the left; each child branches right with a horizontal arrow.
   return (
-    <div className="flex flex-col items-center">
-      {/* drop from parent into the bar */}
-      <div className="h-6 border-l-2" style={{ borderColor: BRAND }} />
-      {/* horizontal bar with vertical drop+arrow per child */}
-      <div className="flex items-start">
-        {nodes.map((c, i) => {
-          const first = i === 0;
-          const last = i === nodes.length - 1;
-          return (
-            <div key={c.id} className="flex flex-col items-center" style={{ minWidth: 200 }}>
-              <div className="flex w-full h-0">
-                <div className="flex-1" style={{ borderTop: first ? "none" : `2px solid ${BRAND}` }} />
-                <div className="flex-1" style={{ borderTop: last ? "none" : `2px solid ${BRAND}` }} />
-              </div>
-              <DownArrow height={24} />
+    <div className="flex flex-col items-stretch">
+      {nodes.map((c, i) => {
+        const isLast = i === nodes.length - 1;
+        return (
+          <div key={c.id} className="relative flex items-start" style={{ marginTop: i === 0 ? 0 : 18 }}>
+            {/* Spine top half: from row top to photo center (44px) */}
+            <div
+              className="absolute left-0 top-0"
+              style={{ width: 2, height: 44, background: BRAND }}
+            />
+            {/* Spine bottom half continues to next sibling (skip on last) */}
+            {!isLast && (
+              <div
+                className="absolute left-0"
+                style={{ width: 2, top: 44, bottom: -18, background: BRAND }}
+              />
+            )}
+            {/* Horizontal arrow from spine into card */}
+            <div className="flex items-center" style={{ marginTop: 44 - 5, width: 28 }}>
+              <div className="flex-1 border-t-2" style={{ borderColor: BRAND }} />
+              <div
+                style={{
+                  width: 0,
+                  height: 0,
+                  borderTop: "5px solid transparent",
+                  borderBottom: "5px solid transparent",
+                  borderLeft: `7px solid ${BRAND}`,
+                }}
+              />
+            </div>
+            <div className="ml-1">
               <Subtree node={c} />
             </div>
-          );
-        })}
-      </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
