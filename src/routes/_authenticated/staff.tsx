@@ -461,6 +461,14 @@ function RelationshipDialog({
           start_date: person.start_date,
           status: (person.status as "active" | "inactive") ?? "active",
           avatar_url: person.avatar_url,
+          phone: phone || null,
+          date_of_birth: dob || null,
+          gender: gender || null,
+          address: address || null,
+          nationality: nationality || null,
+          emergency_contact_name: ecName || null,
+          emergency_contact_phone: ecPhone || null,
+          bio: bio || null,
         },
       });
       toast.success("Updated");
