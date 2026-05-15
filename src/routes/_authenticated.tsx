@@ -30,10 +30,12 @@ function AuthenticatedLayout() {
     );
   }
 
-  // Gate: staff who haven't completed onboarding can only see their plan.
+  // Gate: staff who haven't completed onboarding can ONLY see their own plan page.
+  // Any other authenticated URL (dashboard, staff, other people's plans, etc.) is blocked.
   if (!profile.onboarded && !isAdmin) {
     const target = `/onboarding/${profile.id}`;
-    if (location.pathname !== target) {
+    const current = location.pathname.replace(/\/+$/, "");
+    if (current !== target) {
       return <Navigate to="/onboarding/$profileId" params={{ profileId: profile.id }} replace />;
     }
     return (
