@@ -208,14 +208,34 @@ function Subtree({ node }: { node: Node }) {
 }
 
 function RootTree({ root }: { root: Node }) {
-  const groups = groupByPosition(root.children);
+  const cols = root.children;
   return (
     <div className="flex flex-col items-center">
       <PersonBlock node={root} />
       {root.mentees.length > 0 && <MenteeChain nodes={root.mentees} />}
-      {groups.map((g, i) => (
-        <SiblingRow key={i} nodes={g} />
-      ))}
+      {cols.length > 0 && (
+        <>
+          {/* drop from root */}
+          <div className="h-6 border-l-2" style={{ borderColor: BRAND }} />
+          {/* horizontal spreader: each top-level report becomes a column */}
+          <div className="flex items-start">
+            {cols.map((c, i) => {
+              const first = i === 0;
+              const last = i === cols.length - 1;
+              return (
+                <div key={c.id} className="flex flex-col items-center" style={{ minWidth: 200 }}>
+                  <div className="flex w-full h-0">
+                    <div className="flex-1" style={{ borderTop: first ? "none" : `2px solid ${BRAND}` }} />
+                    <div className="flex-1" style={{ borderTop: last ? "none" : `2px solid ${BRAND}` }} />
+                  </div>
+                  <DownArrow height={24} />
+                  <Subtree node={c} />
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 }
