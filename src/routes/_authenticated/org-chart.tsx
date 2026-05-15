@@ -66,11 +66,11 @@ function PersonBlock({ node, dashed = false }: { node: Node; dashed?: boolean })
   );
 }
 
-/** Vertical dashed line ending in a downward arrowhead. */
+/** Vertical solid line ending in a downward arrowhead. */
 function DownArrow({ height = 28 }: { height?: number }) {
   return (
     <div className="flex flex-col items-center" style={{ height }}>
-      <div className="flex-1 border-l-2 border-dashed" style={{ borderColor: BRAND }} />
+      <div className="flex-1 border-l-2" style={{ borderColor: BRAND }} />
       <div
         style={{
           width: 0,
@@ -85,7 +85,7 @@ function DownArrow({ height = 28 }: { height?: number }) {
   );
 }
 
-/** Mentee chain: connects under a parent with a dashed L-shape, arrow pointing right into the mentee. */
+/** Mentee chain: connects under a parent with a solid L-shape, arrow pointing right into the mentee. */
 function MenteeChain({ nodes }: { nodes: Node[] }) {
   if (!nodes.length) return null;
   return (
@@ -93,7 +93,7 @@ function MenteeChain({ nodes }: { nodes: Node[] }) {
       {nodes.map((m) => (
         <div key={m.id} className="flex items-center gap-2">
           <div className="flex items-center" style={{ width: 24 }}>
-            <div className="flex-1 border-t-2 border-dashed" style={{ borderColor: BRAND }} />
+            <div className="flex-1 border-t-2" style={{ borderColor: BRAND }} />
             <div
               style={{
                 width: 0,
@@ -104,65 +104,84 @@ function MenteeChain({ nodes }: { nodes: Node[] }) {
               }}
             />
           </div>
-          <PersonBlock node={m} dashed />
+          <PersonBlock node={m} />
         </div>
       ))}
     </div>
   );
 }
 
+/** Group consecutive children sharing the same job_title together. */
+function groupByPosition(children: Node[]): Node[][] {
+  const groups: Node[][] = [];
+  for (const c of children) {
+    const last = groups[groups.length - 1];
+    if (last && (last[0].job_title ?? "") === (c.job_title ?? "")) {
+      last.push(c);
+    } else {
+      groups.push([c]);
+    }
+  }
+  return groups;
+}
+
+/** Render a horizontal spread of siblings with a shared connector bar. */
+function SiblingRow({ nodes }: { nodes: Node[] }) {
+  if (nodes.length === 1) {
+    return (
+      <div className="flex flex-col items-center">
+        <DownArrow />
+        <Subtree node={nodes[0]} />
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col items-center">
+      {/* drop from parent into the bar */}
+      <div className="h-6 border-l-2" style={{ borderColor: BRAND }} />
+      {/* horizontal bar with vertical drop+arrow per child */}
+      <div className="flex items-start">
+        {nodes.map((c, i) => {
+          const first = i === 0;
+          const last = i === nodes.length - 1;
+          return (
+            <div key={c.id} className="flex flex-col items-center" style={{ minWidth: 200 }}>
+              <div className="flex w-full h-0">
+                <div className="flex-1" style={{ borderTop: first ? "none" : `2px solid ${BRAND}` }} />
+                <div className="flex-1" style={{ borderTop: last ? "none" : `2px solid ${BRAND}` }} />
+              </div>
+              <DownArrow height={24} />
+              <Subtree node={c} />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function Subtree({ node }: { node: Node }) {
-  // Render this person, then their direct reports as a vertical chain (each pointed to by an arrow),
-  // with mentees branching off to the right with a dashed arrow.
+  const groups = groupByPosition(node.children);
   return (
     <div className="flex flex-col items-center">
       <PersonBlock node={node} />
       {node.mentees.length > 0 && <MenteeChain nodes={node.mentees} />}
-      {node.children.map((c) => (
-        <div key={c.id} className="flex flex-col items-center">
-          <DownArrow />
-          <Subtree node={c} />
-        </div>
+      {groups.map((g, i) => (
+        <SiblingRow key={i} nodes={g} />
       ))}
     </div>
   );
 }
 
 function RootTree({ root }: { root: Node }) {
-  const cols = root.children;
+  const groups = groupByPosition(root.children);
   return (
     <div className="flex flex-col items-center">
       <PersonBlock node={root} />
       {root.mentees.length > 0 && <MenteeChain nodes={root.mentees} />}
-      {cols.length > 0 && (
-        <>
-          {/* drop from root */}
-          <div className="h-6 border-l-2 border-dashed" style={{ borderColor: BRAND }} />
-          {/* horizontal spreader */}
-          <div className="flex items-start">
-            {cols.map((c, i) => {
-              const first = i === 0;
-              const last = i === cols.length - 1;
-              return (
-                <div key={c.id} className="flex flex-col items-center" style={{ minWidth: 200 }}>
-                  <div className="flex w-full h-0">
-                    <div
-                      className="flex-1"
-                      style={{ borderTop: first ? "none" : `2px dashed ${BRAND}` }}
-                    />
-                    <div
-                      className="flex-1"
-                      style={{ borderTop: last ? "none" : `2px dashed ${BRAND}` }}
-                    />
-                  </div>
-                  <DownArrow height={24} />
-                  <Subtree node={c} />
-                </div>
-              );
-            })}
-          </div>
-        </>
-      )}
+      {groups.map((g, i) => (
+        <SiblingRow key={i} nodes={g} />
+      ))}
     </div>
   );
 }
