@@ -41,11 +41,20 @@ function OnboardingPage() {
     queryFn: async () => (await supabase.from("onboarding_tasks").select("*").order("order_index")).data ?? [],
   });
 
-  const grouped = (staffQ.data ?? []).map((s) => {
-    const tasks = (tasksQ.data ?? []).filter((t) => t.profile_id === s.id);
-    const done = tasks.filter((t) => t.status === "completed").length;
-    return { staff: s, tasks, done, total: tasks.length };
-  }).filter((g) => filter === "all" ? true : g.staff.id === profile?.id);
+  const isNewHire = (start: string | null | undefined) => {
+    if (!start) return true; // no start date → still onboarding
+    const s = new Date(start).getTime();
+    const threeMonthsMs = 1000 * 60 * 60 * 24 * 30 * 3;
+    return Date.now() - s < threeMonthsMs;
+  };
+
+  const grouped = (staffQ.data ?? [])
+    .filter((s) => isNewHire(s.start_date))
+    .map((s) => {
+      const tasks = (tasksQ.data ?? []).filter((t) => t.profile_id === s.id);
+      const done = tasks.filter((t) => t.status === "completed").length;
+      return { staff: s, tasks, done, total: tasks.length };
+    }).filter((g) => filter === "all" ? true : g.staff.id === profile?.id);
 
   const updateStatus = async (id: string, status: string) => {
     const { error } = await supabase.from("onboarding_tasks").update({ status }).eq("id", id);
