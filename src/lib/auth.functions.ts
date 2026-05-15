@@ -168,6 +168,7 @@ export const adminUpdateUser = createServerFn({ method: "POST" })
       job_title: data.job_title ?? null,
       department: data.department ?? null,
       manager_id: data.manager_id ?? null,
+      mentor_id: data.mentor_id ?? null,
       start_date: data.start_date ?? null,
       status: data.status ?? "active",
       avatar_url: data.avatar_url ?? null,
