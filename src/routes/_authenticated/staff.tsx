@@ -489,7 +489,7 @@ function RelationshipDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
+      <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit {person.full_name}</DialogTitle>
         </DialogHeader>
@@ -541,6 +541,44 @@ function RelationshipDialog({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="pt-2 border-t border-border space-y-3">
+            <h4 className="text-sm font-semibold">Personal info</h4>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Phone</Label>
+                <Input value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={40} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Date of birth</Label>
+                <Input type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Gender</Label>
+                <Input value={gender} onChange={(e) => setGender(e.target.value)} maxLength={40} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Nationality</Label>
+                <Input value={nationality} onChange={(e) => setNationality(e.target.value)} maxLength={80} />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-xs">Address</Label>
+                <Input value={address} onChange={(e) => setAddress(e.target.value)} maxLength={500} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Emergency contact name</Label>
+                <Input value={ecName} onChange={(e) => setEcName(e.target.value)} maxLength={120} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Emergency contact phone</Label>
+                <Input value={ecPhone} onChange={(e) => setEcPhone(e.target.value)} maxLength={40} />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-xs">Bio</Label>
+                <Textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} maxLength={2000} />
+              </div>
+            </div>
           </div>
         </div>
         <DialogFooter>
