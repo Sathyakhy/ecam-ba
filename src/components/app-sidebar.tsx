@@ -12,6 +12,7 @@ import {
   LogOut,
   UserCircle,
   Network,
+  Briefcase,
 } from "lucide-react";
 import {
   Sidebar,

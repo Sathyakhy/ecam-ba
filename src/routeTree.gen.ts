@@ -19,6 +19,7 @@ import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedStaffRouteImport } from './routes/_authenticated/staff'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as AuthenticatedPositionsRouteImport } from './routes/_authenticated/positions'
 import { Route as AuthenticatedOrgChartRouteImport } from './routes/_authenticated/org-chart'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedLearningRouteImport } from './routes/_authenticated/learning'
@@ -75,6 +76,11 @@ const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedPositionsRoute = AuthenticatedPositionsRouteImport.update({
+  id: '/positions',
+  path: '/positions',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedOrgChartRoute = AuthenticatedOrgChartRouteImport.update({
   id: '/org-chart',
   path: '/org-chart',
@@ -119,6 +125,7 @@ export interface FileRoutesByFullPath {
   '/learning': typeof AuthenticatedLearningRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/org-chart': typeof AuthenticatedOrgChartRoute
+  '/positions': typeof AuthenticatedPositionsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/staff': typeof AuthenticatedStaffRoute
@@ -136,6 +143,7 @@ export interface FileRoutesByTo {
   '/learning': typeof AuthenticatedLearningRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/org-chart': typeof AuthenticatedOrgChartRoute
+  '/positions': typeof AuthenticatedPositionsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/staff': typeof AuthenticatedStaffRoute
@@ -155,6 +163,7 @@ export interface FileRoutesById {
   '/_authenticated/learning': typeof AuthenticatedLearningRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/org-chart': typeof AuthenticatedOrgChartRoute
+  '/_authenticated/positions': typeof AuthenticatedPositionsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/staff': typeof AuthenticatedStaffRoute
@@ -174,6 +183,7 @@ export interface FileRouteTypes {
     | '/learning'
     | '/onboarding'
     | '/org-chart'
+    | '/positions'
     | '/profile'
     | '/settings'
     | '/staff'
@@ -191,6 +201,7 @@ export interface FileRouteTypes {
     | '/learning'
     | '/onboarding'
     | '/org-chart'
+    | '/positions'
     | '/profile'
     | '/settings'
     | '/staff'
@@ -209,6 +220,7 @@ export interface FileRouteTypes {
     | '/_authenticated/learning'
     | '/_authenticated/onboarding'
     | '/_authenticated/org-chart'
+    | '/_authenticated/positions'
     | '/_authenticated/profile'
     | '/_authenticated/settings'
     | '/_authenticated/staff'
@@ -296,6 +308,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProfileRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/positions': {
+      id: '/_authenticated/positions'
+      path: '/positions'
+      fullPath: '/positions'
+      preLoaderRoute: typeof AuthenticatedPositionsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/org-chart': {
       id: '/_authenticated/org-chart'
       path: '/org-chart'
@@ -348,6 +367,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedLearningRoute: typeof AuthenticatedLearningRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedOrgChartRoute: typeof AuthenticatedOrgChartRoute
+  AuthenticatedPositionsRoute: typeof AuthenticatedPositionsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedStaffRoute: typeof AuthenticatedStaffRoute
@@ -361,6 +381,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedLearningRoute: AuthenticatedLearningRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedOrgChartRoute: AuthenticatedOrgChartRoute,
+  AuthenticatedPositionsRoute: AuthenticatedPositionsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedStaffRoute: AuthenticatedStaffRoute,
