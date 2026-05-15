@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { PageHeader } from "@/components/page-header";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
@@ -333,6 +334,15 @@ function StaffPage() {
                 </div>
               </div>
 
+              {/* Contact */}
+              {((p as any).phone || p.email) && (
+                <div className="border-t border-border pt-2 space-y-1 text-xs text-muted-foreground">
+                  {(p as any).phone && (
+                    <div className="truncate">📞 {(p as any).phone}</div>
+                  )}
+                </div>
+              )}
+
               {/* Footer actions */}
               <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
                 <a href={`mailto:${p.email}`} className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1 min-w-0">
@@ -383,9 +393,23 @@ function RelationshipDialog({
   onSaved: () => void;
 }) {
   const updateUser = useServerFn(adminUpdateUser);
+  const p = person as Profile & {
+    phone?: string | null; date_of_birth?: string | null; gender?: string | null;
+    address?: string | null; nationality?: string | null;
+    emergency_contact_name?: string | null; emergency_contact_phone?: string | null;
+    bio?: string | null;
+  };
   const [managerId, setManagerId] = useState<string>(person.manager_id ?? "__none__");
   const [mentorId, setMentorId] = useState<string>((person as any).mentor_id ?? "__none__");
   const [jobTitle, setJobTitle] = useState<string>(person.job_title ?? "__none__");
+  const [phone, setPhone] = useState(p.phone ?? "");
+  const [dob, setDob] = useState(p.date_of_birth ?? "");
+  const [gender, setGender] = useState(p.gender ?? "");
+  const [address, setAddress] = useState(p.address ?? "");
+  const [nationality, setNationality] = useState(p.nationality ?? "");
+  const [ecName, setEcName] = useState(p.emergency_contact_name ?? "");
+  const [ecPhone, setEcPhone] = useState(p.emergency_contact_phone ?? "");
+  const [bio, setBio] = useState(p.bio ?? "");
   const [saving, setSaving] = useState(false);
 
   const priorityByName = useMemo(() => {
@@ -438,6 +462,14 @@ function RelationshipDialog({
           start_date: person.start_date,
           status: (person.status as "active" | "inactive") ?? "active",
           avatar_url: person.avatar_url,
+          phone: phone || null,
+          date_of_birth: dob || null,
+          gender: gender || null,
+          address: address || null,
+          nationality: nationality || null,
+          emergency_contact_name: ecName || null,
+          emergency_contact_phone: ecPhone || null,
+          bio: bio || null,
         },
       });
       toast.success("Updated");
@@ -457,7 +489,7 @@ function RelationshipDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
+      <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit {person.full_name}</DialogTitle>
         </DialogHeader>
@@ -509,6 +541,44 @@ function RelationshipDialog({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="pt-2 border-t border-border space-y-3">
+            <h4 className="text-sm font-semibold">Personal info</h4>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Phone</Label>
+                <Input value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={40} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Date of birth</Label>
+                <Input type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Gender</Label>
+                <Input value={gender} onChange={(e) => setGender(e.target.value)} maxLength={40} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Nationality</Label>
+                <Input value={nationality} onChange={(e) => setNationality(e.target.value)} maxLength={80} />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-xs">Address</Label>
+                <Input value={address} onChange={(e) => setAddress(e.target.value)} maxLength={500} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Emergency contact name</Label>
+                <Input value={ecName} onChange={(e) => setEcName(e.target.value)} maxLength={120} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Emergency contact phone</Label>
+                <Input value={ecPhone} onChange={(e) => setEcPhone(e.target.value)} maxLength={40} />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-xs">Bio</Label>
+                <Textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} maxLength={2000} />
+              </div>
+            </div>
           </div>
         </div>
         <DialogFooter>
