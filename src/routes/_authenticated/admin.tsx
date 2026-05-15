@@ -18,7 +18,12 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { PageHeader } from "@/components/page-header";
-import { adminCreateUser, adminDeleteUser } from "@/lib/auth.functions";
+import { ImageUpload } from "@/components/image-upload";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { adminCreateUser, adminDeleteUser, adminUpdateUser } from "@/lib/auth.functions";
+import type { Tables } from "@/integrations/supabase/types";
+
+type UserRow = Tables<"profiles"> & { role: string };
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
