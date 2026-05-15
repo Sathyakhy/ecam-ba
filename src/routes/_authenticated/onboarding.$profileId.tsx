@@ -258,6 +258,15 @@ function PlanHeaderEditor({ plan, canEdit, onSaved }: { plan: any; canEdit: bool
   const [senior, setSenior] = useState(plan.senior_name ?? "");
   const [supervisor, setSupervisor] = useState(plan.supervisor_name ?? "");
   const [contact, setContact] = useState(plan.point_of_contact ?? "");
+  const [assigneeId, setAssigneeId] = useState<string>(plan.assignee_id ?? "");
+
+  const staffQ = useQuery({
+    enabled: canEdit,
+    queryKey: ["assignable-staff"],
+    queryFn: async () =>
+      (await supabase.from("profiles").select("id,full_name,job_title").order("full_name")).data ?? [],
+  });
+  const assigneeName = (staffQ.data ?? []).find((s) => s.id === plan.assignee_id)?.full_name;
 
   useEffect(() => {
     setWelcome(plan.welcome_message ?? "");
@@ -265,6 +274,7 @@ function PlanHeaderEditor({ plan, canEdit, onSaved }: { plan: any; canEdit: bool
     setSenior(plan.senior_name ?? "");
     setSupervisor(plan.supervisor_name ?? "");
     setContact(plan.point_of_contact ?? "");
+    setAssigneeId(plan.assignee_id ?? "");
   }, [plan.id]);
 
   const save = async () => {
@@ -274,7 +284,8 @@ function PlanHeaderEditor({ plan, canEdit, onSaved }: { plan: any; canEdit: bool
       senior_name: senior || null,
       supervisor_name: supervisor || null,
       point_of_contact: contact || null,
-    }).eq("id", plan.id);
+      assignee_id: assigneeId || null,
+    } as never).eq("id", plan.id);
     if (error) return toast.error(error.message);
     toast.success("Saved");
     onSaved();
@@ -289,6 +300,7 @@ function PlanHeaderEditor({ plan, canEdit, onSaved }: { plan: any; canEdit: bool
           {senior && <div><span className="text-muted-foreground">Senior:</span> {senior}</div>}
           {supervisor && <div><span className="text-muted-foreground">Supervisor:</span> {supervisor}</div>}
           {contact && <div><span className="text-muted-foreground">Point of contact:</span> {contact}</div>}
+          {assigneeName && <div><span className="text-muted-foreground">Assigned to:</span> {assigneeName}</div>}
         </div>
       </div>
     );
@@ -304,6 +316,23 @@ function PlanHeaderEditor({ plan, canEdit, onSaved }: { plan: any; canEdit: bool
         <Field label="Senior" v={senior} setV={setSenior} />
         <Field label="Supervisor" v={supervisor} setV={setSupervisor} />
         <Field label="Point of contact" v={contact} setV={setContact} />
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label className="text-xs">Assigned staff (can view this plan)</Label>
+          <Select
+            value={assigneeId || "__none__"}
+            onValueChange={(v) => setAssigneeId(v === "__none__" ? "" : v)}
+          >
+            <SelectTrigger><SelectValue placeholder="No assignee" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">No assignee</SelectItem>
+              {(staffQ.data ?? []).map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  {s.full_name}{s.job_title ? ` · ${s.job_title}` : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       <Button size="sm" onClick={save}><Save className="h-3.5 w-3.5 mr-1" /> Save header</Button>
     </div>
