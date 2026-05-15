@@ -4,6 +4,8 @@ import { useState, useMemo, useRef } from "react";
 import { Search, UserPlus, Download, Upload } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { adminBulkImportStaff } from "@/lib/auth.functions";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -61,6 +63,8 @@ function StaffPage() {
     XLSX.writeFile(wb, `staff-${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
+  const bulkImport = useServerFn(adminBulkImportStaff);
+
   const handleImport = async (file: File) => {
     setImporting(true);
     try {
@@ -68,30 +72,35 @@ function StaffPage() {
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf);
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json<Record<string, any>>(ws);
-      const list = staff.data ?? [];
-      const byEmail = new Map(list.map((p) => [p.email?.toLowerCase(), p]));
-      let updated = 0;
-      let skipped = 0;
-      for (const r of rows) {
-        const email = String(r.email ?? "").trim().toLowerCase();
-        const existing = byEmail.get(email);
-        if (!existing) { skipped++; continue; }
-        const managerEmail = String(r.manager_email ?? "").trim().toLowerCase();
-        const manager_id = managerEmail ? (byEmail.get(managerEmail)?.id ?? null) : null;
-        const patch: Record<string, any> = {
-          full_name: r.full_name ?? existing.full_name,
-          username: r.username ?? existing.username,
-          job_title: r.job_title ?? null,
-          department: r.department ?? null,
-          status: r.status ?? existing.status,
-          manager_id,
-          start_date: r.start_date ? String(r.start_date).slice(0, 10) : null,
+      const raw = XLSX.utils.sheet_to_json<Record<string, any>>(ws);
+      const rows = raw.map((r) => {
+        let start_date: string | null = null;
+        if (r.start_date != null && r.start_date !== "") {
+          if (typeof r.start_date === "number") {
+            const d = XLSX.SSF.parse_date_code(r.start_date);
+            if (d) start_date = `${d.y}-${String(d.m).padStart(2, "0")}-${String(d.d).padStart(2, "0")}`;
+          } else {
+            start_date = String(r.start_date).slice(0, 10);
+          }
+        }
+        return {
+          full_name: String(r.full_name ?? "").trim(),
+          username: String(r.username ?? "").trim(),
+          email: String(r.email ?? "").trim(),
+          job_title: r.job_title ? String(r.job_title).trim() : null,
+          department: r.department ? String(r.department).trim() : null,
+          status: (r.status === "inactive" ? "inactive" : "active") as "active" | "inactive",
+          manager_email: r.manager_email ? String(r.manager_email).trim() : null,
+          start_date,
         };
-        const { error } = await (supabase.from("profiles") as any).update(patch).eq("id", existing.id);
-        if (error) { skipped++; } else { updated++; }
-      }
-      toast.success(`Imported: ${updated} updated, ${skipped} skipped`);
+      }).filter((r) => r.email && r.full_name && r.username);
+
+      const res = await bulkImport({ data: { rows } });
+      const msg = `Created ${res.created}, updated ${res.updated}` +
+        (res.errors.length ? `, ${res.errors.length} errors` : "");
+      toast.success(msg);
+      if (res.errors.length) console.warn("Import errors", res.errors);
+      if (res.tempPasswords.length) console.info("Temp passwords (share with users):", res.tempPasswords);
       qc.invalidateQueries({ queryKey: ["staff-full"] });
     } catch (e: any) {
       toast.error(e.message ?? "Import failed");

@@ -229,3 +229,81 @@ export const getMyProfile = createServerFn({ method: "GET" })
       isAdmin: !!roles?.some((r) => r.role === "admin"),
     };
   });
+
+// Admin: bulk import staff (create or update)
+export const adminBulkImportStaff = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({
+      rows: z.array(z.object({
+        full_name: z.string().trim().min(1).max(120),
+        username: z.string().trim().min(1).max(64),
+        email: z.string().trim().email().max(255),
+        job_title: z.string().trim().max(120).nullable().optional(),
+        department: z.string().trim().max(120).nullable().optional(),
+        status: z.enum(["active", "inactive"]).optional(),
+        manager_email: z.string().trim().max(255).optional().nullable(),
+        start_date: z.string().nullable().optional(),
+      })).min(1).max(500),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: roles } = await context.supabase
+      .from("user_roles").select("role").eq("user_id", context.userId);
+    if (!roles?.some((r) => r.role === "admin")) throw new Error("Forbidden: admin only");
+
+    const { data: existing } = await supabaseAdmin.from("profiles").select("id,email");
+    const byEmail = new Map((existing ?? []).map((p) => [p.email.toLowerCase(), p.id]));
+
+    // First pass: create/update profiles
+    let created = 0, updated = 0;
+    const errors: { email: string; message: string }[] = [];
+    const tempPasswords: { email: string; password: string }[] = [];
+
+    for (const r of data.rows) {
+      const email = r.email.toLowerCase();
+      const username = r.username.toLowerCase();
+      const start_date = r.start_date ? String(r.start_date).slice(0, 10) : null;
+
+      try {
+        const id = byEmail.get(email);
+        if (id) {
+          const { error } = await supabaseAdmin.from("profiles").update({
+            full_name: r.full_name, username, job_title: r.job_title ?? null,
+            department: r.department ?? null, status: r.status ?? "active",
+            start_date,
+          }).eq("id", id);
+          if (error) throw error;
+          updated++;
+        } else {
+          const password = Math.random().toString(36).slice(2, 10) + "Aa1!";
+          const { data: cu, error: ce } = await supabaseAdmin.auth.admin.createUser({
+            email: r.email, password, email_confirm: true,
+            user_metadata: { username, full_name: r.full_name },
+          });
+          if (ce || !cu.user) throw new Error(ce?.message ?? "createUser failed");
+          const { error: pe } = await supabaseAdmin.from("profiles").insert({
+            id: cu.user.id, username, full_name: r.full_name, email: r.email,
+            job_title: r.job_title ?? null, department: r.department ?? null,
+            status: r.status ?? "active", start_date,
+          });
+          if (pe) { await supabaseAdmin.auth.admin.deleteUser(cu.user.id); throw pe; }
+          await supabaseAdmin.from("user_roles").insert({ user_id: cu.user.id, role: "staff" });
+          byEmail.set(email, cu.user.id);
+          tempPasswords.push({ email: r.email, password });
+          created++;
+        }
+      } catch (e: any) {
+        errors.push({ email: r.email, message: e.message ?? String(e) });
+      }
+    }
+
+    // Second pass: link managers (now all profiles exist)
+    for (const r of data.rows) {
+      const me = byEmail.get(r.email.toLowerCase());
+      const mgr = r.manager_email ? byEmail.get(r.manager_email.toLowerCase()) ?? null : null;
+      if (me) await supabaseAdmin.from("profiles").update({ manager_id: mgr }).eq("id", me);
+    }
+
+    return { created, updated, errors, tempPasswords };
+  });
