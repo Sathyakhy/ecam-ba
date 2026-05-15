@@ -359,7 +359,7 @@ function StaffPage() {
         <RelationshipDialog
           person={editing}
           staff={staff.data ?? []}
-          positions={(positions.data ?? []).map((p) => p.name)}
+          positions={positions.data ?? []}
           onClose={() => setEditing(null)}
           onSaved={() => {
             setEditing(null);
