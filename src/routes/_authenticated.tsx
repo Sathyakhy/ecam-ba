@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, Navigate } from "@tanstack/react-router";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 
@@ -35,6 +36,7 @@ function AuthenticatedLayout() {
           <header className="h-14 flex items-center gap-2 border-b border-border px-4 sticky top-0 bg-background/95 backdrop-blur z-10">
             <SidebarTrigger />
             <div className="text-sm text-muted-foreground">Department workspace</div>
+            <div className="ml-auto"><ThemeToggle /></div>
           </header>
           <main className="flex-1 p-6 lg:p-8">
             <Outlet />
