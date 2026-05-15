@@ -136,7 +136,7 @@ function MenteeChain({ nodes }: { nodes: Node[] }) {
                 }}
               />
             </div>
-            <div className="ml-1">
+            <div>
               <PersonBlock node={m} />
             </div>
           </div>
@@ -202,7 +202,7 @@ function SiblingRow({ nodes }: { nodes: Node[] }) {
                 }}
               />
             </div>
-            <div className="ml-1">
+            <div>
               <Subtree node={c} />
             </div>
           </div>
