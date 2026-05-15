@@ -211,6 +211,36 @@ export type Database = {
           },
         ]
       }
+      onboarding_history: {
+        Row: {
+          completed_at: string
+          completed_by: string | null
+          id: string
+          plan_id: string | null
+          profile_id: string
+          snapshot: Json
+          summary: string | null
+        }
+        Insert: {
+          completed_at?: string
+          completed_by?: string | null
+          id?: string
+          plan_id?: string | null
+          profile_id: string
+          snapshot: Json
+          summary?: string | null
+        }
+        Update: {
+          completed_at?: string
+          completed_by?: string | null
+          id?: string
+          plan_id?: string | null
+          profile_id?: string
+          snapshot?: Json
+          summary?: string | null
+        }
+        Relationships: []
+      }
       onboarding_plans: {
         Row: {
           created_at: string
