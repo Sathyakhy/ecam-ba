@@ -1,206 +1,199 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { useMemo } from "react";
 import { toast } from "sonner";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PageHeader } from "@/components/page-header";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
   component: OnboardingPage,
 });
 
-const STATUSES = ["pending", "in_progress", "completed"] as const;
+const isNewHire = (start: string | null | undefined) => {
+  if (!start) return true;
+  const ms = Date.now() - new Date(start).getTime();
+  return ms < 1000 * 60 * 60 * 24 * 30 * 3;
+};
+
+function tenureDays(start: string | null | undefined) {
+  if (!start) return null;
+  const days = Math.floor((Date.now() - new Date(start).getTime()) / 86400000);
+  return days;
+}
 
 function OnboardingPage() {
-  const { profile, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   const qc = useQueryClient();
-  const [filter, setFilter] = useState<"all" | "mine">(isAdmin ? "all" : "mine");
 
   const staffQ = useQuery({
     queryKey: ["staff-min"],
-    queryFn: async () => (await supabase.from("profiles").select("id,full_name,username,start_date,status").order("full_name")).data ?? [],
+    queryFn: async () =>
+      (await supabase.from("profiles").select("id,full_name,username,avatar_url,start_date,job_title,department").order("full_name")).data ?? [],
   });
 
-  const tasksQ = useQuery({
-    queryKey: ["onboarding-all"],
-    queryFn: async () => (await supabase.from("onboarding_tasks").select("*").order("order_index")).data ?? [],
+  const plansQ = useQuery({
+    queryKey: ["onboarding-plans"],
+    queryFn: async () => (await supabase.from("onboarding_plans").select("id,profile_id")).data ?? [],
   });
 
-  const isNewHire = (start: string | null | undefined) => {
-    if (!start) return true; // no start date → still onboarding
-    const s = new Date(start).getTime();
-    const threeMonthsMs = 1000 * 60 * 60 * 24 * 30 * 3;
-    return Date.now() - s < threeMonthsMs;
-  };
+  const newHires = useMemo(
+    () => (staffQ.data ?? []).filter((s) => isNewHire(s.start_date)),
+    [staffQ.data],
+  );
+  const planByProfile = useMemo(() => {
+    const m = new Map<string, string>();
+    (plansQ.data ?? []).forEach((p) => m.set(p.profile_id, p.id));
+    return m;
+  }, [plansQ.data]);
 
-  const grouped = (staffQ.data ?? [])
-    .filter((s) => isNewHire(s.start_date))
-    .map((s) => {
-      const tasks = (tasksQ.data ?? []).filter((t) => t.profile_id === s.id);
-      const done = tasks.filter((t) => t.status === "completed").length;
-      return { staff: s, tasks, done, total: tasks.length };
-    }).filter((g) => filter === "all" ? true : g.staff.id === profile?.id);
+  const createPlan = async (profileId: string, fullName: string, jobTitle: string | null) => {
+    const { data: plan, error } = await supabase
+      .from("onboarding_plans")
+      .insert({
+        profile_id: profileId,
+        welcome_message: `Welcome to the team, ${fullName}!`,
+        intern_position: jobTitle ?? "",
+      })
+      .select("id")
+      .single();
+    if (error || !plan) return toast.error(error?.message ?? "Failed to create plan");
 
-  const updateStatus = async (id: string, status: string) => {
-    const { error } = await supabase.from("onboarding_tasks").update({ status }).eq("id", id);
-    if (error) return toast.error(error.message);
-    qc.invalidateQueries({ queryKey: ["onboarding-all"] });
+    // Seed default sections
+    const sections = [
+      {
+        title: "Welcome & Orientation",
+        body: "- Familiarize yourself with the company and your department.\n- Complete onboarding assessments and share with your point of contact.",
+      },
+      {
+        title: "Setup with Tools",
+        body: "List the tools the new hire will use:\n- Email (Outlook)\n- Documents (Microsoft Office)\n- Communication (Telegram, WhatsApp, Microsoft Teams)\n- Storage (OneDrive)",
+      },
+      {
+        title: "Internship / Onboarding Goals",
+        body: "- Gain an understanding of our business, services, and clients.\n- Learn about projects, tools, and workflows.\n- Develop familiarity with how the department operates.",
+      },
+      {
+        title: "How You Contribute",
+        body: "- Learn project coordination by shadowing your senior.\n- Support implementation and documentation.\n- Help troubleshoot issues under supervision.\n- Collaborate with mentors and the team.",
+      },
+      {
+        title: "Expected Outcomes",
+        body: "- Exposure to enterprise systems and project workflows.\n- Skills in documentation, testing, and support.\n- Stronger communication and collaboration in a professional environment.",
+      },
+    ].map((s, i) => ({ ...s, plan_id: plan.id, order_index: i }));
+    await supabase.from("onboarding_sections").insert(sections);
+
+    // Seed evaluations
+    const evals = [
+      ["Documentation Skills", "Clarity, accuracy, consistency."],
+      ["Technical Support", "Ability to assist in troubleshooting/testing."],
+      ["Coordination", "Understanding workflows, task tracking."],
+      ["Communication", "Professional emails, reporting, teamwork."],
+      ["Collaboration", "Working with mentors and colleagues."],
+      ["Initiative", "Willingness to learn, propose improvements."],
+    ].map(([area, description], i) => ({
+      plan_id: plan.id, area, description, order_index: i,
+    }));
+    await supabase.from("onboarding_evaluations").insert(evals);
+
+    // Seed expectations
+    const expectations = [
+      "Attendance & Punctuality",
+      "Adaptability & Learning",
+      "Confidentiality & Awareness",
+      "Workplace Conduct",
+    ].map((area, i) => ({ plan_id: plan.id, area, order_index: i }));
+    await supabase.from("onboarding_expectations").insert(expectations);
+
+    // Seed reflections (4 questions × 3 checkpoints)
+    const questions = [
+      "What have I learned so far?",
+      "What challenges did I face, and how did I overcome them?",
+      "What strengths have I discovered in myself?",
+      "What skills do I want to improve next?",
+    ];
+    const reflections = ([30, 60, 90] as const).flatMap((cp) =>
+      questions.map((question, i) => ({ plan_id: plan.id, checkpoint: cp, question, order_index: i })),
+    );
+    await supabase.from("onboarding_reflections").insert(reflections);
+
+    // Seed progress checkpoints
+    const progress = [
+      { checkpoint: 30, note: "Orientation complete, basic tasks observed/documented." },
+      { checkpoint: 60, note: "Independent contribution to small tasks/projects." },
+      { checkpoint: 90, note: "Demonstrated growth, presented reflection or project, ready for review." },
+    ].map((p, i) => ({ ...p, plan_id: plan.id, order_index: i }));
+    await supabase.from("onboarding_progress").insert(progress);
+
+    toast.success("Plan created");
+    qc.invalidateQueries({ queryKey: ["onboarding-plans"] });
   };
 
   return (
     <div>
       <PageHeader
         title="Onboarding"
-        description="Track new staff onboarding progress and checklists."
-        actions={
-          <>
-            <Select value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
-              <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All staff</SelectItem>
-                <SelectItem value="mine">My checklist</SelectItem>
-              </SelectContent>
-            </Select>
-            {isAdmin && <NewTaskDialog staff={staffQ.data ?? []} onCreated={() => qc.invalidateQueries({ queryKey: ["onboarding-all"] })} />}
-          </>
-        }
+        description="Structured onboarding plans for new staff (first 3 months)."
       />
 
-      {grouped.length === 0 && (
+      {newHires.length === 0 ? (
         <Card className="p-10 text-center text-sm text-muted-foreground">
-          No onboarding records yet.
+          No new staff in onboarding right now.
         </Card>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {newHires.map((s) => {
+            const planId = planByProfile.get(s.id);
+            const days = tenureDays(s.start_date);
+            const initials = s.full_name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+            return (
+              <Card key={s.id} className="p-4 flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-11 w-11">
+                    {s.avatar_url && <AvatarImage src={s.avatar_url} alt={s.full_name} />}
+                    <AvatarFallback className="bg-primary/10 text-primary text-xs">{initials}</AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium truncate">{s.full_name}</div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {s.job_title ?? "—"}{s.department ? ` · ${s.department}` : ""}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  <Badge variant="secondary" className="text-[10px]">
+                    {days != null ? `Day ${days + 1}` : "No start date"}
+                  </Badge>
+                  {planId ? (
+                    <Badge className="text-[10px]">Plan ready</Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-[10px]">No plan yet</Badge>
+                  )}
+                </div>
+                {planId ? (
+                  <Button asChild size="sm" variant="secondary" className="mt-auto">
+                    <Link to="/onboarding/$profileId" params={{ profileId: s.id }}>
+                      Open plan <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                    </Link>
+                  </Button>
+                ) : isAdmin ? (
+                  <Button size="sm" className="mt-auto" onClick={() => createPlan(s.id, s.full_name, s.job_title)}>
+                    <Sparkles className="h-3.5 w-3.5 mr-1" /> Create plan from template
+                  </Button>
+                ) : (
+                  <p className="text-xs text-muted-foreground mt-auto">Awaiting admin to create plan.</p>
+                )}
+              </Card>
+            );
+          })}
+        </div>
       )}
-
-      <div className="space-y-4">
-        {grouped.map(({ staff, tasks, done, total }) => (
-          <Card key={staff.id} className="p-5">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-              <div>
-                <h3 className="font-semibold">{staff.full_name} <span className="text-muted-foreground font-normal">@{staff.username}</span></h3>
-                <p className="text-xs text-muted-foreground">
-                  {staff.start_date ? `Started ${new Date(staff.start_date).toLocaleDateString()}` : "No start date"}
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <Badge variant={total && done === total ? "default" : "secondary"}>
-                  {total ? `${done}/${total} complete` : "No tasks"}
-                </Badge>
-                <div className="w-32"><Progress value={total ? (done / total) * 100 : 0} /></div>
-              </div>
-            </div>
-            {tasks.length > 0 ? (
-              <ul className="divide-y divide-border">
-                {tasks.map((t) => {
-                  const canEdit = isAdmin || t.assignee_id === profile?.id || t.profile_id === profile?.id;
-                  return (
-                    <li key={t.id} className="py-3 flex items-start sm:items-center gap-3 flex-col sm:flex-row sm:justify-between">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium">{t.title}</p>
-                        {t.description && <p className="text-xs text-muted-foreground mt-0.5">{t.description}</p>}
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        {t.due_date && <span className="text-xs text-muted-foreground">Due {new Date(t.due_date).toLocaleDateString()}</span>}
-                        <Select value={t.status} onValueChange={(v) => updateStatus(t.id, v)} disabled={!canEdit}>
-                          <SelectTrigger className="w-36 h-8 text-xs"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {STATUSES.map((s) => <SelectItem key={s} value={s}>{s.replace("_", " ")}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                        {isAdmin && (
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={async () => {
-                            await supabase.from("onboarding_tasks").delete().eq("id", t.id);
-                            qc.invalidateQueries({ queryKey: ["onboarding-all"] });
-                          }}>
-                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                          </Button>
-                        )}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">No tasks assigned.</p>
-            )}
-          </Card>
-        ))}
-      </div>
     </div>
-  );
-}
-
-function NewTaskDialog({ staff, onCreated }: { staff: { id: string; full_name: string }[]; onCreated: () => void }) {
-  const [open, setOpen] = useState(false);
-  const [profileId, setProfileId] = useState("");
-  const [title, setTitle] = useState("");
-  const [desc, setDesc] = useState("");
-  const [assignee, setAssignee] = useState<string>("");
-  const [due, setDue] = useState("");
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!profileId || !title) return;
-    const { error } = await supabase.from("onboarding_tasks").insert({
-      profile_id: profileId,
-      title,
-      description: desc || null,
-      assignee_id: assignee || null,
-      due_date: due || null,
-    });
-    if (error) return toast.error(error.message);
-    toast.success("Task added");
-    setOpen(false); setTitle(""); setDesc(""); setDue(""); setAssignee(""); setProfileId("");
-    onCreated();
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" /> Add task</Button></DialogTrigger>
-      <DialogContent>
-        <DialogHeader><DialogTitle>New onboarding task</DialogTitle></DialogHeader>
-        <form onSubmit={submit} className="space-y-4">
-          <div className="space-y-2">
-            <Label>For staff member</Label>
-            <Select value={profileId} onValueChange={setProfileId}>
-              <SelectTrigger><SelectValue placeholder="Select staff" /></SelectTrigger>
-              <SelectContent>
-                {staff.map((s) => <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2"><Label>Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={200} /></div>
-          <div className="space-y-2"><Label>Description</Label><Textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} maxLength={1000} /></div>
-          <div className="grid sm:grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>Assignee (optional)</Label>
-              <Select value={assignee} onValueChange={setAssignee}>
-                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                <SelectContent>
-                  {staff.map((s) => <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2"><Label>Due date</Label><Input type="date" value={due} onChange={(e) => setDue(e.target.value)} /></div>
-          </div>
-          <DialogFooter><Button type="submit">Create</Button></DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
   );
 }
