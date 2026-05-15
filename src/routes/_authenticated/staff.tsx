@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useRef } from "react";
 import { Search, UserPlus, Download, Upload } from "lucide-react";
-import * as XLSX from "xlsx";
+
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -43,7 +43,8 @@ function StaffPage() {
 
   const managerName = (id: string | null) => staff.data?.find((p) => p.id === id)?.full_name ?? "—";
 
-  const handleExport = () => {
+  const handleExport = async () => {
+    const XLSX = await import("xlsx");
     const rows = (staff.data ?? []).map((p) => ({
       full_name: p.full_name,
       username: p.username,
@@ -63,6 +64,7 @@ function StaffPage() {
   const handleImport = async (file: File) => {
     setImporting(true);
     try {
+      const XLSX = await import("xlsx");
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf);
       const ws = wb.Sheets[wb.SheetNames[0]];
