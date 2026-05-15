@@ -123,16 +123,54 @@ function PlanPage() {
               size="sm"
               variant={p.onboarded ? "outline" : "default"}
               onClick={async () => {
+                if (p.onboarded) {
+                  // Reopen onboarding (history snapshots are kept)
+                  const { error } = await supabase
+                    .from("profiles")
+                    .update({ onboarded: false } as never)
+                    .eq("id", profileId);
+                  if (error) return toast.error(error.message);
+                  toast.success("Reopened onboarding");
+                  qc.invalidateQueries({ queryKey: ["plan-profile", profileId] });
+                  return;
+                }
+                // Snapshot the current plan into history, then mark onboarded
+                const snapshot = {
+                  profile: p,
+                  plan: planQ.data,
+                  sections: sectionsQ.data ?? [],
+                  evaluations: evalsQ.data ?? [],
+                  expectations: expectQ.data ?? [],
+                  reflections: reflectQ.data ?? [],
+                  progress: progressQ.data ?? [],
+                };
+                const evals = evalsQ.data ?? [];
+                const ratings = evals
+                  .map((e: any) => Number(e.rating_90 ?? e.rating_60 ?? e.rating_30))
+                  .filter((n) => !isNaN(n));
+                const avg = ratings.length ? (ratings.reduce((a, b) => a + b, 0) / ratings.length) : null;
+                const summary = avg != null
+                  ? `Completed onboarding · avg rating ${avg.toFixed(1)}/5 across ${evals.length} areas`
+                  : `Completed onboarding · ${evals.length} evaluation areas`;
+                const { error: histErr } = await supabase.from("onboarding_history").insert({
+                  profile_id: profileId,
+                  plan_id: planId,
+                  completed_by: user?.id ?? null,
+                  summary,
+                  snapshot,
+                } as never);
+                if (histErr) return toast.error(histErr.message);
                 const { error } = await supabase
                   .from("profiles")
-                  .update({ onboarded: !p.onboarded } as never)
+                  .update({ onboarded: true } as never)
                   .eq("id", profileId);
                 if (error) return toast.error(error.message);
-                toast.success(p.onboarded ? "Marked as not onboarded" : "Marked as onboarded");
+                toast.success("Marked as onboarded — review saved to history");
                 qc.invalidateQueries({ queryKey: ["plan-profile", profileId] });
+                qc.invalidateQueries({ queryKey: ["plan-history", profileId] });
               }}
             >
-              {p.onboarded ? "Mark as not onboarded" : "Mark as onboarded"}
+              {p.onboarded ? "Reopen onboarding" : "Mark as onboarded"}
             </Button>
           )}
         </div>
