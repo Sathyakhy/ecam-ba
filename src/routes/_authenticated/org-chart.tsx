@@ -193,7 +193,7 @@ function SiblingRow({ nodes }: { nodes: Node[] }) {
   }
   // Vertical spine on the left; each child branches right with a horizontal arrow.
   return (
-    <div className="flex flex-col items-stretch">
+    <div className="flex flex-col items-stretch self-start mt-2" style={{ marginLeft: 79 }}>
       {nodes.map((c, i) => {
         const isLast = i === nodes.length - 1;
         return (
