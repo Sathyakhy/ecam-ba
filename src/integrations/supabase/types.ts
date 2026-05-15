@@ -117,6 +117,256 @@ export type Database = {
           },
         ]
       }
+      onboarding_evaluations: {
+        Row: {
+          area: string
+          comment: string | null
+          created_at: string
+          description: string | null
+          id: string
+          order_index: number
+          plan_id: string
+          rating_30: number | null
+          rating_60: number | null
+          rating_90: number | null
+          updated_at: string
+        }
+        Insert: {
+          area: string
+          comment?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_index?: number
+          plan_id: string
+          rating_30?: number | null
+          rating_60?: number | null
+          rating_90?: number | null
+          updated_at?: string
+        }
+        Update: {
+          area?: string
+          comment?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_index?: number
+          plan_id?: string
+          rating_30?: number | null
+          rating_60?: number | null
+          rating_90?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_evaluations_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      onboarding_expectations: {
+        Row: {
+          area: string
+          created_at: string
+          id: string
+          order_index: number
+          plan_id: string
+          updated_at: string
+          value_30: string | null
+          value_60: string | null
+          value_90: string | null
+        }
+        Insert: {
+          area: string
+          created_at?: string
+          id?: string
+          order_index?: number
+          plan_id: string
+          updated_at?: string
+          value_30?: string | null
+          value_60?: string | null
+          value_90?: string | null
+        }
+        Update: {
+          area?: string
+          created_at?: string
+          id?: string
+          order_index?: number
+          plan_id?: string
+          updated_at?: string
+          value_30?: string | null
+          value_60?: string | null
+          value_90?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_expectations_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      onboarding_plans: {
+        Row: {
+          created_at: string
+          id: string
+          intern_position: string | null
+          point_of_contact: string | null
+          profile_id: string
+          senior_name: string | null
+          supervisor_name: string | null
+          updated_at: string
+          welcome_message: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          intern_position?: string | null
+          point_of_contact?: string | null
+          profile_id: string
+          senior_name?: string | null
+          supervisor_name?: string | null
+          updated_at?: string
+          welcome_message?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          intern_position?: string | null
+          point_of_contact?: string | null
+          profile_id?: string
+          senior_name?: string | null
+          supervisor_name?: string | null
+          updated_at?: string
+          welcome_message?: string
+        }
+        Relationships: []
+      }
+      onboarding_progress: {
+        Row: {
+          checkpoint: number
+          created_at: string
+          id: string
+          note: string | null
+          order_index: number
+          plan_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          checkpoint: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          order_index?: number
+          plan_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          checkpoint?: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          order_index?: number
+          plan_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_progress_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      onboarding_reflections: {
+        Row: {
+          answer: string | null
+          checkpoint: number
+          created_at: string
+          id: string
+          order_index: number
+          plan_id: string
+          question: string
+          updated_at: string
+        }
+        Insert: {
+          answer?: string | null
+          checkpoint: number
+          created_at?: string
+          id?: string
+          order_index?: number
+          plan_id: string
+          question: string
+          updated_at?: string
+        }
+        Update: {
+          answer?: string | null
+          checkpoint?: number
+          created_at?: string
+          id?: string
+          order_index?: number
+          plan_id?: string
+          question?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_reflections_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      onboarding_sections: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          order_index: number
+          plan_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          id?: string
+          order_index?: number
+          plan_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          order_index?: number
+          plan_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_sections_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       onboarding_tasks: {
         Row: {
           assignee_id: string | null
