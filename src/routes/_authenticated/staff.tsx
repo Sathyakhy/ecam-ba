@@ -60,8 +60,14 @@ function StaffPage() {
 
   const positions = useQuery({
     queryKey: ["positions"],
-    queryFn: async () => (await supabase.from("positions").select("*").order("name")).data ?? [],
+    queryFn: async () => (await supabase.from("positions").select("*").order("priority").order("name")).data ?? [],
   });
+
+  const priorityOf = useMemo(() => {
+    const m = new Map<string, number>();
+    (positions.data ?? []).forEach((p) => m.set(p.name, p.priority ?? 999));
+    return (jobTitle: string | null | undefined) => (jobTitle ? m.get(jobTitle) ?? 999 : 999);
+  }, [positions.data]);
 
   const departments = useMemo(() => {
     const set = new Set<string>();
@@ -87,6 +93,7 @@ function StaffPage() {
     const sorted = [...list];
     sorted.sort((a, b) => {
       switch (sortBy) {
+        case "name": return a.full_name.localeCompare(b.full_name);
         case "name_desc": return b.full_name.localeCompare(a.full_name);
         case "department": return (a.department ?? "").localeCompare(b.department ?? "") || a.full_name.localeCompare(b.full_name);
         case "newest": return (b.start_date ?? "").localeCompare(a.start_date ?? "");
@@ -94,11 +101,11 @@ function StaffPage() {
           const av = a.start_date ?? "9999"; const bv = b.start_date ?? "9999";
           return av.localeCompare(bv);
         }
-        default: return a.full_name.localeCompare(b.full_name);
+        default: return priorityOf(a.job_title) - priorityOf(b.job_title) || a.full_name.localeCompare(b.full_name);
       }
     });
     return sorted;
-  }, [staff.data, q, dept, position, status, sortBy]);
+  }, [staff.data, q, dept, position, status, sortBy, priorityOf]);
 
   const lookup = (id: string | null) => staff.data?.find((p) => p.id === id);
   const nameOf = (id: string | null) => lookup(id)?.full_name ?? "—";
