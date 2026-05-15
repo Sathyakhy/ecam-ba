@@ -660,3 +660,165 @@ function ProgressCard({ cp, row, canEdit, ensureRow, onChange }: { cp: number; r
     </div>
   );
 }
+
+function HistoryBlock({ profileId, canEdit }: { profileId: string; canEdit: boolean }) {
+  const qc = useQueryClient();
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  const historyQ = useQuery({
+    queryKey: ["plan-history", profileId],
+    queryFn: async () =>
+      (await supabase
+        .from("onboarding_history")
+        .select("*")
+        .eq("profile_id", profileId)
+        .order("completed_at", { ascending: false })).data ?? [],
+  });
+
+  const rows = historyQ.data ?? [];
+
+  return (
+    <Card className="p-5 sm:p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-base font-semibold">Onboarding history</h2>
+          <p className="text-xs text-muted-foreground">
+            Each time onboarding is marked complete, a snapshot of the review is saved here.
+          </p>
+        </div>
+        <Badge variant="secondary">{rows.length} {rows.length === 1 ? "review" : "reviews"}</Badge>
+      </div>
+
+      {rows.length === 0 ? (
+        <div className="text-sm text-muted-foreground py-6 text-center border border-dashed rounded-md">
+          No completed reviews yet.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {rows.map((h: any) => {
+            const open = openId === h.id;
+            const snap = h.snapshot ?? {};
+            return (
+              <div key={h.id} className="border border-border rounded-md">
+                <button
+                  className="w-full flex items-center gap-3 p-3 text-left hover:bg-muted/40 transition-colors"
+                  onClick={() => setOpenId(open ? null : h.id)}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium">
+                      {new Date(h.completed_at).toLocaleDateString(undefined, {
+                        year: "numeric", month: "short", day: "numeric",
+                      })}
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate">{h.summary ?? "Onboarding completed"}</div>
+                  </div>
+                  <Badge variant="outline" className="text-[10px]">{open ? "Hide" : "View"}</Badge>
+                  {canEdit && (
+                    <Trash2
+                      className="h-4 w-4 text-destructive opacity-60 hover:opacity-100"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (!confirm("Delete this history entry?")) return;
+                        await supabase.from("onboarding_history").delete().eq("id", h.id);
+                        toast.success("Deleted");
+                        qc.invalidateQueries({ queryKey: ["plan-history", profileId] });
+                      }}
+                    />
+                  )}
+                </button>
+                {open && (
+                  <div className="border-t border-border p-4 space-y-4 bg-muted/20">
+                    {Array.isArray(snap.evaluations) && snap.evaluations.length > 0 && (
+                      <SnapshotTable
+                        title="Evaluations"
+                        headers={["Area", "30d", "60d", "90d", "Comment"]}
+                        rows={snap.evaluations.map((e: any) => [
+                          e.area,
+                          e.rating_30 ?? "—",
+                          e.rating_60 ?? "—",
+                          e.rating_90 ?? "—",
+                          e.comment ?? "—",
+                        ])}
+                      />
+                    )}
+                    {Array.isArray(snap.expectations) && snap.expectations.length > 0 && (
+                      <SnapshotTable
+                        title="Professional expectations"
+                        headers={["Area", "30 days", "60 days", "90 days"]}
+                        rows={snap.expectations.map((e: any) => [
+                          e.area, e.value_30 ?? "—", e.value_60 ?? "—", e.value_90 ?? "—",
+                        ])}
+                      />
+                    )}
+                    {Array.isArray(snap.reflections) && snap.reflections.length > 0 && (
+                      <div>
+                        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                          Self-reflection
+                        </div>
+                        <div className="space-y-2">
+                          {snap.reflections.map((r: any) => (
+                            <div key={r.id} className="text-sm">
+                              <div className="font-medium">
+                                {r.checkpoint}d · {r.question}
+                              </div>
+                              <div className="text-muted-foreground whitespace-pre-wrap">
+                                {r.answer || "—"}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {Array.isArray(snap.progress) && snap.progress.length > 0 && (
+                      <SnapshotTable
+                        title="Progress checkpoints"
+                        headers={["Checkpoint", "Status", "Note"]}
+                        rows={snap.progress.map((p: any) => [
+                          `${p.checkpoint} days`, p.status ?? "—", p.note ?? "—",
+                        ])}
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function SnapshotTable({
+  title, headers, rows,
+}: { title: string; headers: string[]; rows: (string | number)[][] }) {
+  return (
+    <div>
+      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+        {title}
+      </div>
+      <div className="overflow-x-auto rounded-md border border-border">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/50">
+            <tr>
+              {headers.map((h) => (
+                <th key={h} className="text-left font-medium px-3 py-2 text-xs text-muted-foreground">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={i} className="border-t border-border">
+                {r.map((c, j) => (
+                  <td key={j} className="px-3 py-2 align-top whitespace-pre-wrap">{String(c)}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
