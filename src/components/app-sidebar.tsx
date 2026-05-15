@@ -12,6 +12,7 @@ import {
   LogOut,
   UserCircle,
   Network,
+  Briefcase,
 } from "lucide-react";
 import {
   Sidebar,
@@ -102,6 +103,14 @@ export function AppSidebar() {
                     <Link to="/admin">
                       <ShieldCheck className="h-4 w-4" />
                       <span>User management</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={path.startsWith("/positions")}>
+                    <Link to="/positions">
+                      <Briefcase className="h-4 w-4" />
+                      <span>Positions</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
