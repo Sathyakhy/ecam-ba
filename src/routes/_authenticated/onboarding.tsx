@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { toast } from "sonner";
@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PageHeader } from "@/components/page-header";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
-  component: OnboardingPage,
+  component: OnboardingRoute,
 });
 
 const isNewHire = (start: string | null | undefined) => {
@@ -25,6 +25,13 @@ function tenureDays(start: string | null | undefined) {
   if (!start) return null;
   const days = Math.floor((Date.now() - new Date(start).getTime()) / 86400000);
   return days;
+}
+
+function OnboardingRoute() {
+  const location = useLocation();
+  const isListRoute = location.pathname.replace(/\/+$/, "") === "/onboarding";
+
+  return isListRoute ? <OnboardingPage /> : <Outlet />;
 }
 
 function OnboardingPage() {
