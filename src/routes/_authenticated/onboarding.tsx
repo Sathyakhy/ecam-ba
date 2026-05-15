@@ -148,13 +148,13 @@ function OnboardingPage() {
         description="Structured onboarding plans for new staff (first 3 months)."
       />
 
-      {newHires.length === 0 ? (
+      {visibleHires.length === 0 ? (
         <Card className="p-10 text-center text-sm text-muted-foreground">
-          No new staff in onboarding right now.
+          No onboarding plans you can view right now.
         </Card>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {newHires.map((s) => {
+          {visibleHires.map((s) => {
             const planId = planByProfile.get(s.id);
             const days = tenureDays(s.start_date);
             const initials = s.full_name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
