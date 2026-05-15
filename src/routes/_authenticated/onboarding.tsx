@@ -114,7 +114,7 @@ function OnboardingPage() {
                         <p className="text-sm font-medium">{t.title}</p>
                         {t.description && <p className="text-xs text-muted-foreground mt-0.5">{t.description}</p>}
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         {t.due_date && <span className="text-xs text-muted-foreground">Due {new Date(t.due_date).toLocaleDateString()}</span>}
                         <Select value={t.status} onValueChange={(v) => updateStatus(t.id, v)} disabled={!canEdit}>
                           <SelectTrigger className="w-36 h-8 text-xs"><SelectValue /></SelectTrigger>
