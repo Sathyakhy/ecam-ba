@@ -427,6 +427,7 @@ export type Database = {
           department: string | null
           id: string
           name: string
+          priority: number
           updated_at: string
         }
         Insert: {
@@ -434,6 +435,7 @@ export type Database = {
           department?: string | null
           id?: string
           name: string
+          priority?: number
           updated_at?: string
         }
         Update: {
@@ -441,6 +443,7 @@ export type Database = {
           department?: string | null
           id?: string
           name?: string
+          priority?: number
           updated_at?: string
         }
         Relationships: []
