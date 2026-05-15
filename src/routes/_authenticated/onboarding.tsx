@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { toast } from "sonner";
@@ -29,6 +29,7 @@ function tenureDays(start: string | null | undefined) {
 
 function OnboardingPage() {
   const { isAdmin, profile } = useAuth();
+  const navigate = useNavigate();
   const qc = useQueryClient();
 
   const staffQ = useQuery({
@@ -183,10 +184,13 @@ function OnboardingPage() {
                   )}
                 </div>
                 {planId ? (
-                  <Button asChild size="sm" variant="secondary" className="mt-auto">
-                    <Link to="/onboarding/$profileId" params={{ profileId: s.id }}>
-                      Open plan <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                    </Link>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="mt-auto"
+                    onClick={() => navigate({ to: "/onboarding/$profileId", params: { profileId: s.id } })}
+                  >
+                    Open plan <ArrowRight className="h-3.5 w-3.5 ml-1" />
                   </Button>
                 ) : isAdmin ? (
                   <Button size="sm" className="mt-auto" onClick={() => createPlan(s.id, s.full_name, s.job_title)}>
