@@ -31,30 +31,57 @@ function PlanPage() {
 
   const profileQ = useQuery({
     queryKey: ["plan-profile", profileId],
-    queryFn: async () =>
-      (await supabase.from("profiles").select("id,full_name,username,avatar_url,job_title,department,start_date,onboarded").eq("id", profileId).single()).data,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id,full_name,username,avatar_url,job_title,department,start_date,onboarded")
+        .eq("id", profileId)
+        .single();
+      if (error) throw new Error(error.message);
+      return data;
+    },
   });
 
   const planQ = useQuery({
     queryKey: ["plan", profileId],
-    queryFn: async () => (await supabase.from("onboarding_plans").select("*").eq("profile_id", profileId).maybeSingle()).data,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("onboarding_plans")
+        .select("*")
+        .eq("profile_id", profileId)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      return data;
+    },
   });
   const planId = planQ.data?.id ?? null;
 
   const sectionsQ = useQuery({
     enabled: !!planId,
     queryKey: ["plan-sections", planId],
-    queryFn: async () => (await supabase.from("onboarding_sections").select("*").eq("plan_id", planId!).order("order_index")).data ?? [],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("onboarding_sections").select("*").eq("plan_id", planId!).order("order_index");
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    },
   });
   const evalsQ = useQuery({
     enabled: !!planId,
     queryKey: ["plan-evals", planId],
-    queryFn: async () => (await supabase.from("onboarding_evaluations").select("*").eq("plan_id", planId!).order("order_index")).data ?? [],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("onboarding_evaluations").select("*").eq("plan_id", planId!).order("order_index");
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    },
   });
   const expectQ = useQuery({
     enabled: !!planId,
     queryKey: ["plan-expect", planId],
-    queryFn: async () => (await supabase.from("onboarding_expectations").select("*").eq("plan_id", planId!).order("order_index")).data ?? [],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("onboarding_expectations").select("*").eq("plan_id", planId!).order("order_index");
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    },
   });
   const reflectQ = useQuery({
     enabled: !!planId,
