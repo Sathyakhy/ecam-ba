@@ -243,6 +243,7 @@ export type Database = {
       }
       onboarding_plans: {
         Row: {
+          assignee_id: string | null
           created_at: string
           id: string
           intern_position: string | null
@@ -254,6 +255,7 @@ export type Database = {
           welcome_message: string
         }
         Insert: {
+          assignee_id?: string | null
           created_at?: string
           id?: string
           intern_position?: string | null
@@ -265,6 +267,7 @@ export type Database = {
           welcome_message?: string
         }
         Update: {
+          assignee_id?: string | null
           created_at?: string
           id?: string
           intern_position?: string | null

@@ -28,7 +28,7 @@ function tenureDays(start: string | null | undefined) {
 }
 
 function OnboardingPage() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, profile } = useAuth();
   const qc = useQueryClient();
 
   const staffQ = useQuery({
@@ -39,7 +39,7 @@ function OnboardingPage() {
 
   const plansQ = useQuery({
     queryKey: ["onboarding-plans"],
-    queryFn: async () => (await supabase.from("onboarding_plans").select("id,profile_id")).data ?? [],
+    queryFn: async () => (await supabase.from("onboarding_plans").select("id,profile_id,assignee_id")).data ?? [],
   });
 
   const newHires = useMemo(
@@ -51,6 +51,12 @@ function OnboardingPage() {
     (plansQ.data ?? []).forEach((p) => m.set(p.profile_id, p.id));
     return m;
   }, [plansQ.data]);
+
+  // Non-admins only see their own card or cards where they have access to the plan.
+  const visibleHires = useMemo(() => {
+    if (isAdmin) return newHires;
+    return newHires.filter((s) => s.id === profile?.id || planByProfile.has(s.id));
+  }, [newHires, planByProfile, isAdmin, profile?.id]);
 
   const createPlan = async (profileId: string, fullName: string, jobTitle: string | null) => {
     const { data: plan, error } = await supabase
@@ -142,13 +148,13 @@ function OnboardingPage() {
         description="Structured onboarding plans for new staff (first 3 months)."
       />
 
-      {newHires.length === 0 ? (
+      {visibleHires.length === 0 ? (
         <Card className="p-10 text-center text-sm text-muted-foreground">
-          No new staff in onboarding right now.
+          No onboarding plans you can view right now.
         </Card>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {newHires.map((s) => {
+          {visibleHires.map((s) => {
             const planId = planByProfile.get(s.id);
             const days = tenureDays(s.start_date);
             const initials = s.full_name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
