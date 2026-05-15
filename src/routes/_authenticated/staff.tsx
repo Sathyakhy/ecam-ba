@@ -46,7 +46,7 @@ function StaffPage() {
   const [dept, setDept] = useState<string>("__all__");
   const [position, setPosition] = useState<string>("__all__");
   const [status, setStatus] = useState<string>("__all__");
-  const [sortBy, setSortBy] = useState<string>("name");
+  const [sortBy, setSortBy] = useState<string>("priority");
   const [editing, setEditing] = useState<Profile | null>(null);
   const { isAdmin } = useAuth();
   const qc = useQueryClient();
