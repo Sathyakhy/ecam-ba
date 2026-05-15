@@ -11,7 +11,7 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function AuthenticatedLayout() {
-  const { session, loading, profile, isAdmin, signOut } = useAuth();
+  const { session, loading, profile, isAdmin, authError, signOut, refresh } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -22,6 +22,20 @@ function AuthenticatedLayout() {
     );
   }
   if (!session) return <Navigate to="/login" replace />;
+  if (authError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4 text-center">
+        <div className="max-w-md space-y-3">
+          <h1 className="text-lg font-semibold text-foreground">Unable to load workspace</h1>
+          <p className="text-sm text-muted-foreground">{authError}</p>
+          <div className="flex justify-center gap-2">
+            <Button variant="outline" size="sm" onClick={refresh}>Try again</Button>
+            <Button variant="ghost" size="sm" onClick={signOut}>Sign out</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (!profile) {
     return (
       <div className="flex min-h-screen items-center justify-center text-muted-foreground">
