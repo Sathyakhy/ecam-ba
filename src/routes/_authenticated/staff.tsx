@@ -227,8 +227,8 @@ function StaffPage() {
             <SelectItem value="oldest">Longest tenure</SelectItem>
           </SelectContent>
         </Select>
-        {(q || dept !== "__all__" || status !== "__all__" || sortBy !== "name") && (
-          <Button variant="ghost" size="sm" onClick={() => { setQ(""); setDept("__all__"); setStatus("__all__"); setSortBy("name"); }}>Clear</Button>
+        {(q || dept !== "__all__" || position !== "__all__" || status !== "__all__" || sortBy !== "name") && (
+          <Button variant="ghost" size="sm" onClick={() => { setQ(""); setDept("__all__"); setPosition("__all__"); setStatus("__all__"); setSortBy("name"); }}>Clear</Button>
         )}
       </div>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
