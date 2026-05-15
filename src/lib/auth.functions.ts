@@ -154,6 +154,14 @@ export const adminUpdateUser = createServerFn({ method: "POST" })
         avatar_url: z.string().trim().max(2048).nullable().optional(),
         role: z.enum(["admin", "staff"]).optional(),
         password: z.string().min(8).max(128).optional().nullable(),
+        phone: z.string().trim().max(40).nullable().optional(),
+        date_of_birth: z.string().nullable().optional(),
+        gender: z.string().trim().max(40).nullable().optional(),
+        address: z.string().trim().max(500).nullable().optional(),
+        nationality: z.string().trim().max(80).nullable().optional(),
+        emergency_contact_name: z.string().trim().max(120).nullable().optional(),
+        emergency_contact_phone: z.string().trim().max(40).nullable().optional(),
+        bio: z.string().trim().max(2000).nullable().optional(),
       })
       .parse(input),
   )
@@ -172,7 +180,15 @@ export const adminUpdateUser = createServerFn({ method: "POST" })
       start_date: data.start_date ?? null,
       status: data.status ?? "active",
       avatar_url: data.avatar_url ?? null,
-    }).eq("id", data.user_id);
+      phone: data.phone ?? null,
+      date_of_birth: data.date_of_birth ?? null,
+      gender: data.gender ?? null,
+      address: data.address ?? null,
+      nationality: data.nationality ?? null,
+      emergency_contact_name: data.emergency_contact_name ?? null,
+      emergency_contact_phone: data.emergency_contact_phone ?? null,
+      bio: data.bio ?? null,
+    } as never).eq("id", data.user_id);
     if (pErr) throw new Error(pErr.message);
 
     const authPatch: { email?: string; password?: string } = { email: data.email };
