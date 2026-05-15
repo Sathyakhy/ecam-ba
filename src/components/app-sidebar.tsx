@@ -10,6 +10,8 @@ import {
   Building2,
   Settings,
   LogOut,
+  UserCircle,
+  Network,
 } from "lucide-react";
 import {
   Sidebar,
@@ -23,7 +25,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useAppSettings } from "@/hooks/use-app-settings";
@@ -34,7 +36,9 @@ const main = [
   { title: "Learning", url: "/learning", icon: GraduationCap },
   { title: "Tasks", url: "/tasks", icon: CheckSquare },
   { title: "Staff", url: "/staff", icon: Users },
+  { title: "Org chart", url: "/org-chart", icon: Network },
   { title: "Announcements", url: "/announcements", icon: Megaphone },
+  { title: "My profile", url: "/profile", icon: UserCircle },
 ] as const;
 
 export function AppSidebar() {
