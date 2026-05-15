@@ -60,6 +60,7 @@ function StaffPage() {
       );
     }
     if (dept !== "__all__") list = list.filter((p) => (p.department ?? "") === dept);
+    if (position !== "__all__") list = list.filter((p) => (p.job_title ?? "") === position);
     if (status !== "__all__") list = list.filter((p) => p.status === status);
     const sorted = [...list];
     sorted.sort((a, b) => {
