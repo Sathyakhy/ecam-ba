@@ -66,11 +66,13 @@ function LearningPage() {
       />
 
       <Tabs defaultValue="materials">
-        <TabsList>
-          <TabsTrigger value="materials">Materials</TabsTrigger>
-          <TabsTrigger value="my">Assigned to me</TabsTrigger>
-          <TabsTrigger value="kb">Knowledge base</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-1 px-1">
+          <TabsList>
+            <TabsTrigger value="materials">Materials</TabsTrigger>
+            <TabsTrigger value="my">Assigned to me</TabsTrigger>
+            <TabsTrigger value="kb">Knowledge base</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="materials" className="mt-4">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -118,12 +120,12 @@ function LearningPage() {
                 {myAssignments.data.map((a) => {
                   const m = materials.data?.find((x) => x.id === a.material_id);
                   return (
-                    <li key={a.id} className="p-4 flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-md bg-primary/10 text-primary flex items-center justify-center">
+                    <li key={a.id} className="p-4 flex flex-wrap items-center gap-3">
+                      <div className="h-8 w-8 rounded-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
                         <BookOpen className="h-4 w-4" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium">{m?.title ?? "Material"}</p>
+                        <p className="text-sm font-medium truncate">{m?.title ?? "Material"}</p>
                         <p className="text-xs text-muted-foreground">
                           Assigned {new Date(a.assigned_at).toLocaleDateString()}
                         </p>
@@ -200,7 +202,7 @@ function NewMaterialDialog({ onCreated }: { onCreated: () => void }) {
         }} className="space-y-4">
           <div className="space-y-2"><Label>Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={200} /></div>
           <div className="space-y-2"><Label>Description</Label><Textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} maxLength={1000} /></div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid sm:grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Type</Label>
               <Select value={type} onValueChange={setType}>
