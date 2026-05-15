@@ -24,7 +24,7 @@ const CHECKPOINTS = [30, 60, 90] as const;
 
 function PlanPage() {
   const { profileId } = Route.useParams();
-  const { profile, isAdmin } = useAuth();
+  const { profile, isAdmin, user } = useAuth();
   const isOwner = profile?.id === profileId;
   const canEdit = isAdmin;
   const qc = useQueryClient();
