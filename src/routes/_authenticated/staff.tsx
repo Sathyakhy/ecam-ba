@@ -392,9 +392,23 @@ function RelationshipDialog({
   onSaved: () => void;
 }) {
   const updateUser = useServerFn(adminUpdateUser);
+  const p = person as Profile & {
+    phone?: string | null; date_of_birth?: string | null; gender?: string | null;
+    address?: string | null; nationality?: string | null;
+    emergency_contact_name?: string | null; emergency_contact_phone?: string | null;
+    bio?: string | null;
+  };
   const [managerId, setManagerId] = useState<string>(person.manager_id ?? "__none__");
   const [mentorId, setMentorId] = useState<string>((person as any).mentor_id ?? "__none__");
   const [jobTitle, setJobTitle] = useState<string>(person.job_title ?? "__none__");
+  const [phone, setPhone] = useState(p.phone ?? "");
+  const [dob, setDob] = useState(p.date_of_birth ?? "");
+  const [gender, setGender] = useState(p.gender ?? "");
+  const [address, setAddress] = useState(p.address ?? "");
+  const [nationality, setNationality] = useState(p.nationality ?? "");
+  const [ecName, setEcName] = useState(p.emergency_contact_name ?? "");
+  const [ecPhone, setEcPhone] = useState(p.emergency_contact_phone ?? "");
+  const [bio, setBio] = useState(p.bio ?? "");
   const [saving, setSaving] = useState(false);
 
   const priorityByName = useMemo(() => {
