@@ -65,6 +65,7 @@ function StaffPage() {
   };
 
   const bulkImport = useServerFn(adminBulkImportStaff);
+  const updateUser = useServerFn(adminUpdateUser);
 
   const handleImport = async (file: File) => {
     setImporting(true);
