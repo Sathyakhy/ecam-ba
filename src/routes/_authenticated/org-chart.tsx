@@ -47,6 +47,7 @@ function buildTree(list: Profile[], priorityOf: (title: string | null) => number
 }
 
 const BRAND = "#1f6fd1";
+const CARD_LEFT_INSET = 29;
 
 function PhotoFrame({ src, name }: { src: string | null; name: string }) {
   const initials = name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
@@ -136,7 +137,7 @@ function MenteeChain({ nodes }: { nodes: Node[] }) {
                 }}
               />
             </div>
-            <div>
+            <div style={{ marginLeft: -CARD_LEFT_INSET }}>
               <PersonBlock node={m} />
             </div>
           </div>
@@ -202,7 +203,7 @@ function SiblingRow({ nodes }: { nodes: Node[] }) {
                 }}
               />
             </div>
-            <div>
+            <div style={{ marginLeft: -CARD_LEFT_INSET }}>
               <Subtree node={c} />
             </div>
           </div>
