@@ -54,11 +54,17 @@ function LoginPage() {
         <div className="flex flex-col justify-between w-full">
           <div className="flex items-center gap-2 font-semibold">
             {settings.logo_url ? (
-              <img src={settings.logo_url} alt={settings.app_name} className="h-7 w-7 rounded object-cover" />
+              <img
+                src={settings.logo_url}
+                alt={settings.app_name}
+                className="h-10 w-auto max-w-[200px] object-contain [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.9))_drop-shadow(0_0_16px_rgba(255,255,255,0.6))]"
+              />
             ) : (
-              <Building2 className="h-5 w-5" />
+              <>
+                <Building2 className="h-5 w-5" />
+                {settings.app_name}
+              </>
             )}
-            {settings.app_name}
           </div>
           <div>
             <h1 className="text-4xl font-semibold tracking-tight leading-tight whitespace-pre-line">
@@ -76,11 +82,17 @@ function LoginPage() {
         <Card className="w-full max-w-md p-8 border-border/60 shadow-sm">
           <div className="lg:hidden flex items-center gap-2 font-semibold mb-6">
             {settings.logo_url ? (
-              <img src={settings.logo_url} alt={settings.app_name} className="h-6 w-6 rounded object-cover" />
+              <img
+                src={settings.logo_url}
+                alt={settings.app_name}
+                className="h-9 w-auto max-w-[180px] object-contain [filter:drop-shadow(0_0_6px_rgba(255,255,255,0.7))]"
+              />
             ) : (
-              <Building2 className="h-5 w-5 text-primary" />
+              <>
+                <Building2 className="h-5 w-5 text-primary" />
+                {settings.app_name}
+              </>
             )}
-            {settings.app_name}
           </div>
           <h2 className="text-2xl font-semibold tracking-tight">Sign in</h2>
           <p className="text-sm text-muted-foreground mt-1">

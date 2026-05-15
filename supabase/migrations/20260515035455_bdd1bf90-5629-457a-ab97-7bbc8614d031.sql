@@ -1,0 +1,1 @@
+UPDATE public.app_settings SET logo_url='https://aavwrymhujfgkyrgwfkj.supabase.co/storage/v1/object/public/branding/ecam-logo.png';
