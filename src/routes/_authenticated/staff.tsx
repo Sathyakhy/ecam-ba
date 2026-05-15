@@ -86,7 +86,7 @@ function StaffPage() {
           manager_id,
           start_date: r.start_date ? String(r.start_date).slice(0, 10) : null,
         };
-        const { error } = await supabase.from("profiles").update(patch).eq("id", existing.id);
+        const { error } = await (supabase.from("profiles") as any).update(patch).eq("id", existing.id);
         if (error) { skipped++; } else { updated++; }
       }
       toast.success(`Imported: ${updated} updated, ${skipped} skipped`);
