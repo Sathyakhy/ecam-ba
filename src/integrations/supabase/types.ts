@@ -480,48 +480,72 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address: string | null
           avatar_url: string | null
+          bio: string | null
           created_at: string
+          date_of_birth: string | null
           department: string | null
           email: string
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
           full_name: string
+          gender: string | null
           id: string
           job_title: string | null
           manager_id: string | null
           mentor_id: string | null
+          nationality: string | null
           onboarded: boolean
+          phone: string | null
           start_date: string | null
           status: string
           updated_at: string
           username: string
         }
         Insert: {
+          address?: string | null
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
+          date_of_birth?: string | null
           department?: string | null
           email: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
           full_name: string
+          gender?: string | null
           id: string
           job_title?: string | null
           manager_id?: string | null
           mentor_id?: string | null
+          nationality?: string | null
           onboarded?: boolean
+          phone?: string | null
           start_date?: string | null
           status?: string
           updated_at?: string
           username: string
         }
         Update: {
+          address?: string | null
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
+          date_of_birth?: string | null
           department?: string | null
           email?: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
           full_name?: string
+          gender?: string | null
           id?: string
           job_title?: string | null
           manager_id?: string | null
           mentor_id?: string | null
+          nationality?: string | null
           onboarded?: boolean
+          phone?: string | null
           start_date?: string | null
           status?: string
           updated_at?: string
