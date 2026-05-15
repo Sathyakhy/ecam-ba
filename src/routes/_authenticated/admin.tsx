@@ -202,7 +202,6 @@ function AdminInner() {
             qc.invalidateQueries({ queryKey: ["admin-users"] });
             qc.invalidateQueries({ queryKey: ["staff-full"] });
           }}
-          updateFn={update}
         />
       )}
     </div>
