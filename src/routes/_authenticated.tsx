@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, Navigate, useLocation, Link } from "@tanstack/react-router";
+import { createFileRoute, Outlet, Navigate, useLocation } from "@tanstack/react-router";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
