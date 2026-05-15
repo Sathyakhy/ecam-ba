@@ -28,7 +28,7 @@ function tenureDays(start: string | null | undefined) {
 }
 
 function OnboardingPage() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, profile } = useAuth();
   const qc = useQueryClient();
 
   const staffQ = useQuery({
@@ -39,7 +39,7 @@ function OnboardingPage() {
 
   const plansQ = useQuery({
     queryKey: ["onboarding-plans"],
-    queryFn: async () => (await supabase.from("onboarding_plans").select("id,profile_id")).data ?? [],
+    queryFn: async () => (await supabase.from("onboarding_plans").select("id,profile_id,assignee_id")).data ?? [],
   });
 
   const newHires = useMemo(
@@ -51,6 +51,12 @@ function OnboardingPage() {
     (plansQ.data ?? []).forEach((p) => m.set(p.profile_id, p.id));
     return m;
   }, [plansQ.data]);
+
+  // Non-admins only see their own card or cards where they have access to the plan.
+  const visibleHires = useMemo(() => {
+    if (isAdmin) return newHires;
+    return newHires.filter((s) => s.id === profile?.id || planByProfile.has(s.id));
+  }, [newHires, planByProfile, isAdmin, profile?.id]);
 
   const createPlan = async (profileId: string, fullName: string, jobTitle: string | null) => {
     const { data: plan, error } = await supabase
