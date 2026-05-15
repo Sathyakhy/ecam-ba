@@ -46,6 +46,22 @@ function StaffPage() {
 
   const managerName = (id: string | null) => staff.data?.find((p) => p.id === id)?.full_name ?? "—";
 
+  const tenure = (start: string | null) => {
+    if (!start) return null;
+    const s = new Date(start);
+    const now = new Date();
+    let months = (now.getFullYear() - s.getFullYear()) * 12 + (now.getMonth() - s.getMonth());
+    if (now.getDate() < s.getDate()) months -= 1;
+    if (months < 1) {
+      const days = Math.max(0, Math.floor((now.getTime() - s.getTime()) / 86400000));
+      return `${days} day${days === 1 ? "" : "s"}`;
+    }
+    if (months < 12) return `${months} month${months === 1 ? "" : "s"}`;
+    const y = Math.floor(months / 12);
+    const m = months % 12;
+    return m ? `${y}y ${m}mo` : `${y} year${y === 1 ? "" : "s"}`;
+  };
+
   const handleExport = async () => {
     const XLSX = await import("xlsx");
     const rows = (staff.data ?? []).map((p) => ({
