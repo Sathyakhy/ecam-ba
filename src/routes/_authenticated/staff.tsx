@@ -46,7 +46,7 @@ function StaffPage() {
   const [dept, setDept] = useState<string>("__all__");
   const [position, setPosition] = useState<string>("__all__");
   const [status, setStatus] = useState<string>("__all__");
-  const [sortBy, setSortBy] = useState<string>("name");
+  const [sortBy, setSortBy] = useState<string>("priority");
   const [editing, setEditing] = useState<Profile | null>(null);
   const { isAdmin } = useAuth();
   const qc = useQueryClient();
@@ -60,8 +60,14 @@ function StaffPage() {
 
   const positions = useQuery({
     queryKey: ["positions"],
-    queryFn: async () => (await supabase.from("positions").select("*").order("name")).data ?? [],
+    queryFn: async () => (await supabase.from("positions").select("*").order("priority").order("name")).data ?? [],
   });
+
+  const priorityOf = useMemo(() => {
+    const m = new Map<string, number>();
+    (positions.data ?? []).forEach((p) => m.set(p.name, p.priority ?? 999));
+    return (jobTitle: string | null | undefined) => (jobTitle ? m.get(jobTitle) ?? 999 : 999);
+  }, [positions.data]);
 
   const departments = useMemo(() => {
     const set = new Set<string>();
@@ -87,6 +93,7 @@ function StaffPage() {
     const sorted = [...list];
     sorted.sort((a, b) => {
       switch (sortBy) {
+        case "name": return a.full_name.localeCompare(b.full_name);
         case "name_desc": return b.full_name.localeCompare(a.full_name);
         case "department": return (a.department ?? "").localeCompare(b.department ?? "") || a.full_name.localeCompare(b.full_name);
         case "newest": return (b.start_date ?? "").localeCompare(a.start_date ?? "");
@@ -94,11 +101,11 @@ function StaffPage() {
           const av = a.start_date ?? "9999"; const bv = b.start_date ?? "9999";
           return av.localeCompare(bv);
         }
-        default: return a.full_name.localeCompare(b.full_name);
+        default: return priorityOf(a.job_title) - priorityOf(b.job_title) || a.full_name.localeCompare(b.full_name);
       }
     });
     return sorted;
-  }, [staff.data, q, dept, position, status, sortBy]);
+  }, [staff.data, q, dept, position, status, sortBy, priorityOf]);
 
   const lookup = (id: string | null) => staff.data?.find((p) => p.id === id);
   const nameOf = (id: string | null) => lookup(id)?.full_name ?? "—";
@@ -231,6 +238,7 @@ function StaffPage() {
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
+                <SelectItem value="priority">Position priority</SelectItem>
                 <SelectItem value="name">Name (A–Z)</SelectItem>
                 <SelectItem value="name_desc">Name (Z–A)</SelectItem>
                 <SelectItem value="department">Department</SelectItem>
@@ -241,8 +249,8 @@ function StaffPage() {
           </div>
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>{filtered.length} of {staff.data?.length ?? 0} {filtered.length === 1 ? "person" : "people"}</span>
-            {(q || dept !== "__all__" || position !== "__all__" || status !== "__all__" || sortBy !== "name") && (
-              <button className="text-primary hover:underline" onClick={() => { setQ(""); setDept("__all__"); setPosition("__all__"); setStatus("__all__"); setSortBy("name"); }}>
+            {(q || dept !== "__all__" || position !== "__all__" || status !== "__all__" || sortBy !== "priority") && (
+              <button className="text-primary hover:underline" onClick={() => { setQ(""); setDept("__all__"); setPosition("__all__"); setStatus("__all__"); setSortBy("priority"); }}>
                 Clear filters
               </button>
             )}
@@ -351,7 +359,7 @@ function StaffPage() {
         <RelationshipDialog
           person={editing}
           staff={staff.data ?? []}
-          positions={(positions.data ?? []).map((p) => p.name)}
+          positions={positions.data ?? []}
           onClose={() => setEditing(null)}
           onSaved={() => {
             setEditing(null);
@@ -363,12 +371,14 @@ function StaffPage() {
   );
 }
 
+type PositionRow = { id: string; name: string; department: string | null; priority: number };
+
 function RelationshipDialog({
   person, staff, positions, onClose, onSaved,
 }: {
   person: Profile;
   staff: Profile[];
-  positions: string[];
+  positions: PositionRow[];
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -378,9 +388,40 @@ function RelationshipDialog({
   const [jobTitle, setJobTitle] = useState<string>(person.job_title ?? "__none__");
   const [saving, setSaving] = useState(false);
 
+  const priorityByName = useMemo(() => {
+    const m = new Map<string, number>();
+    positions.forEach((p) => m.set(p.name, p.priority ?? 999));
+    return m;
+  }, [positions]);
+
+  const ownPriority = jobTitle === "__none__" ? 999 : (priorityByName.get(jobTitle) ?? 999);
+
+  const eligible = useMemo(() => {
+    return staff
+      .filter((s) => s.id !== person.id)
+      .map((s) => ({ ...s, _pri: priorityByName.get(s.job_title ?? "") ?? 999 }))
+      .filter((s) => s._pri < ownPriority) // strictly higher rank (lower number)
+      .sort((a, b) => a._pri - b._pri || a.full_name.localeCompare(b.full_name));
+  }, [staff, person.id, priorityByName, ownPriority]);
+
+  const validateRank = (id: string) => {
+    if (id === "__none__") return true;
+    const target = staff.find((s) => s.id === id);
+    const targetPri = priorityByName.get(target?.job_title ?? "") ?? 999;
+    return targetPri < ownPriority;
+  };
+
   const save = async () => {
     if (managerId === person.id || mentorId === person.id) {
       toast.error("Can't be their own manager or mentor");
+      return;
+    }
+    if (!validateRank(managerId)) {
+      toast.error("Manager must hold a higher-priority position");
+      return;
+    }
+    if (!validateRank(mentorId)) {
+      toast.error("Mentor must hold a higher-priority position");
       return;
     }
     setSaving(true);
@@ -408,7 +449,11 @@ function RelationshipDialog({
     }
   };
 
-  const others = staff.filter((s) => s.id !== person.id);
+  // If the current selection is no longer eligible (e.g. position changed), clear it
+  useMemo(() => {
+    if (managerId !== "__none__" && !eligible.some((s) => s.id === managerId)) setManagerId("__none__");
+    if (mentorId !== "__none__" && !eligible.some((s) => s.id === mentorId)) setMentorId("__none__");
+  }, [eligible, managerId, mentorId]);
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -423,7 +468,11 @@ function RelationshipDialog({
               <SelectTrigger><SelectValue placeholder="Select position" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__">— None —</SelectItem>
-                {positions.map((n) => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+                {positions.map((p) => (
+                  <SelectItem key={p.id} value={p.name}>
+                    {p.priority}. {p.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
@@ -436,9 +485,16 @@ function RelationshipDialog({
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__">— None —</SelectItem>
-                {others.map((m) => <SelectItem key={m.id} value={m.id}>{m.full_name}</SelectItem>)}
+                {eligible.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>
+                    {m.full_name} {m.job_title && <span className="text-muted-foreground">· {m.job_title}</span>}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
+            {eligible.length === 0 && (
+              <p className="text-xs text-muted-foreground">No staff hold a higher-priority position than this one.</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label>Mentor</Label>
@@ -446,7 +502,11 @@ function RelationshipDialog({
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__">— None —</SelectItem>
-                {others.map((m) => <SelectItem key={m.id} value={m.id}>{m.full_name}</SelectItem>)}
+                {eligible.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>
+                    {m.full_name} {m.job_title && <span className="text-muted-foreground">· {m.job_title}</span>}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
