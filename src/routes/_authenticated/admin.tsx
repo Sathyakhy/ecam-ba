@@ -143,8 +143,8 @@ function AdminInner() {
         }
       />
 
-      <Card>
-        <table className="w-full text-sm">
+      <Card className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[640px]">
           <thead className="border-b border-border text-left">
             <tr className="[&>th]:py-3 [&>th]:px-4 text-xs uppercase text-muted-foreground tracking-wide">
               <th>User</th><th>Email</th><th>Role</th><th>Status</th><th></th>
