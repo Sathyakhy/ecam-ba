@@ -43,7 +43,8 @@ function StaffPage() {
 
   const managerName = (id: string | null) => staff.data?.find((p) => p.id === id)?.full_name ?? "—";
 
-  const handleExport = () => {
+  const handleExport = async () => {
+    const XLSX = await import("xlsx");
     const rows = (staff.data ?? []).map((p) => ({
       full_name: p.full_name,
       username: p.username,
