@@ -456,6 +456,7 @@ export type Database = {
           job_title: string | null
           manager_id: string | null
           mentor_id: string | null
+          onboarded: boolean
           start_date: string | null
           status: string
           updated_at: string
@@ -471,6 +472,7 @@ export type Database = {
           job_title?: string | null
           manager_id?: string | null
           mentor_id?: string | null
+          onboarded?: boolean
           start_date?: string | null
           status?: string
           updated_at?: string
@@ -486,6 +488,7 @@ export type Database = {
           job_title?: string | null
           manager_id?: string | null
           mentor_id?: string | null
+          onboarded?: boolean
           start_date?: string | null
           status?: string
           updated_at?: string
