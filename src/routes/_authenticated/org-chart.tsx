@@ -225,7 +225,16 @@ function OrgChartPage() {
     queryKey: ["org-chart"],
     queryFn: async () => (await supabase.from("profiles").select("*").order("full_name")).data ?? [],
   });
-  const tree = useMemo(() => buildTree(data ?? []), [data]);
+  const { data: positions } = useQuery({
+    queryKey: ["positions"],
+    queryFn: async () => (await supabase.from("positions").select("name,priority")).data ?? [],
+  });
+  const priorityOf = useMemo(() => {
+    const m = new Map<string, number>();
+    (positions ?? []).forEach((p: any) => m.set((p.name ?? "").toLowerCase(), p.priority ?? 999));
+    return (title: string | null) => m.get((title ?? "").toLowerCase()) ?? 999;
+  }, [positions]);
+  const tree = useMemo(() => buildTree(data ?? [], priorityOf), [data, priorityOf]);
   const [zoom, setZoom] = useState(1);
   const [exporting, setExporting] = useState(false);
   const chartRef = useRef<HTMLDivElement>(null);
