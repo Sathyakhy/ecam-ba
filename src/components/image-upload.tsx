@@ -26,6 +26,41 @@ export function ImageUpload({
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
 
+  const cropToSquare = (file: File): Promise<Blob> =>
+    new Promise((resolve, reject) => {
+      // Skip cropping for SVG (vector)
+      if (file.type === "image/svg+xml") return resolve(file);
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const size = Math.min(img.width, img.height);
+        const sx = (img.width - size) / 2;
+        const sy = (img.height - size) / 2;
+        const out = Math.min(size, 1024);
+        const canvas = document.createElement("canvas");
+        canvas.width = out;
+        canvas.height = out;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          URL.revokeObjectURL(url);
+          return reject(new Error("Canvas unsupported"));
+        }
+        ctx.drawImage(img, sx, sy, size, size, 0, 0, out, out);
+        URL.revokeObjectURL(url);
+        const mime = file.type === "image/png" ? "image/png" : "image/jpeg";
+        canvas.toBlob(
+          (blob) => (blob ? resolve(blob) : reject(new Error("Crop failed"))),
+          mime,
+          0.92,
+        );
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error("Image load failed"));
+      };
+      img.src = url;
+    });
+
   const handle = async (file: File) => {
     if (file.size > 5 * 1024 * 1024) {
       toast.error("File too large (max 5 MB)");
@@ -33,12 +68,15 @@ export function ImageUpload({
     }
     setBusy(true);
     try {
-      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+      const cropped = shape === "circle" ? await cropToSquare(file) : file;
+      const inferredExt =
+        cropped.type === "image/png" ? "png" : cropped.type === "image/svg+xml" ? "svg" : "jpg";
+      const ext = shape === "circle" ? inferredExt : file.name.split(".").pop()?.toLowerCase() || "png";
       const path = `${prefix}${prefix ? "/" : ""}${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      const { error } = await supabase.storage.from(bucket).upload(path, file, {
+      const { error } = await supabase.storage.from(bucket).upload(path, cropped, {
         cacheControl: "3600",
         upsert: false,
-        contentType: file.type,
+        contentType: cropped.type || file.type,
       });
       if (error) throw error;
       const { data } = supabase.storage.from(bucket).getPublicUrl(path);
