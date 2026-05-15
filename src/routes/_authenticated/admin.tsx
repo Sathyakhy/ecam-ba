@@ -2,7 +2,7 @@ import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { UserPlus, Trash2, ShieldCheck } from "lucide-react";
+import { UserPlus, Trash2, ShieldCheck, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -18,7 +18,12 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { PageHeader } from "@/components/page-header";
-import { adminCreateUser, adminDeleteUser } from "@/lib/auth.functions";
+import { ImageUpload } from "@/components/image-upload";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { adminCreateUser, adminDeleteUser, adminUpdateUser } from "@/lib/auth.functions";
+import type { Tables } from "@/integrations/supabase/types";
+
+type UserRow = Tables<"profiles"> & { role: string };
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
@@ -35,6 +40,7 @@ function AdminInner() {
   const qc = useQueryClient();
   const create = useServerFn(adminCreateUser);
   const del = useServerFn(adminDeleteUser);
+  const [editing, setEditing] = useState<UserRow | null>(null);
 
   const users = useQuery({
     queryKey: ["admin-users"],
@@ -145,11 +151,21 @@ function AdminInner() {
             </tr>
           </thead>
           <tbody>
-            {users.data?.map((u) => (
+            {users.data?.map((u) => {
+              const initials = u.full_name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
+              return (
               <tr key={u.id} className="border-b border-border last:border-0 [&>td]:py-3 [&>td]:px-4">
                 <td>
-                  <div className="font-medium">{u.full_name}</div>
-                  <div className="text-xs text-muted-foreground">@{u.username} · {u.job_title ?? "—"}</div>
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-9 w-9">
+                      {u.avatar_url && <AvatarImage src={u.avatar_url} alt={u.full_name} />}
+                      <AvatarFallback className="bg-primary/10 text-primary text-xs">{initials}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="font-medium">{u.full_name}</div>
+                      <div className="text-xs text-muted-foreground">@{u.username} · {u.job_title ?? "—"}</div>
+                    </div>
+                  </div>
                 </td>
                 <td className="text-muted-foreground">{u.email}</td>
                 <td>
@@ -158,19 +174,142 @@ function AdminInner() {
                   </Badge>
                 </td>
                 <td><Badge variant="outline" className="capitalize">{u.status}</Badge></td>
-                <td className="text-right">
+                <td className="text-right whitespace-nowrap">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditing(u)}>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => remove(u.id, u.full_name)}>
                     <Trash2 className="h-3.5 w-3.5 text-destructive" />
                   </Button>
                 </td>
               </tr>
-            ))}
+              );
+            })}
             {users.data?.length === 0 && (
               <tr><td colSpan={5} className="text-center text-muted-foreground py-10">No users yet.</td></tr>
             )}
           </tbody>
         </table>
       </Card>
+
+      {editing && (
+        <EditUserDialog
+          user={editing}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null);
+            qc.invalidateQueries({ queryKey: ["admin-users"] });
+            qc.invalidateQueries({ queryKey: ["staff-full"] });
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function EditUserDialog({
+  user,
+  onClose,
+  onSaved,
+}: {
+  user: UserRow;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const updateFn = useServerFn(adminUpdateUser);
+  const [form, setForm] = useState({
+    full_name: user.full_name,
+    email: user.email,
+    job_title: user.job_title ?? "",
+    department: user.department ?? "",
+    start_date: user.start_date ?? "",
+    status: (user.status as "active" | "inactive") ?? "active",
+    role: (user.role as "admin" | "staff") ?? "staff",
+    password: "",
+    avatar_url: user.avatar_url ?? null as string | null,
+  });
+  const [saving, setSaving] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await updateFn({
+        data: {
+          user_id: user.id,
+          full_name: form.full_name,
+          email: form.email,
+          job_title: form.job_title || null,
+          department: form.department || null,
+          start_date: form.start_date || null,
+          status: form.status,
+          role: form.role,
+          avatar_url: form.avatar_url,
+          password: form.password || undefined,
+        },
+      });
+      toast.success("User updated");
+      onSaved();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>Edit {user.full_name}</DialogTitle></DialogHeader>
+        <form onSubmit={submit} className="space-y-3">
+          <div className="space-y-2">
+            <Label>Profile picture</Label>
+            <ImageUpload
+              value={form.avatar_url}
+              onChange={(url) => setForm({ ...form, avatar_url: url })}
+              bucket="avatars"
+              prefix={user.id}
+              shape="circle"
+              label="Upload photo"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2"><Label>Full name</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required maxLength={120} /></div>
+            <div className="space-y-2"><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required maxLength={255} /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2"><Label>Job title</Label><Input value={form.job_title} onChange={(e) => setForm({ ...form, job_title: e.target.value })} maxLength={120} /></div>
+            <div className="space-y-2"><Label>Department</Label><Input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} maxLength={120} /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Role</Label>
+              <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as "admin" | "staff" })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="staff">Staff</SelectItem>
+                  <SelectItem value="admin">Admin / Manager</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as "active" | "inactive" })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2"><Label>Start date</Label><Input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Reset password (optional)</Label><Input type="text" placeholder="Leave blank to keep" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} minLength={form.password ? 8 : 0} maxLength={128} /></div>
+          </div>
+          <DialogFooter><Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save changes"}</Button></DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

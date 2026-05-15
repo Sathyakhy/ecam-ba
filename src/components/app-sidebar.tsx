@@ -10,6 +10,8 @@ import {
   Building2,
   Settings,
   LogOut,
+  UserCircle,
+  Network,
 } from "lucide-react";
 import {
   Sidebar,
@@ -23,7 +25,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useAppSettings } from "@/hooks/use-app-settings";
@@ -34,7 +36,9 @@ const main = [
   { title: "Learning", url: "/learning", icon: GraduationCap },
   { title: "Tasks", url: "/tasks", icon: CheckSquare },
   { title: "Staff", url: "/staff", icon: Users },
+  { title: "Org chart", url: "/org-chart", icon: Network },
   { title: "Announcements", url: "/announcements", icon: Megaphone },
+  { title: "My profile", url: "/profile", icon: UserCircle },
 ] as const;
 
 export function AppSidebar() {
@@ -114,6 +118,7 @@ export function AppSidebar() {
       <SidebarFooter className="border-t border-sidebar-border">
         <div className="flex items-center gap-2 px-2 py-1.5">
           <Avatar className="h-8 w-8">
+            {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt={profile.full_name} />}
             <AvatarFallback className="text-xs bg-primary/10 text-primary">{initials}</AvatarFallback>
           </Avatar>
           <div className="flex flex-col text-xs min-w-0 flex-1 group-data-[collapsible=icon]:hidden">

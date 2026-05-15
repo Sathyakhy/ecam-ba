@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { useAuth } from "@/hooks/use-auth";
@@ -65,7 +65,10 @@ function StaffPage() {
           return (
             <Card key={p.id} className="p-4">
               <div className="flex items-start gap-3">
-                <Avatar><AvatarFallback className="bg-primary/10 text-primary">{initials}</AvatarFallback></Avatar>
+                <Avatar className="h-12 w-12">
+                  {p.avatar_url && <AvatarImage src={p.avatar_url} alt={p.full_name} />}
+                  <AvatarFallback className="bg-primary/10 text-primary">{initials}</AvatarFallback>
+                </Avatar>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-medium truncate">{p.full_name}</h3>
