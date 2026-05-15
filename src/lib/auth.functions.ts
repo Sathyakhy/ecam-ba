@@ -212,6 +212,14 @@ export const updateOwnProfile = createServerFn({ method: "POST" })
         job_title: z.string().trim().max(120).nullable().optional(),
         department: z.string().trim().max(120).nullable().optional(),
         avatar_url: z.string().trim().max(2048).nullable().optional(),
+        phone: z.string().trim().max(40).nullable().optional(),
+        date_of_birth: z.string().nullable().optional(),
+        gender: z.string().trim().max(40).nullable().optional(),
+        address: z.string().trim().max(500).nullable().optional(),
+        nationality: z.string().trim().max(80).nullable().optional(),
+        emergency_contact_name: z.string().trim().max(120).nullable().optional(),
+        emergency_contact_phone: z.string().trim().max(40).nullable().optional(),
+        bio: z.string().trim().max(2000).nullable().optional(),
       })
       .parse(input),
   )
@@ -221,7 +229,15 @@ export const updateOwnProfile = createServerFn({ method: "POST" })
       job_title: data.job_title ?? null,
       department: data.department ?? null,
       avatar_url: data.avatar_url ?? null,
-    }).eq("id", context.userId);
+      phone: data.phone ?? null,
+      date_of_birth: data.date_of_birth ?? null,
+      gender: data.gender ?? null,
+      address: data.address ?? null,
+      nationality: data.nationality ?? null,
+      emergency_contact_name: data.emergency_contact_name ?? null,
+      emergency_contact_phone: data.emergency_contact_phone ?? null,
+      bio: data.bio ?? null,
+    } as never).eq("id", context.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
