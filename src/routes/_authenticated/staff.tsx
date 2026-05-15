@@ -333,6 +333,15 @@ function StaffPage() {
                 </div>
               </div>
 
+              {/* Contact */}
+              {((p as any).phone || p.email) && (
+                <div className="border-t border-border pt-2 space-y-1 text-xs text-muted-foreground">
+                  {(p as any).phone && (
+                    <div className="truncate">📞 {(p as any).phone}</div>
+                  )}
+                </div>
+              )}
+
               {/* Footer actions */}
               <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
                 <a href={`mailto:${p.email}`} className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1 min-w-0">
