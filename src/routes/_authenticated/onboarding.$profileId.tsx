@@ -218,6 +218,9 @@ function PlanPage() {
         onChange={invalidateAll}
       />
 
+      {/* History */}
+      <HistoryBlock profileId={profileId} canEdit={canEdit} />
+
       {canEdit && (
         <Card className="p-4 flex items-center justify-between">
           <div className="text-xs text-muted-foreground">Delete this plan and start over.</div>
