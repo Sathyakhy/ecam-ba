@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
+import { ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Profile = Tables<"profiles">;
@@ -36,36 +38,54 @@ function NodeCard({ node, asMentee = false }: { node: Node; asMentee?: boolean }
   ];
   return (
     <div className="flex flex-col items-center">
-      <Card className={`px-4 py-3 flex items-center gap-3 min-w-[200px] hover:shadow-md transition-shadow ${asMentee ? "border-dashed" : ""}`}>
-        <Avatar className="h-10 w-10">
+      <Card
+        className={`px-2.5 py-1.5 flex items-center gap-2 min-w-[150px] max-w-[170px] hover:shadow-md transition-shadow ${
+          asMentee ? "border-dashed" : ""
+        }`}
+      >
+        <Avatar className="h-7 w-7 shrink-0">
           {node.avatar_url && <AvatarImage src={node.avatar_url} alt={node.full_name} />}
-          <AvatarFallback className="bg-primary/10 text-primary text-xs">{initials}</AvatarFallback>
+          <AvatarFallback className="bg-primary/10 text-primary text-[10px]">{initials}</AvatarFallback>
         </Avatar>
-        <div className="min-w-0">
-          <div className="font-medium text-sm truncate flex items-center gap-1.5">
-            {node.full_name}
-            {asMentee && <span className="text-[10px] uppercase tracking-wide text-muted-foreground">mentee</span>}
+        <div className="min-w-0 flex-1">
+          <div className="font-medium text-xs truncate flex items-center gap-1">
+            <span className="truncate">{node.full_name}</span>
+            {asMentee && (
+              <span className="text-[8px] uppercase tracking-wide text-muted-foreground shrink-0">m</span>
+            )}
           </div>
-          <div className="text-xs text-muted-foreground truncate">{node.job_title ?? "—"}</div>
+          <div className="text-[10px] text-muted-foreground truncate leading-tight">
+            {node.job_title ?? "—"}
+          </div>
         </div>
       </Card>
       {allChildren.length > 0 && (
-        <>
-          <div className="w-px h-6 bg-border" />
-          <div className="relative pt-0">
+        <div className="flex flex-col items-center w-full">
+          {/* vertical drop from parent */}
+          <div className="w-px h-4 bg-border" />
+          {/* horizontal sibling bar (only if >1) */}
+          <div className="relative w-full flex justify-center">
             {allChildren.length > 1 && (
-              <div className="absolute top-0 h-px bg-border" style={{ left: "10%", right: "10%" }} />
+              <div
+                className="absolute top-0 h-px bg-border"
+                style={{
+                  left: `calc(${100 / (allChildren.length * 2)}%)`,
+                  right: `calc(${100 / (allChildren.length * 2)}%)`,
+                }}
+              />
             )}
-            <div className="flex gap-6 items-start">
+            <div className="flex gap-4 items-start pt-0">
               {allChildren.map(({ node: c, mentee }) => (
                 <div key={`${mentee ? "m" : "c"}-${c.id}`} className="flex flex-col items-center">
-                  <div className={`w-px h-6 ${mentee ? "bg-border/50 border-l border-dashed" : "bg-border"}`} />
+                  <div
+                    className={`w-px h-4 ${mentee ? "border-l border-dashed border-border" : "bg-border"}`}
+                  />
                   <NodeCard node={c} asMentee={mentee} />
                 </div>
               ))}
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
@@ -77,6 +97,11 @@ function OrgChartPage() {
     queryFn: async () => (await supabase.from("profiles").select("*").order("full_name")).data ?? [],
   });
   const tree = useMemo(() => buildTree(data ?? []), [data]);
+  const [zoom, setZoom] = useState(1);
+
+  const zoomIn = () => setZoom((z) => Math.min(2, +(z + 0.1).toFixed(2)));
+  const zoomOut = () => setZoom((z) => Math.max(0.4, +(z - 0.1).toFixed(2)));
+  const reset = () => setZoom(1);
 
   return (
     <div>
@@ -84,13 +109,32 @@ function OrgChartPage() {
       {tree.length === 0 ? (
         <Card className="p-10 text-center text-sm text-muted-foreground">No staff yet.</Card>
       ) : (
-        <div className="overflow-x-auto pb-4">
-          <div className="flex gap-12 justify-center min-w-max p-6">
-            {tree.map((root) => (
-              <NodeCard key={root.id} node={root} />
-            ))}
+        <Card className="relative overflow-hidden">
+          <div className="absolute top-3 right-3 z-10 flex items-center gap-1 bg-background/90 backdrop-blur border rounded-md p-1 shadow-sm">
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={zoomOut} aria-label="Zoom out">
+              <ZoomOut className="h-3.5 w-3.5" />
+            </Button>
+            <span className="text-[11px] tabular-nums w-10 text-center text-muted-foreground">
+              {Math.round(zoom * 100)}%
+            </span>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={zoomIn} aria-label="Zoom in">
+              <ZoomIn className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={reset} aria-label="Reset">
+              <Maximize2 className="h-3.5 w-3.5" />
+            </Button>
           </div>
-        </div>
+          <div className="overflow-auto max-h-[75vh]">
+            <div
+              className="flex gap-8 justify-center min-w-max p-6 origin-top transition-transform"
+              style={{ transform: `scale(${zoom})` }}
+            >
+              {tree.map((root) => (
+                <NodeCard key={root.id} node={root} />
+              ))}
+            </div>
+          </div>
+        </Card>
       )}
     </div>
   );
