@@ -181,6 +181,7 @@ export type Database = {
           id: string
           job_title: string | null
           manager_id: string | null
+          mentor_id: string | null
           start_date: string | null
           status: string
           updated_at: string
@@ -195,6 +196,7 @@ export type Database = {
           id: string
           job_title?: string | null
           manager_id?: string | null
+          mentor_id?: string | null
           start_date?: string | null
           status?: string
           updated_at?: string
@@ -209,6 +211,7 @@ export type Database = {
           id?: string
           job_title?: string | null
           manager_id?: string | null
+          mentor_id?: string | null
           start_date?: string | null
           status?: string
           updated_at?: string
@@ -218,6 +221,13 @@ export type Database = {
           {
             foreignKeyName: "profiles_manager_id_fkey"
             columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_mentor_id_fkey"
+            columns: ["mentor_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
