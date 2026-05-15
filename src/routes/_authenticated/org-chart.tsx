@@ -78,7 +78,19 @@ function PersonBlock({ node, dashed = false }: { node: Node; dashed?: boolean })
       </div>
       <div className="mt-2 font-bold text-[13px] leading-tight text-foreground">{node.full_name}</div>
       <div className="text-[11px] text-muted-foreground leading-tight mt-0.5">
-        {node.job_title ?? "—"}
+        {(() => {
+          const t = node.job_title ?? "—";
+          const parts = t.trim().split(/\s+/);
+          if (parts.length < 2) return t;
+          const last = parts.pop();
+          return (
+            <>
+              {parts.join(" ")}
+              <br />
+              {last}
+            </>
+          );
+        })()}
       </div>
     </div>
   );
