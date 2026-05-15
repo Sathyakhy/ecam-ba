@@ -79,14 +79,14 @@ function SettingsPage() {
             </div>
           </div>
           <div className="space-y-2">
-            <Label>Logo URL</Label>
-            <Input
-              value={form.logo_url}
-              onChange={(e) => setForm({ ...form, logo_url: e.target.value })}
-              placeholder="https://…"
-              maxLength={2048}
+            <Label>Workspace logo</Label>
+            <ImageUpload
+              value={form.logo_url || null}
+              onChange={(url) => setForm({ ...form, logo_url: url ?? "" })}
+              bucket="branding"
+              prefix="logo"
+              label="Upload logo"
             />
-            <p className="text-xs text-muted-foreground">Square image works best. Leave empty for default icon.</p>
           </div>
           <div className="space-y-2">
             <Label>Hero title (login page)</Label>
