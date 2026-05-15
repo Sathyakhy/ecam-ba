@@ -32,7 +32,7 @@ function PlanPage() {
   const profileQ = useQuery({
     queryKey: ["plan-profile", profileId],
     queryFn: async () =>
-      (await supabase.from("profiles").select("id,full_name,username,avatar_url,job_title,department,start_date").eq("id", profileId).single()).data,
+      (await supabase.from("profiles").select("id,full_name,username,avatar_url,job_title,department,start_date,onboarded").eq("id", profileId).single()).data,
   });
 
   const planQ = useQuery({
