@@ -148,6 +148,7 @@ export const adminUpdateUser = createServerFn({ method: "POST" })
         job_title: z.string().trim().max(120).nullable().optional(),
         department: z.string().trim().max(120).nullable().optional(),
         manager_id: z.string().uuid().nullable().optional(),
+        mentor_id: z.string().uuid().nullable().optional(),
         start_date: z.string().nullable().optional(),
         status: z.enum(["active", "inactive"]).optional(),
         avatar_url: z.string().trim().max(2048).nullable().optional(),
