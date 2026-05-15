@@ -161,10 +161,50 @@ function StaffPage() {
                   <p className="text-xs text-muted-foreground">@{p.username} · {p.email}</p>
                   <div className="mt-2 text-sm">
                     <p>{p.job_title ?? "—"}{p.department ? ` · ${p.department}` : ""}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Manager: {p.manager_id ? managerName(p.manager_id) : "—"}
-                      {p.start_date && ` · Started ${new Date(p.start_date).toLocaleDateString()}`}
-                    </p>
+                    {isAdmin ? (
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground shrink-0">Manager:</span>
+                        <Select
+                          value={p.manager_id ?? "__none__"}
+                          onValueChange={async (v) => {
+                            const manager_id = v === "__none__" ? null : v;
+                            if (manager_id === p.id) { toast.error("Can't be their own manager"); return; }
+                            try {
+                              await updateUser({ data: {
+                                user_id: p.id,
+                                full_name: p.full_name,
+                                email: p.email,
+                                job_title: p.job_title,
+                                department: p.department,
+                                manager_id,
+                                start_date: p.start_date,
+                                status: (p.status as "active" | "inactive") ?? "active",
+                                avatar_url: p.avatar_url,
+                              }});
+                              toast.success("Manager updated");
+                              qc.invalidateQueries({ queryKey: ["staff-full"] });
+                            } catch (e: any) {
+                              toast.error(e.message ?? "Update failed");
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select manager" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">— None —</SelectItem>
+                            {(staff.data ?? []).filter((m) => m.id !== p.id).map((m) => (
+                              <SelectItem key={m.id} value={m.id}>{m.full_name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Manager: {p.manager_id ? managerName(p.manager_id) : "—"}
+                      </p>
+                    )}
+                    {p.start_date && (
+                      <p className="text-xs text-muted-foreground mt-1">Started {new Date(p.start_date).toLocaleDateString()}</p>
+                    )}
                   </div>
                 </div>
               </div>
