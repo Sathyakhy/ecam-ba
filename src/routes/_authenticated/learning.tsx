@@ -66,11 +66,13 @@ function LearningPage() {
       />
 
       <Tabs defaultValue="materials">
-        <TabsList>
-          <TabsTrigger value="materials">Materials</TabsTrigger>
-          <TabsTrigger value="my">Assigned to me</TabsTrigger>
-          <TabsTrigger value="kb">Knowledge base</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-1 px-1">
+          <TabsList>
+            <TabsTrigger value="materials">Materials</TabsTrigger>
+            <TabsTrigger value="my">Assigned to me</TabsTrigger>
+            <TabsTrigger value="kb">Knowledge base</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="materials" className="mt-4">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
