@@ -498,11 +498,56 @@ function RelationshipDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit {person.full_name}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Profile picture</Label>
+            <ImageUpload
+              value={avatarUrl}
+              onChange={setAvatarUrl}
+              bucket="avatars"
+              prefix={person.id}
+              shape="circle"
+              label="Upload photo"
+            />
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Full name</Label>
+              <Input value={fullName} onChange={(e) => setFullName(e.target.value)} required maxLength={120} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Username</Label>
+              <Input value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} required pattern="[a-zA-Z0-9_.\-]+" minLength={3} maxLength={32} />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label className="text-xs">Email</Label>
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required maxLength={255} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Department</Label>
+              <Input value={department} onChange={(e) => setDepartment(e.target.value)} maxLength={120} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Start date</Label>
+              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Status</Label>
+              <Select value={statusVal} onValueChange={(v) => setStatusVal(v as "active" | "inactive")}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label>Position</Label>
             <Select value={jobTitle} onValueChange={setJobTitle}>
@@ -511,7 +556,7 @@ function RelationshipDialog({
                 <SelectItem value="__none__">— None —</SelectItem>
                 {positions.map((p) => (
                   <SelectItem key={p.id} value={p.name}>
-                    {p.priority}. {p.name}
+                    {p.name}
                   </SelectItem>
                 ))}
               </SelectContent>
