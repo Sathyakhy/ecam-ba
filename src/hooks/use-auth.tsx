@@ -14,6 +14,7 @@ interface ProfileRow {
   department: string | null;
   status: string;
   avatar_url: string | null;
+  onboarded: boolean;
 }
 
 interface AuthContextValue {
