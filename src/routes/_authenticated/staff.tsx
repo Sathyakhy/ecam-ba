@@ -182,9 +182,39 @@ function StaffPage() {
           ) : null
         }
       />
-      <div className="relative max-w-sm mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input className="pl-9" placeholder="Search by name, username, role…" value={q} onChange={(e) => setQ(e.target.value)} />
+      <div className="flex flex-wrap gap-2 mb-4 items-center">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input className="pl-9" placeholder="Search by name, username, role…" value={q} onChange={(e) => setQ(e.target.value)} />
+        </div>
+        <Select value={dept} onValueChange={setDept}>
+          <SelectTrigger className="w-[160px] h-9 text-sm"><SelectValue placeholder="Department" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All departments</SelectItem>
+            {departments.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={status} onValueChange={setStatus}>
+          <SelectTrigger className="w-[130px] h-9 text-sm"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All status</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Sort" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="name">Name (A–Z)</SelectItem>
+            <SelectItem value="name_desc">Name (Z–A)</SelectItem>
+            <SelectItem value="department">Department</SelectItem>
+            <SelectItem value="newest">Newest hires</SelectItem>
+            <SelectItem value="oldest">Longest tenure</SelectItem>
+          </SelectContent>
+        </Select>
+        {(q || dept !== "__all__" || status !== "__all__" || sortBy !== "name") && (
+          <Button variant="ghost" size="sm" onClick={() => { setQ(""); setDept("__all__"); setStatus("__all__"); setSortBy("name"); }}>Clear</Button>
+        )}
       </div>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {filtered.map((p) => {
