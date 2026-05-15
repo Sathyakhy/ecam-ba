@@ -202,6 +202,13 @@ function StaffPage() {
             {departments.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select value={position} onValueChange={setPosition}>
+          <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Position" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All positions</SelectItem>
+            {positions.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+          </SelectContent>
+        </Select>
         <Select value={status} onValueChange={setStatus}>
           <SelectTrigger className="w-[130px] h-9 text-sm"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
