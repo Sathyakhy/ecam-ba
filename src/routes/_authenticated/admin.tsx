@@ -40,7 +40,6 @@ function AdminInner() {
   const qc = useQueryClient();
   const create = useServerFn(adminCreateUser);
   const del = useServerFn(adminDeleteUser);
-  const update = useServerFn(adminUpdateUser);
   const [editing, setEditing] = useState<UserRow | null>(null);
 
   const users = useQuery({
