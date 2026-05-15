@@ -33,13 +33,20 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionLoadTimedOut, setSessionLoadTimedOut] = useState(false);
   const [profileLoadTimedOut, setProfileLoadTimedOut] = useState(false);
   const queryClient = useQueryClient();
   const fetchProfile = useServerFn(getMyProfile);
 
   useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setSessionLoadTimedOut(true);
+      setLoading(false);
+    }, 10000);
+
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
+      setSessionLoadTimedOut(false);
       if (event === "SIGNED_OUT") {
         queryClient.clear();
         return;
@@ -49,10 +56,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
     supabase.auth.getSession().then(({ data }) => {
+      window.clearTimeout(timeout);
       setSession(data.session);
+      setSessionLoadTimedOut(false);
       setLoading(false);
     });
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      window.clearTimeout(timeout);
+      sub.subscription.unsubscribe();
+    };
   }, [queryClient]);
 
   const profileQuery = useQuery({
@@ -87,7 +99,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.clearTimeout(timeout);
   }, [session?.access_token, profileQuery.isLoading]);
 
-  const authError = profileLoadTimedOut
+  const authError = sessionLoadTimedOut
+    ? "Loading your session is taking too long. Please sign in again."
+    : profileLoadTimedOut
     ? "Loading your profile is taking too long. Please try again."
     : profileQuery.error instanceof Error
       ? profileQuery.error.message
