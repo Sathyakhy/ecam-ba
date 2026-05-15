@@ -22,6 +22,9 @@ export const Route = createFileRoute("/_authenticated/staff")({
 
 function StaffPage() {
   const [q, setQ] = useState("");
+  const [dept, setDept] = useState<string>("__all__");
+  const [status, setStatus] = useState<string>("__all__");
+  const [sortBy, setSortBy] = useState<string>("name");
   const { isAdmin } = useAuth();
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -32,17 +35,40 @@ function StaffPage() {
     queryFn: async () => (await supabase.from("profiles").select("*").order("full_name")).data ?? [],
   });
 
+  const departments = useMemo(() => {
+    const set = new Set<string>();
+    (staff.data ?? []).forEach((p) => p.department && set.add(p.department));
+    return Array.from(set).sort();
+  }, [staff.data]);
+
   const filtered = useMemo(() => {
-    const list = staff.data ?? [];
-    if (!q) return list;
-    const s = q.toLowerCase();
-    return list.filter((p) =>
-      p.full_name?.toLowerCase().includes(s) ||
-      p.username?.toLowerCase().includes(s) ||
-      p.job_title?.toLowerCase().includes(s) ||
-      p.department?.toLowerCase().includes(s),
-    );
-  }, [staff.data, q]);
+    let list = staff.data ?? [];
+    if (q) {
+      const s = q.toLowerCase();
+      list = list.filter((p) =>
+        p.full_name?.toLowerCase().includes(s) ||
+        p.username?.toLowerCase().includes(s) ||
+        p.job_title?.toLowerCase().includes(s) ||
+        p.department?.toLowerCase().includes(s),
+      );
+    }
+    if (dept !== "__all__") list = list.filter((p) => (p.department ?? "") === dept);
+    if (status !== "__all__") list = list.filter((p) => p.status === status);
+    const sorted = [...list];
+    sorted.sort((a, b) => {
+      switch (sortBy) {
+        case "name_desc": return b.full_name.localeCompare(a.full_name);
+        case "department": return (a.department ?? "").localeCompare(b.department ?? "") || a.full_name.localeCompare(b.full_name);
+        case "newest": return (b.start_date ?? "").localeCompare(a.start_date ?? "");
+        case "oldest": {
+          const av = a.start_date ?? "9999"; const bv = b.start_date ?? "9999";
+          return av.localeCompare(bv);
+        }
+        default: return a.full_name.localeCompare(b.full_name);
+      }
+    });
+    return sorted;
+  }, [staff.data, q, dept, status, sortBy]);
 
   const managerName = (id: string | null) => staff.data?.find((p) => p.id === id)?.full_name ?? "—";
 
@@ -156,9 +182,39 @@ function StaffPage() {
           ) : null
         }
       />
-      <div className="relative max-w-sm mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input className="pl-9" placeholder="Search by name, username, role…" value={q} onChange={(e) => setQ(e.target.value)} />
+      <div className="flex flex-wrap gap-2 mb-4 items-center">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input className="pl-9" placeholder="Search by name, username, role…" value={q} onChange={(e) => setQ(e.target.value)} />
+        </div>
+        <Select value={dept} onValueChange={setDept}>
+          <SelectTrigger className="w-[160px] h-9 text-sm"><SelectValue placeholder="Department" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All departments</SelectItem>
+            {departments.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={status} onValueChange={setStatus}>
+          <SelectTrigger className="w-[130px] h-9 text-sm"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All status</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Sort" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="name">Name (A–Z)</SelectItem>
+            <SelectItem value="name_desc">Name (Z–A)</SelectItem>
+            <SelectItem value="department">Department</SelectItem>
+            <SelectItem value="newest">Newest hires</SelectItem>
+            <SelectItem value="oldest">Longest tenure</SelectItem>
+          </SelectContent>
+        </Select>
+        {(q || dept !== "__all__" || status !== "__all__" || sortBy !== "name") && (
+          <Button variant="ghost" size="sm" onClick={() => { setQ(""); setDept("__all__"); setStatus("__all__"); setSortBy("name"); }}>Clear</Button>
+        )}
       </div>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {filtered.map((p) => {
