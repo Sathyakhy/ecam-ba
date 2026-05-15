@@ -50,7 +50,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryKey: ["my-profile", session?.user?.id],
     queryFn: async () => {
       try {
-        return await fetchProfile();
+        if (!session?.access_token) {
+          return { profile: null, roles: [], isAdmin: false };
+        }
+
+        return await fetchProfile({
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
       } catch (err) {
         // Stale/expired session — clear it so the user lands on /login cleanly.
         if (err instanceof Error && /unauthorized/i.test(err.message)) {
@@ -60,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw err;
       }
     },
-    enabled: !!session?.user,
+    enabled: !!session?.user && !!session?.access_token,
     retry: false,
   });
 
