@@ -35,17 +35,40 @@ function StaffPage() {
     queryFn: async () => (await supabase.from("profiles").select("*").order("full_name")).data ?? [],
   });
 
+  const departments = useMemo(() => {
+    const set = new Set<string>();
+    (staff.data ?? []).forEach((p) => p.department && set.add(p.department));
+    return Array.from(set).sort();
+  }, [staff.data]);
+
   const filtered = useMemo(() => {
-    const list = staff.data ?? [];
-    if (!q) return list;
-    const s = q.toLowerCase();
-    return list.filter((p) =>
-      p.full_name?.toLowerCase().includes(s) ||
-      p.username?.toLowerCase().includes(s) ||
-      p.job_title?.toLowerCase().includes(s) ||
-      p.department?.toLowerCase().includes(s),
-    );
-  }, [staff.data, q]);
+    let list = staff.data ?? [];
+    if (q) {
+      const s = q.toLowerCase();
+      list = list.filter((p) =>
+        p.full_name?.toLowerCase().includes(s) ||
+        p.username?.toLowerCase().includes(s) ||
+        p.job_title?.toLowerCase().includes(s) ||
+        p.department?.toLowerCase().includes(s),
+      );
+    }
+    if (dept !== "__all__") list = list.filter((p) => (p.department ?? "") === dept);
+    if (status !== "__all__") list = list.filter((p) => p.status === status);
+    const sorted = [...list];
+    sorted.sort((a, b) => {
+      switch (sortBy) {
+        case "name_desc": return b.full_name.localeCompare(a.full_name);
+        case "department": return (a.department ?? "").localeCompare(b.department ?? "") || a.full_name.localeCompare(b.full_name);
+        case "newest": return (b.start_date ?? "").localeCompare(a.start_date ?? "");
+        case "oldest": {
+          const av = a.start_date ?? "9999"; const bv = b.start_date ?? "9999";
+          return av.localeCompare(bv);
+        }
+        default: return a.full_name.localeCompare(b.full_name);
+      }
+    });
+    return sorted;
+  }, [staff.data, q, dept, status, sortBy]);
 
   const managerName = (id: string | null) => staff.data?.find((p) => p.id === id)?.full_name ?? "—";
 
