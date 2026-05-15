@@ -48,8 +48,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const profileQuery = useQuery({
     queryKey: ["my-profile", session?.user?.id],
-    queryFn: () => fetchProfile(),
+    queryFn: async () => {
+      try {
+        return await fetchProfile();
+      } catch (err) {
+        // Stale/expired session — clear it so the user lands on /login cleanly.
+        if (err instanceof Error && /unauthorized/i.test(err.message)) {
+          await supabase.auth.signOut();
+          return { profile: null, roles: [], isAdmin: false };
+        }
+        throw err;
+      }
+    },
     enabled: !!session?.user,
+    retry: false,
   });
 
   const value: AuthContextValue = {
