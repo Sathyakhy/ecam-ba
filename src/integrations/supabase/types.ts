@@ -731,19 +731,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      can_view_onb_plan: {
-        Args: { _plan_id: string; _viewer_id: string }
-        Returns: boolean
-      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
-        Returns: boolean
-      }
-      is_in_management_chain: {
-        Args: { _intern_id: string; _viewer_id: string }
         Returns: boolean
       }
     }
