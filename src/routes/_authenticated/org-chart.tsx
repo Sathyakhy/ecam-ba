@@ -12,7 +12,7 @@ import type { Tables } from "@/integrations/supabase/types";
 type Profile = Tables<"profiles">;
 type Node = Profile & { children: Node[]; mentees: Node[] };
 
-function buildTree(list: Profile[]): Node[] {
+function buildTree(list: Profile[], priorityOf: (title: string | null) => number): Node[] {
   const map = new Map<string, Node>();
   list.forEach((p) => map.set(p.id, { ...p, children: [], mentees: [] }));
   const roots: Node[] = [];
@@ -26,6 +26,23 @@ function buildTree(list: Profile[]): Node[] {
       roots.push(n);
     }
   });
+  const sortFn = (a: Node, b: Node) => {
+    const pa = priorityOf(a.job_title);
+    const pb = priorityOf(b.job_title);
+    if (pa !== pb) return pa - pb;
+    const da = a.start_date ? new Date(a.start_date).getTime() : Infinity;
+    const db = b.start_date ? new Date(b.start_date).getTime() : Infinity;
+    if (da !== db) return da - db;
+    return a.full_name.localeCompare(b.full_name);
+  };
+  const sortRec = (n: Node) => {
+    n.children.sort(sortFn);
+    n.mentees.sort(sortFn);
+    n.children.forEach(sortRec);
+    n.mentees.forEach(sortRec);
+  };
+  roots.sort(sortFn);
+  roots.forEach(sortRec);
   return roots;
 }
 
