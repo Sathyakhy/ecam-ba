@@ -76,7 +76,7 @@ function StaffPage() {
       }
     });
     return sorted;
-  }, [staff.data, q, dept, status, sortBy]);
+  }, [staff.data, q, dept, position, status, sortBy]);
 
   const managerName = (id: string | null) => staff.data?.find((p) => p.id === id)?.full_name ?? "—";
 
