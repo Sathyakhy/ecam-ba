@@ -102,28 +102,46 @@ function DownArrow({ height = 28 }: { height?: number }) {
   );
 }
 
-/** Mentee chain: connects under a parent with a solid L-shape, arrow pointing right into the mentee. */
+/** Mentee chain: vertical line drops from parent center, then turns right into each mentee with arrow. */
 function MenteeChain({ nodes }: { nodes: Node[] }) {
   if (!nodes.length) return null;
   return (
-    <div className="flex flex-col items-center mt-3 gap-3">
-      {nodes.map((m) => (
-        <div key={m.id} className="flex items-center gap-2">
-          <div className="flex items-center" style={{ width: 24 }}>
-            <div className="flex-1 border-t-2" style={{ borderColor: BRAND }} />
+    <div className="flex flex-col items-stretch mt-2">
+      {nodes.map((m, i) => {
+        const isLast = i === nodes.length - 1;
+        return (
+          <div key={m.id} className="relative flex items-start" style={{ marginTop: i === 0 ? 0 : 18 }}>
+            {/* Vertical spine: top half (always) connects from above */}
             <div
-              style={{
-                width: 0,
-                height: 0,
-                borderTop: "5px solid transparent",
-                borderBottom: "5px solid transparent",
-                borderLeft: `7px solid ${BRAND}`,
-              }}
+              className="absolute left-0 top-0"
+              style={{ width: 2, height: 44, background: BRAND }}
             />
+            {/* Spine bottom half continues only if more mentees follow */}
+            {!isLast && (
+              <div
+                className="absolute left-0"
+                style={{ width: 2, top: 44, bottom: -18, background: BRAND }}
+              />
+            )}
+            {/* Horizontal arrow into the mentee card */}
+            <div className="flex items-center" style={{ marginTop: 44 - 5, width: 28 }}>
+              <div className="flex-1 border-t-2" style={{ borderColor: BRAND }} />
+              <div
+                style={{
+                  width: 0,
+                  height: 0,
+                  borderTop: "5px solid transparent",
+                  borderBottom: "5px solid transparent",
+                  borderLeft: `7px solid ${BRAND}`,
+                }}
+              />
+            </div>
+            <div className="ml-1">
+              <PersonBlock node={m} />
+            </div>
           </div>
-          <PersonBlock node={m} />
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
