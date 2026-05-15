@@ -49,6 +49,36 @@ export type Database = {
           },
         ]
       }
+      app_settings: {
+        Row: {
+          app_name: string
+          hero_description: string
+          hero_title: string
+          id: number
+          logo_url: string | null
+          tagline: string
+          updated_at: string
+        }
+        Insert: {
+          app_name?: string
+          hero_description?: string
+          hero_title?: string
+          id?: number
+          logo_url?: string | null
+          tagline?: string
+          updated_at?: string
+        }
+        Update: {
+          app_name?: string
+          hero_description?: string
+          hero_title?: string
+          id?: number
+          logo_url?: string | null
+          tagline?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       knowledge_articles: {
         Row: {
           category: string | null

@@ -8,6 +8,7 @@ import {
   Megaphone,
   ShieldCheck,
   Building2,
+  Settings,
   LogOut,
 } from "lucide-react";
 import {
@@ -25,6 +26,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
+import { useAppSettings } from "@/hooks/use-app-settings";
 
 const main = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -38,6 +40,7 @@ const main = [
 export function AppSidebar() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { profile, isAdmin, signOut } = useAuth();
+  const settings = useAppSettings();
   const initials = (profile?.full_name ?? profile?.username ?? "U")
     .split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
 
@@ -45,12 +48,16 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center gap-2 px-2 py-1.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Building2 className="h-4 w-4" />
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground overflow-hidden">
+            {settings.logo_url ? (
+              <img src={settings.logo_url} alt={settings.app_name} className="h-full w-full object-cover" />
+            ) : (
+              <Building2 className="h-4 w-4" />
+            )}
           </div>
           <div className="flex flex-col text-sm group-data-[collapsible=icon]:hidden">
-            <span className="font-semibold leading-none">Department OS</span>
-            <span className="text-xs text-muted-foreground mt-0.5">Internal workspace</span>
+            <span className="font-semibold leading-none">{settings.app_name}</span>
+            <span className="text-xs text-muted-foreground mt-0.5">{settings.tagline}</span>
           </div>
         </div>
       </SidebarHeader>
@@ -87,6 +94,14 @@ export function AppSidebar() {
                     <Link to="/admin">
                       <ShieldCheck className="h-4 w-4" />
                       <span>User management</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={path.startsWith("/settings")}>
+                    <Link to="/settings">
+                      <Settings className="h-4 w-4" />
+                      <span>Settings</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
