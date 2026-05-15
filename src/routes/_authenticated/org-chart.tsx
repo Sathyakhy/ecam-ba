@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { ZoomIn, ZoomOut, Maximize2, Image as ImageIcon, FileDown } from "lucide-react";
@@ -30,66 +29,134 @@ function buildTree(list: Profile[]): Node[] {
   return roots;
 }
 
-function NodeCard({ node, asMentee = false }: { node: Node; asMentee?: boolean }) {
-  const initials = node.full_name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
-  const allChildren = [
-    ...node.children.map((c) => ({ node: c, mentee: false })),
-    ...node.mentees.map((c) => ({ node: c, mentee: true })),
-  ];
-  const multi = allChildren.length > 1;
+const BRAND = "#1f6fd1";
 
+function PhotoFrame({ src, name }: { src: string | null; name: string }) {
+  const initials = name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
+  return (
+    <div
+      className="relative w-[88px] h-[88px] rounded-[14px] overflow-hidden shrink-0"
+      style={{ border: `4px solid ${BRAND}`, boxShadow: "0 2px 6px rgba(0,0,0,0.08)" }}
+    >
+      {src ? (
+        <img src={src} alt={name} className="w-full h-full object-cover" crossOrigin="anonymous" />
+      ) : (
+        <div
+          className="w-full h-full flex items-center justify-center text-white font-semibold text-xl"
+          style={{ background: BRAND }}
+        >
+          {initials}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PersonBlock({ node, dashed = false }: { node: Node; dashed?: boolean }) {
+  return (
+    <div className="flex flex-col items-center text-center w-[160px]">
+      <div className={dashed ? "opacity-95" : ""}>
+        <PhotoFrame src={node.avatar_url} name={node.full_name} />
+      </div>
+      <div className="mt-2 font-bold text-[13px] leading-tight text-foreground">{node.full_name}</div>
+      <div className="text-[11px] text-muted-foreground leading-tight mt-0.5">
+        {node.job_title ?? "—"}
+      </div>
+    </div>
+  );
+}
+
+/** Vertical dashed line ending in a downward arrowhead. */
+function DownArrow({ height = 28 }: { height?: number }) {
+  return (
+    <div className="flex flex-col items-center" style={{ height }}>
+      <div className="flex-1 border-l-2 border-dashed" style={{ borderColor: BRAND }} />
+      <div
+        style={{
+          width: 0,
+          height: 0,
+          borderLeft: "5px solid transparent",
+          borderRight: "5px solid transparent",
+          borderTop: `7px solid ${BRAND}`,
+          marginTop: -1,
+        }}
+      />
+    </div>
+  );
+}
+
+/** Mentee chain: connects under a parent with a dashed L-shape, arrow pointing right into the mentee. */
+function MenteeChain({ nodes }: { nodes: Node[] }) {
+  if (!nodes.length) return null;
+  return (
+    <div className="flex flex-col items-center mt-3 gap-3">
+      {nodes.map((m) => (
+        <div key={m.id} className="flex items-center gap-2">
+          <div className="flex items-center" style={{ width: 24 }}>
+            <div className="flex-1 border-t-2 border-dashed" style={{ borderColor: BRAND }} />
+            <div
+              style={{
+                width: 0,
+                height: 0,
+                borderTop: "5px solid transparent",
+                borderBottom: "5px solid transparent",
+                borderLeft: `7px solid ${BRAND}`,
+              }}
+            />
+          </div>
+          <PersonBlock node={m} dashed />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Subtree({ node }: { node: Node }) {
+  // Render this person, then their direct reports as a vertical chain (each pointed to by an arrow),
+  // with mentees branching off to the right with a dashed arrow.
   return (
     <div className="flex flex-col items-center">
-      <Card
-        className={`px-2.5 py-1.5 flex items-center gap-2 min-w-[160px] max-w-[180px] hover:shadow-md transition-shadow ${
-          asMentee ? "border-dashed" : ""
-        }`}
-      >
-        <Avatar className="h-8 w-8 shrink-0">
-          {node.avatar_url && <AvatarImage src={node.avatar_url} alt={node.full_name} />}
-          <AvatarFallback className="bg-primary/10 text-primary text-[10px]">{initials}</AvatarFallback>
-        </Avatar>
-        <div className="min-w-0 flex-1">
-          <div className="font-medium text-xs truncate flex items-center gap-1">
-            <span className="truncate">{node.full_name}</span>
-            {asMentee && (
-              <span className="text-[8px] uppercase tracking-wide text-muted-foreground shrink-0">m</span>
-            )}
-          </div>
-          <div className="text-[10px] text-muted-foreground truncate leading-tight">
-            {node.job_title ?? "—"}
-          </div>
+      <PersonBlock node={node} />
+      {node.mentees.length > 0 && <MenteeChain nodes={node.mentees} />}
+      {node.children.map((c) => (
+        <div key={c.id} className="flex flex-col items-center">
+          <DownArrow />
+          <Subtree node={c} />
         </div>
-      </Card>
+      ))}
+    </div>
+  );
+}
 
-      {allChildren.length > 0 && (
+function RootTree({ root }: { root: Node }) {
+  const cols = root.children;
+  return (
+    <div className="flex flex-col items-center">
+      <PersonBlock node={root} />
+      {root.mentees.length > 0 && <MenteeChain nodes={root.mentees} />}
+      {cols.length > 0 && (
         <>
-          {/* drop from parent card to child group */}
-          <div className="w-px h-5 bg-border" />
-
+          {/* drop from root */}
+          <div className="h-6 border-l-2 border-dashed" style={{ borderColor: BRAND }} />
+          {/* horizontal spreader */}
           <div className="flex items-start">
-            {allChildren.map(({ node: c, mentee }, i) => {
+            {cols.map((c, i) => {
               const first = i === 0;
-              const last = i === allChildren.length - 1;
+              const last = i === cols.length - 1;
               return (
-                <div
-                  key={`${mentee ? "m" : "c"}-${c.id}`}
-                  className="flex flex-col items-center px-3"
-                >
-                  {/* horizontal connector — only when there are siblings; spans only between first and last child centers */}
-                  {multi && (
-                    <div className="flex w-full h-0">
-                      <div className={`flex-1 ${first ? "" : "border-t border-border"}`} />
-                      <div className={`flex-1 ${last ? "" : "border-t border-border"}`} />
-                    </div>
-                  )}
-                  {/* vertical stub down to the child card */}
-                  <div
-                    className={`h-5 ${
-                      mentee ? "border-l border-dashed border-border" : "w-px bg-border"
-                    }`}
-                  />
-                  <NodeCard node={c} asMentee={mentee} />
+                <div key={c.id} className="flex flex-col items-center" style={{ minWidth: 200 }}>
+                  <div className="flex w-full h-0">
+                    <div
+                      className="flex-1"
+                      style={{ borderTop: first ? "none" : `2px dashed ${BRAND}` }}
+                    />
+                    <div
+                      className="flex-1"
+                      style={{ borderTop: last ? "none" : `2px dashed ${BRAND}` }}
+                    />
+                  </div>
+                  <DownArrow height={24} />
+                  <Subtree node={c} />
                 </div>
               );
             })}
@@ -188,15 +255,29 @@ function OrgChartPage() {
               <Maximize2 className="h-3.5 w-3.5" />
             </Button>
           </div>
-          <div className="overflow-auto max-h-[75vh]">
+          <div className="overflow-auto max-h-[80vh]">
             <div
               ref={chartRef}
-              className="flex gap-10 justify-center min-w-max p-8 origin-top transition-transform bg-background"
-              style={{ transform: `scale(${zoom})` }}
+              className="min-w-max p-10 origin-top transition-transform"
+              style={{ transform: `scale(${zoom})`, background: "#ffffff" }}
             >
-              {tree.map((root) => (
-                <NodeCard key={root.id} node={root} />
-              ))}
+              {/* Title banner */}
+              <div className="flex items-center gap-4 mb-10 px-4">
+                <div className="flex-1 h-[2px]" style={{ background: BRAND }} />
+                <div
+                  className="px-8 py-3 rounded-2xl text-white font-semibold text-lg text-center leading-tight shadow"
+                  style={{ background: BRAND }}
+                >
+                  Department<br />Structure
+                </div>
+                <div className="flex-1 h-[2px]" style={{ background: BRAND }} />
+              </div>
+
+              <div className="flex gap-12 justify-center">
+                {tree.map((root) => (
+                  <RootTree key={root.id} root={root} />
+                ))}
+              </div>
             </div>
           </div>
         </Card>
