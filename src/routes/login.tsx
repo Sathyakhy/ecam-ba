@@ -57,7 +57,7 @@ function LoginPage() {
               <img
                 src={settings.logo_url}
                 alt={settings.app_name}
-                className="h-10 w-auto max-w-[200px] object-contain [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.9))_drop-shadow(0_0_16px_rgba(255,255,255,0.6))]"
+                className="h-10 w-auto max-w-[200px] object-contain"
               />
             ) : (
               <>
@@ -85,7 +85,7 @@ function LoginPage() {
               <img
                 src={settings.logo_url}
                 alt={settings.app_name}
-                className="h-9 w-auto max-w-[180px] object-contain [filter:drop-shadow(0_0_6px_rgba(255,255,255,0.7))]"
+                className="h-9 w-auto max-w-[180px] object-contain"
               />
             ) : (
               <>
