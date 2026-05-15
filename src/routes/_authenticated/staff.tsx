@@ -178,49 +178,68 @@ function StaffPage() {
                   <p className="text-xs text-muted-foreground">@{p.username} · {p.email}</p>
                   <div className="mt-2 text-sm">
                     <p>{p.job_title ?? "—"}{p.department ? ` · ${p.department}` : ""}</p>
-                    {isAdmin ? (
-                      <div className="mt-2 flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground shrink-0">Manager:</span>
-                        <Select
-                          value={p.manager_id ?? "__none__"}
-                          onValueChange={async (v) => {
-                            const manager_id = v === "__none__" ? null : v;
-                            if (manager_id === p.id) { toast.error("Can't be their own manager"); return; }
-                            try {
-                              await updateUser({ data: {
-                                user_id: p.id,
-                                full_name: p.full_name,
-                                email: p.email,
-                                job_title: p.job_title,
-                                department: p.department,
-                                manager_id,
-                                start_date: p.start_date,
-                                status: (p.status as "active" | "inactive") ?? "active",
-                                avatar_url: p.avatar_url,
-                              }});
-                              toast.success("Manager updated");
-                              qc.invalidateQueries({ queryKey: ["staff-full"] });
-                            } catch (e: any) {
-                              toast.error(e.message ?? "Update failed");
-                            }
-                          }}
-                        >
-                          <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select manager" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none__">— None —</SelectItem>
-                            {(staff.data ?? []).filter((m) => m.id !== p.id).map((m) => (
-                              <SelectItem key={m.id} value={m.id}>{m.full_name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Manager: {p.manager_id ? managerName(p.manager_id) : "—"}
-                      </p>
-                    )}
+                    {(() => {
+                      const updateField = async (field: "manager_id" | "mentor_id", v: string) => {
+                        const value = v === "__none__" ? null : v;
+                        if (value === p.id) { toast.error(`Can't be their own ${field === "manager_id" ? "manager" : "mentor"}`); return; }
+                        try {
+                          await updateUser({ data: {
+                            user_id: p.id,
+                            full_name: p.full_name,
+                            email: p.email,
+                            job_title: p.job_title,
+                            department: p.department,
+                            manager_id: field === "manager_id" ? value : p.manager_id,
+                            mentor_id: field === "mentor_id" ? value : (p as any).mentor_id,
+                            start_date: p.start_date,
+                            status: (p.status as "active" | "inactive") ?? "active",
+                            avatar_url: p.avatar_url,
+                          }});
+                          toast.success(`${field === "manager_id" ? "Manager" : "Mentor"} updated`);
+                          qc.invalidateQueries({ queryKey: ["staff-full"] });
+                        } catch (e: any) {
+                          toast.error(e.message ?? "Update failed");
+                        }
+                      };
+                      return isAdmin ? (
+                        <div className="mt-2 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground shrink-0 w-14">Manager:</span>
+                            <Select value={p.manager_id ?? "__none__"} onValueChange={(v) => updateField("manager_id", v)}>
+                              <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select manager" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__">— None —</SelectItem>
+                                {(staff.data ?? []).filter((m) => m.id !== p.id).map((m) => (
+                                  <SelectItem key={m.id} value={m.id}>{m.full_name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground shrink-0 w-14">Mentor:</span>
+                            <Select value={(p as any).mentor_id ?? "__none__"} onValueChange={(v) => updateField("mentor_id", v)}>
+                              <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Add mentor" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__">— None —</SelectItem>
+                                {(staff.data ?? []).filter((m) => m.id !== p.id).map((m) => (
+                                  <SelectItem key={m.id} value={m.id}>{m.full_name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-xs text-muted-foreground mt-1">Manager: {p.manager_id ? managerName(p.manager_id) : "—"}</p>
+                          <p className="text-xs text-muted-foreground">Mentor: {(p as any).mentor_id ? managerName((p as any).mentor_id) : "—"}</p>
+                        </>
+                      );
+                    })()}
                     {p.start_date && (
-                      <p className="text-xs text-muted-foreground mt-1">Started {new Date(p.start_date).toLocaleDateString()}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Started {new Date(p.start_date).toLocaleDateString()}
+                        {tenure(p.start_date) ? ` · ${tenure(p.start_date)} at company` : ""}
+                      </p>
                     )}
                   </div>
                 </div>
