@@ -145,6 +145,7 @@ export const adminUpdateUser = createServerFn({ method: "POST" })
         user_id: z.string().uuid(),
         full_name: z.string().trim().min(1).max(120),
         email: z.string().trim().email().max(255),
+        username: z.string().trim().min(3).max(32).regex(/^[a-zA-Z0-9_.\-]+$/).optional(),
         job_title: z.string().trim().max(120).nullable().optional(),
         department: z.string().trim().max(120).nullable().optional(),
         manager_id: z.string().uuid().nullable().optional(),
@@ -170,7 +171,19 @@ export const adminUpdateUser = createServerFn({ method: "POST" })
       .from("user_roles").select("role").eq("user_id", context.userId);
     if (!roles?.some((r) => r.role === "admin")) throw new Error("Forbidden: admin only");
 
-    const { error: pErr } = await supabaseAdmin.from("profiles").update({
+    let username: string | undefined;
+    if (data.username) {
+      username = data.username.toLowerCase();
+      const { data: clash } = await supabaseAdmin
+        .from("profiles")
+        .select("id")
+        .eq("username", username)
+        .neq("id", data.user_id)
+        .maybeSingle();
+      if (clash) throw new Error("Username already taken");
+    }
+
+    const profilePatch: Record<string, unknown> = {
       full_name: data.full_name,
       email: data.email,
       job_title: data.job_title ?? null,
@@ -188,7 +201,10 @@ export const adminUpdateUser = createServerFn({ method: "POST" })
       emergency_contact_name: data.emergency_contact_name ?? null,
       emergency_contact_phone: data.emergency_contact_phone ?? null,
       bio: data.bio ?? null,
-    } as never).eq("id", data.user_id);
+    };
+    if (username) profilePatch.username = username;
+
+    const { error: pErr } = await supabaseAdmin.from("profiles").update(profilePatch as never).eq("id", data.user_id);
     if (pErr) throw new Error(pErr.message);
 
     const authPatch: { email?: string; password?: string } = { email: data.email };

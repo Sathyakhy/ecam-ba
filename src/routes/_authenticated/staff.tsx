@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { ImageUpload } from "@/components/image-upload";
 import { PageHeader } from "@/components/page-header";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
@@ -402,6 +403,13 @@ function RelationshipDialog({
   const [managerId, setManagerId] = useState<string>(person.manager_id ?? "__none__");
   const [mentorId, setMentorId] = useState<string>((person as any).mentor_id ?? "__none__");
   const [jobTitle, setJobTitle] = useState<string>(person.job_title ?? "__none__");
+  const [fullName, setFullName] = useState(person.full_name);
+  const [username, setUsername] = useState(person.username);
+  const [email, setEmail] = useState(person.email);
+  const [department, setDepartment] = useState(person.department ?? "");
+  const [startDate, setStartDate] = useState(person.start_date ?? "");
+  const [statusVal, setStatusVal] = useState<"active" | "inactive">((person.status as "active" | "inactive") ?? "active");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(person.avatar_url ?? null);
   const [phone, setPhone] = useState(p.phone ?? "");
   const [dob, setDob] = useState(p.date_of_birth ?? "");
   const [gender, setGender] = useState(p.gender ?? "");
@@ -453,15 +461,16 @@ function RelationshipDialog({
       await updateUser({
         data: {
           user_id: person.id,
-          full_name: person.full_name,
-          email: person.email,
+          full_name: fullName,
+          email: email,
+          username: username,
           job_title: jobTitle === "__none__" ? null : jobTitle,
-          department: person.department,
+          department: department || null,
           manager_id: managerId === "__none__" ? null : managerId,
           mentor_id: mentorId === "__none__" ? null : mentorId,
-          start_date: person.start_date,
-          status: (person.status as "active" | "inactive") ?? "active",
-          avatar_url: person.avatar_url,
+          start_date: startDate || null,
+          status: statusVal,
+          avatar_url: avatarUrl,
           phone: phone || null,
           date_of_birth: dob || null,
           gender: gender || null,
@@ -489,11 +498,56 @@ function RelationshipDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit {person.full_name}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Profile picture</Label>
+            <ImageUpload
+              value={avatarUrl}
+              onChange={setAvatarUrl}
+              bucket="avatars"
+              prefix={person.id}
+              shape="circle"
+              label="Upload photo"
+            />
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Full name</Label>
+              <Input value={fullName} onChange={(e) => setFullName(e.target.value)} required maxLength={120} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Username</Label>
+              <Input value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} required pattern="[a-zA-Z0-9_.\-]+" minLength={3} maxLength={32} />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label className="text-xs">Email</Label>
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required maxLength={255} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Department</Label>
+              <Input value={department} onChange={(e) => setDepartment(e.target.value)} maxLength={120} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Start date</Label>
+              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Status</Label>
+              <Select value={statusVal} onValueChange={(v) => setStatusVal(v as "active" | "inactive")}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label>Position</Label>
             <Select value={jobTitle} onValueChange={setJobTitle}>
@@ -502,7 +556,7 @@ function RelationshipDialog({
                 <SelectItem value="__none__">— None —</SelectItem>
                 {positions.map((p) => (
                   <SelectItem key={p.id} value={p.name}>
-                    {p.priority}. {p.name}
+                    {p.name}
                   </SelectItem>
                 ))}
               </SelectContent>
