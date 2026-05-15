@@ -56,7 +56,7 @@ export function AppSidebar() {
             <img
               src={settings.logo_url}
               alt={settings.app_name}
-              className="h-8 w-auto max-w-[140px] object-contain shrink-0 [filter:drop-shadow(0_0_6px_rgba(255,255,255,0.85))_drop-shadow(0_0_12px_rgba(255,255,255,0.5))]"
+              className="h-8 w-auto max-w-[140px] object-contain shrink-0"
             />
           ) : (
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
