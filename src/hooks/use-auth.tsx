@@ -35,9 +35,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchProfile = useServerFn(getMyProfile);
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
-      queryClient.invalidateQueries();
+      if (event === "SIGNED_OUT") {
+        queryClient.clear();
+        return;
+      }
+      if (s?.access_token) {
+        queryClient.invalidateQueries();
+      }
     });
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
@@ -77,9 +83,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     profile: (profileQuery.data?.profile as ProfileRow | null) ?? null,
     isAdmin: !!profileQuery.data?.isAdmin,
     signOut: async () => {
+      queryClient.clear();
+      setSession(null);
       await supabase.auth.signOut();
     },
-    refresh: () => profileQuery.refetch(),
+    refresh: () => {
+      if (session?.access_token) void profileQuery.refetch();
+    },
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
