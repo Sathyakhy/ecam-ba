@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
+import { ImageUpload } from "@/components/image-upload";
 import { useAuth } from "@/hooks/use-auth";
 import { getAppSettings, updateAppSettings } from "@/lib/settings.functions";
 
