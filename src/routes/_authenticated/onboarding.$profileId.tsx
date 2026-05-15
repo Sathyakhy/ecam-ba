@@ -31,40 +31,75 @@ function PlanPage() {
 
   const profileQ = useQuery({
     queryKey: ["plan-profile", profileId],
-    queryFn: async () =>
-      (await supabase.from("profiles").select("id,full_name,username,avatar_url,job_title,department,start_date,onboarded").eq("id", profileId).single()).data,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id,full_name,username,avatar_url,job_title,department,start_date,onboarded")
+        .eq("id", profileId)
+        .single();
+      if (error) throw new Error(error.message);
+      return data;
+    },
   });
 
   const planQ = useQuery({
     queryKey: ["plan", profileId],
-    queryFn: async () => (await supabase.from("onboarding_plans").select("*").eq("profile_id", profileId).maybeSingle()).data,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("onboarding_plans")
+        .select("*")
+        .eq("profile_id", profileId)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      return data;
+    },
   });
   const planId = planQ.data?.id ?? null;
 
   const sectionsQ = useQuery({
     enabled: !!planId,
     queryKey: ["plan-sections", planId],
-    queryFn: async () => (await supabase.from("onboarding_sections").select("*").eq("plan_id", planId!).order("order_index")).data ?? [],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("onboarding_sections").select("*").eq("plan_id", planId!).order("order_index");
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    },
   });
   const evalsQ = useQuery({
     enabled: !!planId,
     queryKey: ["plan-evals", planId],
-    queryFn: async () => (await supabase.from("onboarding_evaluations").select("*").eq("plan_id", planId!).order("order_index")).data ?? [],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("onboarding_evaluations").select("*").eq("plan_id", planId!).order("order_index");
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    },
   });
   const expectQ = useQuery({
     enabled: !!planId,
     queryKey: ["plan-expect", planId],
-    queryFn: async () => (await supabase.from("onboarding_expectations").select("*").eq("plan_id", planId!).order("order_index")).data ?? [],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("onboarding_expectations").select("*").eq("plan_id", planId!).order("order_index");
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    },
   });
   const reflectQ = useQuery({
     enabled: !!planId,
     queryKey: ["plan-reflect", planId],
-    queryFn: async () => (await supabase.from("onboarding_reflections").select("*").eq("plan_id", planId!).order("order_index")).data ?? [],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("onboarding_reflections").select("*").eq("plan_id", planId!).order("order_index");
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    },
   });
   const progressQ = useQuery({
     enabled: !!planId,
     queryKey: ["plan-progress", planId],
-    queryFn: async () => (await supabase.from("onboarding_progress").select("*").eq("plan_id", planId!).order("checkpoint")).data ?? [],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("onboarding_progress").select("*").eq("plan_id", planId!).order("checkpoint");
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    },
   });
 
   const invalidateAll = () => {
@@ -76,7 +111,20 @@ function PlanPage() {
     qc.invalidateQueries({ queryKey: ["plan-progress", planId] });
   };
 
-  if (!profileQ.data) {
+  const loadError = profileQ.error ?? planQ.error ?? sectionsQ.error ?? evalsQ.error ?? expectQ.error ?? reflectQ.error ?? progressQ.error;
+
+  if (loadError instanceof Error) {
+    return (
+      <div>
+        <BackLink />
+        <Card className="p-10 text-center text-sm text-muted-foreground">
+          Unable to open this onboarding plan: {loadError.message}
+        </Card>
+      </div>
+    );
+  }
+
+  if (profileQ.isLoading || planQ.isLoading || !profileQ.data) {
     return <p className="text-sm text-muted-foreground">Loading…</p>;
   }
   const p = profileQ.data;

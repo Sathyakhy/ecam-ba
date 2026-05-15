@@ -23,6 +23,7 @@ interface AuthContextValue {
   loading: boolean;
   profile: ProfileRow | null;
   isAdmin: boolean;
+  authError: string | null;
   signOut: () => Promise<void>;
   refresh: () => void;
 }
@@ -32,12 +33,20 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionLoadTimedOut, setSessionLoadTimedOut] = useState(false);
+  const [profileLoadTimedOut, setProfileLoadTimedOut] = useState(false);
   const queryClient = useQueryClient();
   const fetchProfile = useServerFn(getMyProfile);
 
   useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setSessionLoadTimedOut(true);
+      setLoading(false);
+    }, 10000);
+
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
+      setSessionLoadTimedOut(false);
       if (event === "SIGNED_OUT") {
         queryClient.clear();
         return;
@@ -47,10 +56,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
     supabase.auth.getSession().then(({ data }) => {
+      window.clearTimeout(timeout);
       setSession(data.session);
+      setSessionLoadTimedOut(false);
       setLoading(false);
     });
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      window.clearTimeout(timeout);
+      sub.subscription.unsubscribe();
+    };
   }, [queryClient]);
 
   const profileQuery = useQuery({
@@ -77,18 +91,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     retry: false,
   });
 
+  useEffect(() => {
+    setProfileLoadTimedOut(false);
+    if (!session?.access_token || !profileQuery.isLoading) return;
+
+    const timeout = window.setTimeout(() => setProfileLoadTimedOut(true), 10000);
+    return () => window.clearTimeout(timeout);
+  }, [session?.access_token, profileQuery.isLoading]);
+
+  const authError = sessionLoadTimedOut
+    ? "Loading your session is taking too long. Please sign in again."
+    : profileLoadTimedOut
+    ? "Loading your profile is taking too long. Please try again."
+    : profileQuery.error instanceof Error
+      ? profileQuery.error.message
+      : null;
+
   const value: AuthContextValue = {
     session,
     user: session?.user ?? null,
-    loading: loading || (!!session && profileQuery.isLoading),
+    loading: loading || (!!session && profileQuery.isLoading && !profileLoadTimedOut),
     profile: (profileQuery.data?.profile as ProfileRow | null) ?? null,
     isAdmin: !!profileQuery.data?.isAdmin,
+    authError,
     signOut: async () => {
       queryClient.clear();
       setSession(null);
       await supabase.auth.signOut();
     },
     refresh: () => {
+      setProfileLoadTimedOut(false);
       if (session?.access_token) void profileQuery.refetch();
     },
   };
