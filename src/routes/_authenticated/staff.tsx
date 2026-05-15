@@ -64,6 +64,7 @@ function StaffPage() {
   const handleImport = async (file: File) => {
     setImporting(true);
     try {
+      const XLSX = await import("xlsx");
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf);
       const ws = wb.Sheets[wb.SheetNames[0]];
