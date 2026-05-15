@@ -361,7 +361,7 @@ function EvalRow({ row, canEdit, onChange }: { row: any; canEdit: boolean; onCha
   const [r60, setR60] = useState(row.rating_60 ?? "");
   const [r90, setR90] = useState(row.rating_90 ?? "");
   const [comment, setComment] = useState(row.comment ?? "");
-  const save = async (patch: Record<string, unknown>) => {
+  const save = async (patch: any) => {
     const { error } = await supabase.from("onboarding_evaluations").update(patch).eq("id", row.id);
     if (error) toast.error(error.message);
     else onChange();
@@ -438,7 +438,7 @@ function ExpectRow({ row, canEdit, onChange }: { row: any; canEdit: boolean; onC
   const [v30, setV30] = useState(row.value_30 ?? "");
   const [v60, setV60] = useState(row.value_60 ?? "");
   const [v90, setV90] = useState(row.value_90 ?? "");
-  const save = (patch: Record<string, unknown>) =>
+  const save = (patch: any) =>
     supabase.from("onboarding_expectations").update(patch).eq("id", row.id).then(({ error }) => error ? toast.error(error.message) : onChange());
   return (
     <div className="border rounded-md p-3 space-y-2">
@@ -566,7 +566,7 @@ function ProgressCard({ cp, row, canEdit, ensureRow, onChange }: { cp: number; r
   const [status, setStatus] = useState<string>(row?.status ?? "pending");
   const [note, setNote] = useState<string>(row?.note ?? "");
   useEffect(() => { setStatus(row?.status ?? "pending"); setNote(row?.note ?? ""); }, [row?.id]);
-  const update = async (patch: Record<string, unknown>) => {
+  const update = async (patch: any) => {
     const r = row ?? await ensureRow();
     if (!r) return;
     const { error } = await supabase.from("onboarding_progress").update(patch).eq("id", r.id);
