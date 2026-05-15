@@ -106,6 +106,14 @@ function DownArrow({ height = 28 }: { height?: number }) {
 /** Mentee chain: vertical line drops from parent center, then turns right into each mentee with arrow. */
 function MenteeChain({ nodes }: { nodes: Node[] }) {
   if (!nodes.length) return null;
+  if (nodes.length === 1) {
+    return (
+      <div className="flex flex-col items-center">
+        <DownArrow />
+        <PersonBlock node={nodes[0]} />
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col items-stretch mt-2">
       {nodes.map((m, i) => {
