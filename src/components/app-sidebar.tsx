@@ -107,6 +107,14 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={path.startsWith("/positions")}>
+                    <Link to="/positions">
+                      <Briefcase className="h-4 w-4" />
+                      <span>Positions</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={path.startsWith("/settings")}>
                     <Link to="/settings">
                       <Settings className="h-4 w-4" />
