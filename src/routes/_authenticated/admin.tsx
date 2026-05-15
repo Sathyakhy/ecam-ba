@@ -110,7 +110,7 @@ function AdminInner() {
             <DialogContent className="max-w-lg">
               <DialogHeader><DialogTitle>Create staff account</DialogTitle></DialogHeader>
               <form onSubmit={submit} className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid sm:grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label>Username</Label>
                     <Input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value.toLowerCase() })} required pattern="[a-zA-Z0-9_.\-]+" minLength={3} maxLength={32} />
@@ -119,11 +119,11 @@ function AdminInner() {
                 </div>
                 <div className="space-y-2"><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required maxLength={255} /></div>
                 <div className="space-y-2"><Label>Initial password</Label><Input type="text" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={8} maxLength={128} /></div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid sm:grid-cols-2 gap-3">
                   <div className="space-y-2"><Label>Job title</Label><Input value={form.job_title} onChange={(e) => setForm({ ...form, job_title: e.target.value })} maxLength={120} /></div>
                   <div className="space-y-2"><Label>Department</Label><Input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} maxLength={120} /></div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid sm:grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label>Role</Label>
                     <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as "admin" | "staff" })}>
@@ -273,15 +273,15 @@ function EditUserDialog({
               label="Upload photo"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid sm:grid-cols-2 gap-3">
             <div className="space-y-2"><Label>Full name</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required maxLength={120} /></div>
             <div className="space-y-2"><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required maxLength={255} /></div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid sm:grid-cols-2 gap-3">
             <div className="space-y-2"><Label>Job title</Label><Input value={form.job_title} onChange={(e) => setForm({ ...form, job_title: e.target.value })} maxLength={120} /></div>
             <div className="space-y-2"><Label>Department</Label><Input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} maxLength={120} /></div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid sm:grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Role</Label>
               <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as "admin" | "staff" })}>
@@ -303,7 +303,7 @@ function EditUserDialog({
               </Select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid sm:grid-cols-2 gap-3">
             <div className="space-y-2"><Label>Start date</Label><Input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} /></div>
             <div className="space-y-2"><Label>Reset password (optional)</Label><Input type="text" placeholder="Leave blank to keep" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} minLength={form.password ? 8 : 0} maxLength={128} /></div>
           </div>

@@ -186,7 +186,7 @@ function NewTaskDialog({ staff, onCreated }: { staff: { id: string; full_name: s
           </div>
           <div className="space-y-2"><Label>Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={200} /></div>
           <div className="space-y-2"><Label>Description</Label><Textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} maxLength={1000} /></div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid sm:grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Assignee (optional)</Label>
               <Select value={assignee} onValueChange={setAssignee}>
