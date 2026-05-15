@@ -120,12 +120,12 @@ function LearningPage() {
                 {myAssignments.data.map((a) => {
                   const m = materials.data?.find((x) => x.id === a.material_id);
                   return (
-                    <li key={a.id} className="p-4 flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-md bg-primary/10 text-primary flex items-center justify-center">
+                    <li key={a.id} className="p-4 flex flex-wrap items-center gap-3">
+                      <div className="h-8 w-8 rounded-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
                         <BookOpen className="h-4 w-4" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium">{m?.title ?? "Material"}</p>
+                        <p className="text-sm font-medium truncate">{m?.title ?? "Material"}</p>
                         <p className="text-xs text-muted-foreground">
                           Assigned {new Date(a.assigned_at).toLocaleDateString()}
                         </p>
