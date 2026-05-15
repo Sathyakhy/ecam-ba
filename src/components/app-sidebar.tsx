@@ -52,15 +52,15 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex items-center gap-2 px-2 py-1.5">
+        <div className="flex items-center gap-2 px-2 py-1.5 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center">
           {settings.logo_url ? (
             <img
               src={settings.logo_url}
               alt={settings.app_name}
-              className="h-8 w-auto max-w-[140px] object-contain shrink-0"
+              className="h-8 w-auto max-w-[140px] object-contain shrink-0 group-data-[collapsible=icon]:h-6 group-data-[collapsible=icon]:w-6 group-data-[collapsible=icon]:max-w-6"
             />
           ) : (
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground group-data-[collapsible=icon]:h-6 group-data-[collapsible=icon]:w-6">
               <Building2 className="h-4 w-4" />
             </div>
           )}
