@@ -23,6 +23,7 @@ export const Route = createFileRoute("/_authenticated/staff")({
 function StaffPage() {
   const [q, setQ] = useState("");
   const [dept, setDept] = useState<string>("__all__");
+  const [position, setPosition] = useState<string>("__all__");
   const [status, setStatus] = useState<string>("__all__");
   const [sortBy, setSortBy] = useState<string>("name");
   const { isAdmin } = useAuth();
@@ -41,6 +42,12 @@ function StaffPage() {
     return Array.from(set).sort();
   }, [staff.data]);
 
+  const positions = useMemo(() => {
+    const set = new Set<string>();
+    (staff.data ?? []).forEach((p) => p.job_title && set.add(p.job_title));
+    return Array.from(set).sort();
+  }, [staff.data]);
+
   const filtered = useMemo(() => {
     let list = staff.data ?? [];
     if (q) {
@@ -53,6 +60,7 @@ function StaffPage() {
       );
     }
     if (dept !== "__all__") list = list.filter((p) => (p.department ?? "") === dept);
+    if (position !== "__all__") list = list.filter((p) => (p.job_title ?? "") === position);
     if (status !== "__all__") list = list.filter((p) => p.status === status);
     const sorted = [...list];
     sorted.sort((a, b) => {
@@ -68,7 +76,7 @@ function StaffPage() {
       }
     });
     return sorted;
-  }, [staff.data, q, dept, status, sortBy]);
+  }, [staff.data, q, dept, position, status, sortBy]);
 
   const managerName = (id: string | null) => staff.data?.find((p) => p.id === id)?.full_name ?? "—";
 
@@ -194,6 +202,13 @@ function StaffPage() {
             {departments.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select value={position} onValueChange={setPosition}>
+          <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue placeholder="Position" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All positions</SelectItem>
+            {positions.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+          </SelectContent>
+        </Select>
         <Select value={status} onValueChange={setStatus}>
           <SelectTrigger className="w-[130px] h-9 text-sm"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
@@ -212,8 +227,8 @@ function StaffPage() {
             <SelectItem value="oldest">Longest tenure</SelectItem>
           </SelectContent>
         </Select>
-        {(q || dept !== "__all__" || status !== "__all__" || sortBy !== "name") && (
-          <Button variant="ghost" size="sm" onClick={() => { setQ(""); setDept("__all__"); setStatus("__all__"); setSortBy("name"); }}>Clear</Button>
+        {(q || dept !== "__all__" || position !== "__all__" || status !== "__all__" || sortBy !== "name") && (
+          <Button variant="ghost" size="sm" onClick={() => { setQ(""); setDept("__all__"); setPosition("__all__"); setStatus("__all__"); setSortBy("name"); }}>Clear</Button>
         )}
       </div>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
