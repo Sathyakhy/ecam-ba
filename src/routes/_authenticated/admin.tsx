@@ -152,11 +152,21 @@ function AdminInner() {
             </tr>
           </thead>
           <tbody>
-            {users.data?.map((u) => (
+            {users.data?.map((u) => {
+              const initials = u.full_name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
+              return (
               <tr key={u.id} className="border-b border-border last:border-0 [&>td]:py-3 [&>td]:px-4">
                 <td>
-                  <div className="font-medium">{u.full_name}</div>
-                  <div className="text-xs text-muted-foreground">@{u.username} · {u.job_title ?? "—"}</div>
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-9 w-9">
+                      {u.avatar_url && <AvatarImage src={u.avatar_url} alt={u.full_name} />}
+                      <AvatarFallback className="bg-primary/10 text-primary text-xs">{initials}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="font-medium">{u.full_name}</div>
+                      <div className="text-xs text-muted-foreground">@{u.username} · {u.job_title ?? "—"}</div>
+                    </div>
+                  </div>
                 </td>
                 <td className="text-muted-foreground">{u.email}</td>
                 <td>
@@ -165,13 +175,17 @@ function AdminInner() {
                   </Badge>
                 </td>
                 <td><Badge variant="outline" className="capitalize">{u.status}</Badge></td>
-                <td className="text-right">
+                <td className="text-right whitespace-nowrap">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditing(u)}>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => remove(u.id, u.full_name)}>
                     <Trash2 className="h-3.5 w-3.5 text-destructive" />
                   </Button>
                 </td>
               </tr>
-            ))}
+              );
+            })}
             {users.data?.length === 0 && (
               <tr><td colSpan={5} className="text-center text-muted-foreground py-10">No users yet.</td></tr>
             )}
