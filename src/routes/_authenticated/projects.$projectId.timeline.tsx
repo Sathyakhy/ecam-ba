@@ -278,7 +278,7 @@ function RowGroup({
 }
 
 function RowItem({
-  no, task, staff, canEdit, onEdit, onDeleted, isParent, hasChildren, isOpen, onToggle, extraActions, taskNo,
+  no, task, staff, canEdit, onEdit, onDeleted, isParent, hasChildren, isOpen, onToggle, extraActions, taskNo, progressValue, isRollup,
 }: {
   no: string;
   task: Task;
@@ -292,6 +292,8 @@ function RowItem({
   onToggle?: () => void;
   extraActions?: React.ReactNode;
   taskNo: Record<string, string>;
+  progressValue: number;
+  isRollup: boolean;
 }) {
   const assignee = staff.find((s) => s.id === task.assignee_id);
   const meta = TASK_STATUS_META[task.status] ?? TASK_STATUS_META.todo;
