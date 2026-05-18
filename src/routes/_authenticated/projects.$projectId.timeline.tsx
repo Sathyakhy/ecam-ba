@@ -655,17 +655,28 @@ function GanttView({ tasks, childMap, projectStart, projectDue }: {
               <div key={b.id} className="relative border-b border-muted/40 hover:bg-muted/20" style={{ height: ROW_H }}>
                 <div
                   className={cn(
-                    "absolute top-1.5 bottom-1.5 rounded text-[10px] px-1.5 flex items-center text-white shadow-sm overflow-hidden",
-                    b.status === "done" ? "bg-emerald-500" :
-                    b.status === "blocked" ? "bg-destructive" :
-                    b.status === "in_progress" ? "bg-blue-500" :
-                    "bg-slate-400",
+                    "absolute top-1.5 bottom-1.5 rounded text-[10px] flex items-center text-white shadow-sm overflow-hidden",
+                    b.status === "done" ? "bg-emerald-500/30" :
+                    b.status === "blocked" ? "bg-destructive/30" :
+                    b.status === "in_progress" ? "bg-blue-500/30" :
+                    "bg-slate-400/30",
                     b.isParent && "ring-1 ring-foreground/30"
                   )}
                   style={{ left: `${left}%`, width: `${width}%` }}
-                  title={`${b.title} · ${b.start.toDateString()} → ${b.end.toDateString()}`}
+                  title={`${b.title} · ${b.start.toDateString()} → ${b.end.toDateString()} · ${b.progress}%`}
                 >
-                  <span className="truncate">{b.title}</span>
+                  <div
+                    className={cn(
+                      "absolute inset-y-0 left-0 rounded-l",
+                      b.progress >= 100 ? "bg-emerald-500" :
+                      b.status === "blocked" ? "bg-destructive" :
+                      b.status === "in_progress" ? "bg-blue-500" :
+                      b.status === "done" ? "bg-emerald-500" :
+                      "bg-slate-500",
+                    )}
+                    style={{ width: `${b.progress}%` }}
+                  />
+                  <span className="relative truncate px-1.5 mix-blend-luminosity">{b.title} · {b.progress}%</span>
                 </div>
               </div>
             );
