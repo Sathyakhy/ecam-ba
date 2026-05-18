@@ -477,6 +477,7 @@ function RowItem({
       <Td className="whitespace-nowrap">{formatMsDate(task.start_date)}</Td>
       <Td className="whitespace-nowrap">{formatMsDate(task.due_date)}</Td>
       <Td className="whitespace-nowrap text-center">{depLabels.length ? depLabels.join(";") : ""}</Td>
+      <Td className="text-[11px] whitespace-pre-wrap">{task.remark ?? ""}</Td>
       <Td className="text-center">
         {canEdit && (
           <div className="flex items-center gap-0.5 justify-center opacity-0 group-hover:opacity-100 transition-opacity">
