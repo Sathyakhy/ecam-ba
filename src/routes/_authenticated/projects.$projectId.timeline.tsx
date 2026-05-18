@@ -42,6 +42,7 @@ type Task = {
   site: string | null;
   man_days: number | null;
   remark: string | null;
+  predecessor_ids: string[] | null;
   created_by: string;
   order_index: number;
 };
@@ -84,6 +85,18 @@ function TimelinePage() {
 
   const toggle = (id: string) => setExpanded((e) => ({ ...e, [id]: !e[id] }));
 
+  // Numbering map: task.id -> "1" or "1.2"
+  const taskNo = useMemo(() => {
+    const m: Record<string, string> = {};
+    roots.forEach((r, i) => {
+      m[r.id] = String(i + 1);
+      (childMap[r.id] ?? []).forEach((c, j) => {
+        m[c.id] = `${i + 1}.${j + 1}`;
+      });
+    });
+    return m;
+  }, [roots, childMap]);
+
   if (!project.data) return null;
 
   // Gantt bars (include both roots and children that have any date)
@@ -100,6 +113,8 @@ function TimelinePage() {
               authorId={profile?.id ?? ""}
               staff={staff.data ?? []}
               onSaved={refresh}
+              allTasks={tasks}
+              taskNo={taskNo}
               trigger={<Button size="sm"><Plus className="h-3.5 w-3.5 mr-1" /> New main task</Button>}
             />
           )}
@@ -118,13 +133,14 @@ function TimelinePage() {
               <Th>Actual</Th>
               <Th>Responsible</Th>
               <Th>Status</Th>
+              <Th>Depends</Th>
               <Th>Remark</Th>
               <Th></Th>
             </tr>
           </thead>
           <tbody>
             {roots.length === 0 && (
-              <tr><td colSpan={12} className="text-center text-muted-foreground py-6">No tasks yet.</td></tr>
+              <tr><td colSpan={13} className="text-center text-muted-foreground py-6">No tasks yet.</td></tr>
             )}
             {roots.map((root, i) => {
               const children = childMap[root.id] ?? [];
@@ -144,6 +160,8 @@ function TimelinePage() {
                   projectId={projectId}
                   authorId={profile?.id ?? ""}
                   onSaved={refresh}
+                  allTasks={tasks}
+                  taskNo={taskNo}
                 />
               );
             })}
@@ -162,6 +180,8 @@ function TimelinePage() {
           authorId={profile?.id ?? ""}
           staff={staff.data ?? []}
           onSaved={refresh}
+          allTasks={tasks}
+          taskNo={taskNo}
           task={editing}
           open={!!editing}
           onOpenChange={(o) => !o && setEditing(null)}
@@ -180,7 +200,7 @@ function Td({ children, className }: { children?: React.ReactNode; className?: s
 }
 
 function RowGroup({
-  no, task, children, isOpen, onToggle, staff, canEdit, onEdit, onDeleted, projectId, authorId, onSaved,
+  no, task, children, isOpen, onToggle, staff, canEdit, onEdit, onDeleted, projectId, authorId, onSaved, allTasks, taskNo,
 }: {
   no: number;
   task: Task;
@@ -194,6 +214,8 @@ function RowGroup({
   projectId: string;
   authorId: string;
   onSaved: () => void;
+  allTasks: Task[];
+  taskNo: Record<string, string>;
 }) {
   return (
     <>
@@ -208,6 +230,7 @@ function RowGroup({
         hasChildren={children.length > 0}
         isOpen={isOpen}
         onToggle={onToggle}
+        taskNo={taskNo}
         extraActions={canEdit && (
           <TaskDialog
             projectId={projectId}
@@ -215,6 +238,8 @@ function RowGroup({
             staff={staff}
             onSaved={onSaved}
             parentTaskId={task.id}
+            allTasks={allTasks}
+            taskNo={taskNo}
             trigger={<Button size="icon" variant="ghost" className="h-6 w-6" title="Add sub-task"><Plus className="h-3 w-3" /></Button>}
           />
         )}
@@ -229,6 +254,7 @@ function RowGroup({
           onEdit={onEdit}
           onDeleted={onDeleted}
           isParent={false}
+          taskNo={taskNo}
         />
       ))}
     </>
@@ -236,7 +262,7 @@ function RowGroup({
 }
 
 function RowItem({
-  no, task, staff, canEdit, onEdit, onDeleted, isParent, hasChildren, isOpen, onToggle, extraActions,
+  no, task, staff, canEdit, onEdit, onDeleted, isParent, hasChildren, isOpen, onToggle, extraActions, taskNo,
 }: {
   no: string;
   task: Task;
@@ -249,6 +275,7 @@ function RowItem({
   isOpen?: boolean;
   onToggle?: () => void;
   extraActions?: React.ReactNode;
+  taskNo: Record<string, string>;
 }) {
   const assignee = staff.find((s) => s.id === task.assignee_id);
   const meta = TASK_STATUS_META[task.status] ?? TASK_STATUS_META.todo;
@@ -261,6 +288,8 @@ function RowItem({
     toast.success("Deleted");
     onDeleted();
   };
+
+  const depLabels = (task.predecessor_ids ?? []).map((id) => taskNo[id]).filter(Boolean);
 
   return (
     <tr className={cn("hover:bg-muted/30", rowCls)}>
@@ -287,6 +316,7 @@ function RowItem({
       <Td className="text-center whitespace-nowrap">{formatDate(task.actual_completion_date)}</Td>
       <Td className="text-center">{assignee?.full_name ?? "—"}</Td>
       <Td className="text-center"><Badge variant={meta.variant} className="text-[9px]">{meta.label}</Badge></Td>
+      <Td className="text-center text-[11px] whitespace-nowrap">{depLabels.length ? depLabels.join(", ") : "—"}</Td>
       <Td className="text-[11px] max-w-[200px] whitespace-pre-wrap">{task.remark ?? ""}</Td>
       <Td className="text-center">
         {canEdit && (
@@ -306,7 +336,7 @@ function RowItem({
 }
 
 function TaskDialog({
-  projectId, authorId, staff, onSaved, parentTaskId, trigger, task, open: openProp, onOpenChange,
+  projectId, authorId, staff, onSaved, parentTaskId, trigger, task, open: openProp, onOpenChange, allTasks, taskNo,
 }: {
   projectId: string;
   authorId: string;
@@ -317,6 +347,8 @@ function TaskDialog({
   task?: Task;
   open?: boolean;
   onOpenChange?: (o: boolean) => void;
+  allTasks: Task[];
+  taskNo: Record<string, string>;
 }) {
   const [openInner, setOpenInner] = useState(false);
   const isControlled = openProp !== undefined;
@@ -334,8 +366,33 @@ function TaskDialog({
   const [status, setStatus] = useState(task?.status ?? "todo");
   const [assigneeId, setAssigneeId] = useState<string | undefined>(task?.assignee_id ?? undefined);
   const [remark, setRemark] = useState(task?.remark ?? "");
+  const [predecessors, setPredecessors] = useState<string[]>(task?.predecessor_ids ?? []);
 
   const isEdit = !!task;
+
+  // Build a flat ordered list of candidate predecessor tasks, excluding self and own descendants
+  const descendants = useMemo(() => {
+    const set = new Set<string>();
+    if (!task) return set;
+    const queue = [task.id];
+    while (queue.length) {
+      const cur = queue.shift()!;
+      set.add(cur);
+      allTasks.forEach((t) => { if (t.parent_task_id === cur) queue.push(t.id); });
+    }
+    return set;
+  }, [allTasks, task]);
+
+  const candidates = useMemo(
+    () => allTasks
+      .filter((t) => !descendants.has(t.id))
+      .sort((a, b) => (taskNo[a.id] ?? "").localeCompare(taskNo[b.id] ?? "", undefined, { numeric: true })),
+    [allTasks, descendants, taskNo],
+  );
+
+  const togglePred = (id: string) => {
+    setPredecessors((prev) => prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]);
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -351,6 +408,7 @@ function TaskDialog({
       status,
       assignee_id: assigneeId ?? null,
       remark: remark || null,
+      predecessor_ids: predecessors,
     };
     if (isEdit) {
       const { error } = await supabase.from("project_tasks").update(payload).eq("id", task!.id);
@@ -414,6 +472,28 @@ function TaskDialog({
             </div>
             <div className="space-y-1"><Label>Remark</Label><Input value={remark} onChange={(e) => setRemark(e.target.value)} maxLength={500} /></div>
           </div>
+
+          <div className="space-y-1">
+            <Label>Depends on (predecessors)</Label>
+            {candidates.length === 0 ? (
+              <p className="text-[11px] text-muted-foreground">No other tasks available.</p>
+            ) : (
+              <div className="max-h-40 overflow-y-auto border rounded p-2 space-y-1">
+                {candidates.map((c) => {
+                  const checked = predecessors.includes(c.id);
+                  return (
+                    <label key={c.id} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-muted/40 px-1 py-0.5 rounded">
+                      <input type="checkbox" checked={checked} onChange={() => togglePred(c.id)} className="h-3.5 w-3.5" />
+                      <span className="text-muted-foreground tabular-nums w-10">{taskNo[c.id] ?? "—"}</span>
+                      <span className="truncate flex-1">{c.title}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+            <p className="text-[10px] text-muted-foreground">This task starts after the selected predecessors complete.</p>
+          </div>
+
           <DialogFooter><Button type="submit">{isEdit ? "Save" : "Create"}</Button></DialogFooter>
         </form>
       </DialogContent>
@@ -430,15 +510,19 @@ function GanttView({ tasks, projectStart, projectDue }: {
     return <p className="text-xs text-muted-foreground py-6 text-center">Add start/end dates on tasks to see them on the Gantt chart.</p>;
   }
 
-  const bars = tasks.map((t) => {
+  const ROW_H = 36; // px, matches h-9
+  const bars = tasks.map((t, idx) => {
     const endStr = t.due_date ?? t.start_date!;
     const startStr = t.start_date ?? t.due_date!;
     return {
       id: t.id, title: t.title, status: t.status,
       isParent: !t.parent_task_id,
+      predecessors: t.predecessor_ids ?? [],
+      idx,
       start: new Date(startStr), end: new Date(endStr),
     };
   });
+  const barIndex = new Map(bars.map((b) => [b.id, b]));
 
   const rangeStart = new Date(Math.min(
     projectStart ? new Date(projectStart).getTime() : Infinity,
@@ -464,6 +548,26 @@ function GanttView({ tasks, projectStart, projectDue }: {
     ? ((today.getTime() - rangeStart.getTime()) / DAY / totalDays) * 100
     : null;
 
+  const pctFor = (d: Date) => ((d.getTime() - rangeStart.getTime()) / DAY / totalDays) * 100;
+
+  // Dependency arrows: from end of predecessor to start of successor
+  const arrows: { fromX: number; fromY: number; toX: number; toY: number; key: string }[] = [];
+  bars.forEach((b) => {
+    b.predecessors.forEach((pid) => {
+      const p = barIndex.get(pid);
+      if (!p) return;
+      arrows.push({
+        key: `${pid}->${b.id}`,
+        fromX: pctFor(p.end),
+        fromY: p.idx * ROW_H + ROW_H / 2,
+        toX: pctFor(b.start),
+        toY: b.idx * ROW_H + ROW_H / 2,
+      });
+    });
+  });
+
+  const svgHeight = bars.length * ROW_H;
+
   return (
     <div className="min-w-[800px]">
       <div className="flex">
@@ -477,20 +581,25 @@ function GanttView({ tasks, projectStart, projectDue }: {
           ))}
         </div>
       </div>
-      <div className="relative">
-        {todayPct !== null && (
-          <div className="absolute top-0 bottom-0 w-px bg-primary z-10" style={{ left: `calc(16rem + ${todayPct}% * (100% - 16rem) / 100)` }} />
-        )}
-        {bars.map((b) => {
-          const left = ((b.start.getTime() - rangeStart.getTime()) / DAY / totalDays) * 100;
-          const width = Math.max(1, ((b.end.getTime() - b.start.getTime()) / DAY / totalDays) * 100);
-          return (
-            <div key={b.id} className="flex items-center border-b border-muted/40 hover:bg-muted/20">
-              <div className={cn("w-64 shrink-0 px-2 py-2 text-xs truncate", b.isParent && "font-semibold")} title={b.title}>
-                {!b.isParent && <span className="text-muted-foreground mr-1">↳</span>}
-                {b.title}
-              </div>
-              <div className="flex-1 relative h-9">
+      <div className="flex">
+        <div className="w-64 shrink-0">
+          {bars.map((b) => (
+            <div key={b.id} className={cn("px-2 text-xs truncate flex items-center border-b border-muted/40", b.isParent && "font-semibold")}
+              style={{ height: ROW_H }} title={b.title}>
+              {!b.isParent && <span className="text-muted-foreground mr-1">↳</span>}
+              {b.title}
+            </div>
+          ))}
+        </div>
+        <div className="flex-1 relative">
+          {todayPct !== null && (
+            <div className="absolute top-0 bottom-0 w-px bg-primary z-10" style={{ left: `${todayPct}%` }} />
+          )}
+          {bars.map((b) => {
+            const left = pctFor(b.start);
+            const width = Math.max(1, pctFor(b.end) - left);
+            return (
+              <div key={b.id} className="relative border-b border-muted/40 hover:bg-muted/20" style={{ height: ROW_H }}>
                 <div
                   className={cn(
                     "absolute top-1.5 bottom-1.5 rounded text-[10px] px-1.5 flex items-center text-white shadow-sm overflow-hidden",
@@ -506,15 +615,38 @@ function GanttView({ tasks, projectStart, projectDue }: {
                   <span className="truncate">{b.title}</span>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+          {/* Dependency arrows overlay */}
+          <svg
+            className="absolute inset-0 pointer-events-none"
+            width="100%"
+            height={svgHeight}
+            preserveAspectRatio="none"
+            viewBox={`0 0 100 ${svgHeight}`}
+          >
+            <defs>
+              <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
+              </marker>
+            </defs>
+            <g className="text-muted-foreground" stroke="currentColor" strokeWidth="0.15" fill="none">
+              {arrows.map((a) => {
+                // Elbow path: out 1.5%, down/up to target Y, then to target X
+                const midX = Math.max(a.fromX + 1.2, a.toX - 1.2);
+                const d = `M ${a.fromX} ${a.fromY} L ${midX} ${a.fromY} L ${midX} ${a.toY} L ${a.toX} ${a.toY}`;
+                return <path key={a.key} d={d} markerEnd="url(#arrow)" />;
+              })}
+            </g>
+          </svg>
+        </div>
       </div>
       <div className="flex items-center gap-4 mt-4 text-[11px] text-muted-foreground">
         <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm bg-slate-400" /> To do</span>
         <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm bg-blue-500" /> In progress</span>
         <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm bg-emerald-500" /> Done</span>
         <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm bg-destructive" /> Blocked</span>
+        <span className="flex items-center gap-1"><span className="h-3 w-3 inline-flex items-center justify-center">→</span> Dependency</span>
         {todayPct !== null && <span className="flex items-center gap-1"><span className="h-3 w-px bg-primary" /> Today</span>}
       </div>
     </div>
