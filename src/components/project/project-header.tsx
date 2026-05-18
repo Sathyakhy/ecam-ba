@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { ArrowLeft, LayoutGrid, ListChecks, Target, GanttChartSquare, Users, Activity } from "lucide-react";
+import { ArrowLeft, LayoutGrid, ListChecks, Target, GanttChartSquare, Users, Activity, CalendarRange } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { STATUS_META, PRIORITY_META, formatDate } from "@/lib/project-meta";
