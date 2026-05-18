@@ -127,14 +127,6 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={path.startsWith("/customers")}>
-                    <Link to="/customers">
-                      <Building className="h-4 w-4" />
-                      <span>Customers</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={path.startsWith("/settings")}>
                     <Link to="/settings">
                       <Settings className="h-4 w-4" />
