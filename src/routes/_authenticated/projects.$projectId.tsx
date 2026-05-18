@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, useNavigate, useRouter, Link } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate, useRouter, Link, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Trash2, Pencil, Loader2, AlertTriangle, ArrowLeft } from "lucide-react";
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { STATUS_META, PRIORITY_META, metaEntries } from "@/lib/project-meta";
 import { ProjectHeader } from "@/components/project/project-header";
+import { ProjectOverview } from "@/components/project/project-overview";
 import { useProject } from "@/hooks/use-project";
 import { useQuery } from "@tanstack/react-query";
 
@@ -60,6 +61,7 @@ function ProjectLayout() {
   const { project, canManage } = useProject(projectId);
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
 
   if (project.isLoading) {
     return <ProjectPending />;
@@ -108,6 +110,7 @@ function ProjectLayout() {
         )}
       />
       <Outlet />
+      {pathname === `/projects/${projectId}` && <ProjectOverview projectId={projectId} />}
     </div>
   );
 }

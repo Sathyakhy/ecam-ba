@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { Plus, FolderKanban, Calendar, Users, Search } from "lucide-react";
@@ -24,7 +24,17 @@ export const Route = createFileRoute("/_authenticated/projects")({
   component: ProjectsIndex,
 });
 
-export function ProjectsIndex() {
+function ProjectsIndex() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+
+  if (pathname !== "/projects" && pathname !== "/projects/") {
+    return <Outlet />;
+  }
+
+  return <ProjectsList />;
+}
+
+function ProjectsList() {
   const { profile } = useAuth();
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -158,40 +168,43 @@ export function ProjectsIndex() {
             const priority = PRIORITY_META[p.priority] ?? PRIORITY_META.normal;
             const progress = milestoneProgress.data?.[p.id] ?? 0;
             return (
-              <Card
+              <Link
                 key={p.id}
-                className="p-5 hover:border-primary/40 hover:shadow-sm transition cursor-pointer"
-                onClick={() => navigate({ to: "/projects/$projectId", params: { projectId: p.id } })}
+                to="/projects/$projectId"
+                params={{ projectId: p.id }}
+                className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <h3 className="font-semibold text-sm line-clamp-2 flex-1">{p.name}</h3>
-                  <Badge variant={status.variant}>{status.label}</Badge>
-                </div>
-                {customer && <p className="text-[11px] text-muted-foreground mb-1">For {customer.name}</p>}
-                {p.description && (
-                  <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{p.description}</p>
-                )}
-                <div className="space-y-1.5 mb-3">
-                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                    <span>Progress</span><span>{progress}%</span>
+                <Card className="p-5 hover:border-primary/40 hover:shadow-sm transition cursor-pointer h-full">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <h3 className="font-semibold text-sm line-clamp-2 flex-1">{p.name}</h3>
+                    <Badge variant={status.variant}>{status.label}</Badge>
                   </div>
-                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
+                  {customer && <p className="text-[11px] text-muted-foreground mb-1">For {customer.name}</p>}
+                  {p.description && (
+                    <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{p.description}</p>
+                  )}
+                  <div className="space-y-1.5 mb-3">
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                      <span>Progress</span><span>{progress}%</span>
+                    </div>
+                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <div className="flex items-center gap-3">
-                    <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {memberCount + 1}</span>
-                    {p.due_date && (
-                      <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {new Date(p.due_date).toLocaleDateString()}</span>
-                    )}
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <div className="flex items-center gap-3">
+                      <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {memberCount + 1}</span>
+                      {p.due_date && (
+                        <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {new Date(p.due_date).toLocaleDateString()}</span>
+                      )}
+                    </div>
+                    <Badge variant={priority.variant} className="text-[10px]">{priority.label}</Badge>
                   </div>
-                  <Badge variant={priority.variant} className="text-[10px]">{priority.label}</Badge>
-                </div>
-                <p className="text-[11px] text-muted-foreground mt-3 truncate">
-                  {manager ? `PM · ${manager.full_name}` : owner ? `Owner · ${owner.full_name}` : ""}
-                </p>
-              </Card>
+                  <p className="text-[11px] text-muted-foreground mt-3 truncate">
+                    {manager ? `PM · ${manager.full_name}` : owner ? `Owner · ${owner.full_name}` : ""}
+                  </p>
+                </Card>
+              </Link>
             );
           })}
         </div>
