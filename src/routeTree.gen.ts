@@ -25,6 +25,7 @@ import { Route as AuthenticatedOrgChartRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedLearningRouteImport } from './routes/_authenticated/learning'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedCustomersRouteImport } from './routes/_authenticated/customers'
 import { Route as AuthenticatedAnnouncementsRouteImport } from './routes/_authenticated/announcements'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedProjectsProjectIdRouteImport } from './routes/_authenticated/projects.$projectId'
@@ -32,6 +33,9 @@ import { Route as AuthenticatedOnboardingProfileIdRouteImport } from './routes/_
 import { Route as AuthenticatedProjectsProjectIdIndexRouteImport } from './routes/_authenticated/projects.$projectId.index'
 import { Route as AuthenticatedProjectsProjectIdTasksRouteImport } from './routes/_authenticated/projects.$projectId.tasks'
 import { Route as AuthenticatedProjectsProjectIdMilestonesRouteImport } from './routes/_authenticated/projects.$projectId.milestones'
+import { Route as AuthenticatedProjectsProjectIdMembersRouteImport } from './routes/_authenticated/projects.$projectId.members'
+import { Route as AuthenticatedProjectsProjectIdGanttRouteImport } from './routes/_authenticated/projects.$projectId.gantt'
+import { Route as AuthenticatedProjectsProjectIdActivityRouteImport } from './routes/_authenticated/projects.$projectId.activity'
 
 const SetupRoute = SetupRouteImport.update({
   id: '/setup',
@@ -112,6 +116,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedCustomersRoute = AuthenticatedCustomersRouteImport.update({
+  id: '/customers',
+  path: '/customers',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAnnouncementsRoute =
   AuthenticatedAnnouncementsRouteImport.update({
     id: '/announcements',
@@ -153,6 +162,24 @@ const AuthenticatedProjectsProjectIdMilestonesRoute =
     path: '/milestones',
     getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
   } as any)
+const AuthenticatedProjectsProjectIdMembersRoute =
+  AuthenticatedProjectsProjectIdMembersRouteImport.update({
+    id: '/members',
+    path: '/members',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
+const AuthenticatedProjectsProjectIdGanttRoute =
+  AuthenticatedProjectsProjectIdGanttRouteImport.update({
+    id: '/gantt',
+    path: '/gantt',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
+const AuthenticatedProjectsProjectIdActivityRoute =
+  AuthenticatedProjectsProjectIdActivityRouteImport.update({
+    id: '/activity',
+    path: '/activity',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -162,6 +189,7 @@ export interface FileRoutesByFullPath {
   '/setup': typeof SetupRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/announcements': typeof AuthenticatedAnnouncementsRoute
+  '/customers': typeof AuthenticatedCustomersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/learning': typeof AuthenticatedLearningRoute
   '/onboarding': typeof AuthenticatedOnboardingRouteWithChildren
@@ -174,6 +202,9 @@ export interface FileRoutesByFullPath {
   '/tasks': typeof AuthenticatedTasksRoute
   '/onboarding/$profileId': typeof AuthenticatedOnboardingProfileIdRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRouteWithChildren
+  '/projects/$projectId/activity': typeof AuthenticatedProjectsProjectIdActivityRoute
+  '/projects/$projectId/gantt': typeof AuthenticatedProjectsProjectIdGanttRoute
+  '/projects/$projectId/members': typeof AuthenticatedProjectsProjectIdMembersRoute
   '/projects/$projectId/milestones': typeof AuthenticatedProjectsProjectIdMilestonesRoute
   '/projects/$projectId/tasks': typeof AuthenticatedProjectsProjectIdTasksRoute
   '/projects/$projectId/': typeof AuthenticatedProjectsProjectIdIndexRoute
@@ -186,6 +217,7 @@ export interface FileRoutesByTo {
   '/setup': typeof SetupRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/announcements': typeof AuthenticatedAnnouncementsRoute
+  '/customers': typeof AuthenticatedCustomersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/learning': typeof AuthenticatedLearningRoute
   '/onboarding': typeof AuthenticatedOnboardingRouteWithChildren
@@ -197,6 +229,9 @@ export interface FileRoutesByTo {
   '/staff': typeof AuthenticatedStaffRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/onboarding/$profileId': typeof AuthenticatedOnboardingProfileIdRoute
+  '/projects/$projectId/activity': typeof AuthenticatedProjectsProjectIdActivityRoute
+  '/projects/$projectId/gantt': typeof AuthenticatedProjectsProjectIdGanttRoute
+  '/projects/$projectId/members': typeof AuthenticatedProjectsProjectIdMembersRoute
   '/projects/$projectId/milestones': typeof AuthenticatedProjectsProjectIdMilestonesRoute
   '/projects/$projectId/tasks': typeof AuthenticatedProjectsProjectIdTasksRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdIndexRoute
@@ -211,6 +246,7 @@ export interface FileRoutesById {
   '/setup': typeof SetupRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/announcements': typeof AuthenticatedAnnouncementsRoute
+  '/_authenticated/customers': typeof AuthenticatedCustomersRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/learning': typeof AuthenticatedLearningRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRouteWithChildren
@@ -223,6 +259,9 @@ export interface FileRoutesById {
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_authenticated/onboarding/$profileId': typeof AuthenticatedOnboardingProfileIdRoute
   '/_authenticated/projects/$projectId': typeof AuthenticatedProjectsProjectIdRouteWithChildren
+  '/_authenticated/projects/$projectId/activity': typeof AuthenticatedProjectsProjectIdActivityRoute
+  '/_authenticated/projects/$projectId/gantt': typeof AuthenticatedProjectsProjectIdGanttRoute
+  '/_authenticated/projects/$projectId/members': typeof AuthenticatedProjectsProjectIdMembersRoute
   '/_authenticated/projects/$projectId/milestones': typeof AuthenticatedProjectsProjectIdMilestonesRoute
   '/_authenticated/projects/$projectId/tasks': typeof AuthenticatedProjectsProjectIdTasksRoute
   '/_authenticated/projects/$projectId/': typeof AuthenticatedProjectsProjectIdIndexRoute
@@ -237,6 +276,7 @@ export interface FileRouteTypes {
     | '/setup'
     | '/admin'
     | '/announcements'
+    | '/customers'
     | '/dashboard'
     | '/learning'
     | '/onboarding'
@@ -249,6 +289,9 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/onboarding/$profileId'
     | '/projects/$projectId'
+    | '/projects/$projectId/activity'
+    | '/projects/$projectId/gantt'
+    | '/projects/$projectId/members'
     | '/projects/$projectId/milestones'
     | '/projects/$projectId/tasks'
     | '/projects/$projectId/'
@@ -261,6 +304,7 @@ export interface FileRouteTypes {
     | '/setup'
     | '/admin'
     | '/announcements'
+    | '/customers'
     | '/dashboard'
     | '/learning'
     | '/onboarding'
@@ -272,6 +316,9 @@ export interface FileRouteTypes {
     | '/staff'
     | '/tasks'
     | '/onboarding/$profileId'
+    | '/projects/$projectId/activity'
+    | '/projects/$projectId/gantt'
+    | '/projects/$projectId/members'
     | '/projects/$projectId/milestones'
     | '/projects/$projectId/tasks'
     | '/projects/$projectId'
@@ -285,6 +332,7 @@ export interface FileRouteTypes {
     | '/setup'
     | '/_authenticated/admin'
     | '/_authenticated/announcements'
+    | '/_authenticated/customers'
     | '/_authenticated/dashboard'
     | '/_authenticated/learning'
     | '/_authenticated/onboarding'
@@ -297,6 +345,9 @@ export interface FileRouteTypes {
     | '/_authenticated/tasks'
     | '/_authenticated/onboarding/$profileId'
     | '/_authenticated/projects/$projectId'
+    | '/_authenticated/projects/$projectId/activity'
+    | '/_authenticated/projects/$projectId/gantt'
+    | '/_authenticated/projects/$projectId/members'
     | '/_authenticated/projects/$projectId/milestones'
     | '/_authenticated/projects/$projectId/tasks'
     | '/_authenticated/projects/$projectId/'
@@ -425,6 +476,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/customers': {
+      id: '/_authenticated/customers'
+      path: '/customers'
+      fullPath: '/customers'
+      preLoaderRoute: typeof AuthenticatedCustomersRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/announcements': {
       id: '/_authenticated/announcements'
       path: '/announcements'
@@ -474,6 +532,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjectsProjectIdMilestonesRouteImport
       parentRoute: typeof AuthenticatedProjectsProjectIdRoute
     }
+    '/_authenticated/projects/$projectId/members': {
+      id: '/_authenticated/projects/$projectId/members'
+      path: '/members'
+      fullPath: '/projects/$projectId/members'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdMembersRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
+    '/_authenticated/projects/$projectId/gantt': {
+      id: '/_authenticated/projects/$projectId/gantt'
+      path: '/gantt'
+      fullPath: '/projects/$projectId/gantt'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdGanttRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
+    '/_authenticated/projects/$projectId/activity': {
+      id: '/_authenticated/projects/$projectId/activity'
+      path: '/activity'
+      fullPath: '/projects/$projectId/activity'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdActivityRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
   }
 }
 
@@ -493,6 +572,9 @@ const AuthenticatedOnboardingRouteWithChildren =
   )
 
 interface AuthenticatedProjectsProjectIdRouteChildren {
+  AuthenticatedProjectsProjectIdActivityRoute: typeof AuthenticatedProjectsProjectIdActivityRoute
+  AuthenticatedProjectsProjectIdGanttRoute: typeof AuthenticatedProjectsProjectIdGanttRoute
+  AuthenticatedProjectsProjectIdMembersRoute: typeof AuthenticatedProjectsProjectIdMembersRoute
   AuthenticatedProjectsProjectIdMilestonesRoute: typeof AuthenticatedProjectsProjectIdMilestonesRoute
   AuthenticatedProjectsProjectIdTasksRoute: typeof AuthenticatedProjectsProjectIdTasksRoute
   AuthenticatedProjectsProjectIdIndexRoute: typeof AuthenticatedProjectsProjectIdIndexRoute
@@ -500,6 +582,12 @@ interface AuthenticatedProjectsProjectIdRouteChildren {
 
 const AuthenticatedProjectsProjectIdRouteChildren: AuthenticatedProjectsProjectIdRouteChildren =
   {
+    AuthenticatedProjectsProjectIdActivityRoute:
+      AuthenticatedProjectsProjectIdActivityRoute,
+    AuthenticatedProjectsProjectIdGanttRoute:
+      AuthenticatedProjectsProjectIdGanttRoute,
+    AuthenticatedProjectsProjectIdMembersRoute:
+      AuthenticatedProjectsProjectIdMembersRoute,
     AuthenticatedProjectsProjectIdMilestonesRoute:
       AuthenticatedProjectsProjectIdMilestonesRoute,
     AuthenticatedProjectsProjectIdTasksRoute:
@@ -530,6 +618,7 @@ const AuthenticatedProjectsRouteWithChildren =
 interface AuthenticatedRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedAnnouncementsRoute: typeof AuthenticatedAnnouncementsRoute
+  AuthenticatedCustomersRoute: typeof AuthenticatedCustomersRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedLearningRoute: typeof AuthenticatedLearningRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRouteWithChildren
@@ -545,6 +634,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedAnnouncementsRoute: AuthenticatedAnnouncementsRoute,
+  AuthenticatedCustomersRoute: AuthenticatedCustomersRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedLearningRoute: AuthenticatedLearningRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRouteWithChildren,

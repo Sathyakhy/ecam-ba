@@ -46,8 +46,9 @@ function GanttPage() {
       arr.push({ id: m.id, title: m.title, kind: "milestone", start, end, status: m.status });
     });
     (tasks.data ?? []).forEach((t) => {
-      if (!t.due_date && !t.start_date) return;
-      const end = new Date(t.due_date ?? t.start_date);
+      const endStr = t.due_date ?? t.start_date;
+      if (!endStr) return;
+      const end = new Date(endStr);
       const start = t.start_date ? new Date(t.start_date) : new Date(end.getTime() - DAY * 2);
       arr.push({ id: t.id, title: t.title, kind: "task", start, end, status: t.status, priority: t.priority });
     });
