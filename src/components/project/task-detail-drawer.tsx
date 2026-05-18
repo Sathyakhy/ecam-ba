@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Paperclip, MessageSquare, Activity, Trash2, Download, Send } from "lucide-react";
 import { toast } from "sonner";
