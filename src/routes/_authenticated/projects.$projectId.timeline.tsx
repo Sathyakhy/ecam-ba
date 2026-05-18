@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus, Trash2, ChevronRight, ChevronDown, Pencil, Search, X, ListChecks } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,7 +17,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useProject } from "@/hooks/use-project";
-import { TASK_STATUS_META, metaEntries, formatDate } from "@/lib/project-meta";
+import { TASK_STATUS_META, metaEntries } from "@/lib/project-meta";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/projects/$projectId/timeline")({
@@ -45,6 +45,7 @@ type Task = {
   predecessor_ids: string[] | null;
   progress: number | null;
   pic_org: string | null;
+  pic_orgs: string[] | null;
   created_by: string;
   order_index: number;
 };
@@ -98,6 +99,23 @@ function TimelinePage() {
   });
   const orgs = orgsQ.data ?? ["eCam"];
 
+  const statusesQ = useQuery({
+    queryKey: ["task-statuses"],
+    queryFn: async () => {
+      const { data } = await supabase.from("task_statuses").select("key,label,sort_order").order("sort_order");
+      return (data ?? []) as { key: string; label: string; sort_order: number }[];
+    },
+  });
+  const statusOptions = useMemo(() => {
+    const rows = statusesQ.data ?? [];
+    if (rows.length === 0) {
+      return metaEntries(TASK_STATUS_META).map(([k, m]) => ({ key: k, label: m.label }));
+    }
+    return rows.map((r) => ({ key: r.key, label: r.label }));
+  }, [statusesQ.data]);
+  const statusLabel = (k: string) =>
+    statusOptions.find((s) => s.key === k)?.label ?? TASK_STATUS_META[k]?.label ?? k;
+
   const tasks = tasksQ.data ?? [];
   const roots = useMemo(() => tasks.filter((t) => !t.parent_task_id), [tasks]);
   const childMap = useMemo(() => {
@@ -133,7 +151,12 @@ function TimelinePage() {
   // Distinct values for filter dropdowns
   const modules = useMemo(() => Array.from(new Set(tasks.map((t) => t.module).filter((x): x is string => !!x))).sort(), [tasks]);
   const sites = useMemo(() => Array.from(new Set(tasks.map((t) => t.site).filter((x): x is string => !!x))).sort(), [tasks]);
-  const statuses = useMemo(() => Array.from(new Set(tasks.map((t) => t.status))).sort(), [tasks]);
+
+  const taskPics = (t: Task): string[] => {
+    const arr = (t.pic_orgs ?? []).filter(Boolean);
+    if (arr.length === 0 && t.pic_org) return [t.pic_org];
+    return arr;
+  };
 
   const q = search.trim().toLowerCase();
   const taskMatches = (t: Task) => {
@@ -141,7 +164,12 @@ function TimelinePage() {
     if (fSite !== "all" && (t.site ?? "") !== fSite) return false;
     if (fStatus !== "all" && t.status !== fStatus) return false;
     if (fAssignee !== "all") {
-      if (fAssignee === "unassigned" ? !!t.pic_org : (t.pic_org ?? "") !== fAssignee) return false;
+      const pics = taskPics(t);
+      if (fAssignee === "unassigned") {
+        if (pics.length > 0) return false;
+      } else if (!pics.includes(fAssignee)) {
+        return false;
+      }
     }
     if (q) {
       const hay = `${t.title} ${t.description ?? ""} ${t.remark ?? ""} ${t.module ?? ""} ${t.site ?? ""}`.toLowerCase();
@@ -187,6 +215,7 @@ function TimelinePage() {
               staff={staff.data ?? []}
               orgs={orgs}
               roots={roots}
+              statusOptions={statusOptions}
               onSaved={refresh}
               allTasks={tasks}
               taskNo={taskNo}
@@ -223,8 +252,8 @@ function TimelinePage() {
             <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All statuses</SelectItem>
-              {statuses.map((s) => (
-                <SelectItem key={s} value={s}>{TASK_STATUS_META[s]?.label ?? s}</SelectItem>
+              {statusOptions.map((s) => (
+                <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -287,6 +316,7 @@ function TimelinePage() {
                     staff={staff.data ?? []}
                     orgs={orgs}
                     roots={roots}
+                    statusOptions={statusOptions}
                     canEdit={canEdit}
                     onEdit={(t) => setEditing(t)}
                     onDeleted={refresh}
@@ -316,6 +346,7 @@ function TimelinePage() {
           staff={staff.data ?? []}
           orgs={orgs}
           roots={roots}
+          statusOptions={statusOptions}
           onSaved={refresh}
           allTasks={tasks}
           taskNo={taskNo}
@@ -337,7 +368,7 @@ function Td({ children, className }: { children?: React.ReactNode; className?: s
 }
 
 function RowGroup({
-  rowId, childRowIds, task, children, isOpen, onToggle, staff, orgs, roots, canEdit, onEdit, onDeleted, projectId, authorId, onSaved, allTasks, taskNo, childMap,
+  rowId, childRowIds, task, children, isOpen, onToggle, staff, orgs, roots, statusOptions, canEdit, onEdit, onDeleted, projectId, authorId, onSaved, allTasks, taskNo, childMap,
 }: {
   rowId: number;
   childRowIds: number[];
@@ -348,6 +379,7 @@ function RowGroup({
   staff: { id: string; full_name: string }[];
   orgs: string[];
   roots: Task[];
+  statusOptions: { key: string; label: string }[];
   canEdit: boolean;
   onEdit: (t: Task) => void;
   onDeleted: () => void;
@@ -380,6 +412,7 @@ function RowGroup({
             staff={staff}
             orgs={orgs}
             roots={roots}
+            statusOptions={statusOptions}
             onSaved={onSaved}
             parentTaskId={task.id}
             allTasks={allTasks}
@@ -496,13 +529,14 @@ function RowItem({
 }
 
 function TaskDialog({
-  projectId, authorId, staff, orgs, roots, onSaved, parentTaskId, trigger, task, open: openProp, onOpenChange, allTasks, taskNo,
+  projectId, authorId, staff, orgs, roots, statusOptions, onSaved, parentTaskId, trigger, task, open: openProp, onOpenChange, allTasks, taskNo,
 }: {
   projectId: string;
   authorId: string;
   staff: { id: string; full_name: string }[];
   orgs: string[];
   roots: Task[];
+  statusOptions: { key: string; label: string }[];
   onSaved: () => void;
   parentTaskId?: string;
   trigger?: React.ReactNode;
@@ -512,10 +546,16 @@ function TaskDialog({
   allTasks: Task[];
   taskNo: Record<string, string>;
 }) {
+  void staff;
   const [openInner, setOpenInner] = useState(false);
   const isControlled = openProp !== undefined;
   const open = isControlled ? openProp : openInner;
   const setOpen = isControlled ? (onOpenChange ?? (() => {})) : setOpenInner;
+
+  const defaultStatus = task?.status ?? statusOptions[0]?.key ?? "todo";
+  const initialPicOrgs = (task?.pic_orgs && task.pic_orgs.length > 0)
+    ? task.pic_orgs
+    : (task?.pic_org ? [task.pic_org] : []);
 
   const [title, setTitle] = useState(task?.title ?? "");
   const [description, setDescription] = useState(task?.description ?? "");
@@ -525,8 +565,8 @@ function TaskDialog({
   const [startDate, setStartDate] = useState(task?.start_date ?? "");
   const [dueDate, setDueDate] = useState(task?.due_date ?? "");
   const [actual, setActual] = useState(task?.actual_completion_date ?? "");
-  const [status, setStatus] = useState(task?.status ?? "todo");
-  const [picOrg, setPicOrg] = useState<string | undefined>(task?.pic_org ?? undefined);
+  const [status, setStatus] = useState(defaultStatus);
+  const [picOrgs, setPicOrgs] = useState<string[]>(initialPicOrgs);
   const [remark, setRemark] = useState(task?.remark ?? "");
   const [progress, setProgress] = useState<string>(task?.progress?.toString() ?? "0");
   const [predecessors, setPredecessors] = useState<string[]>(task?.predecessor_ids ?? []);
@@ -538,6 +578,33 @@ function TaskDialog({
   const [parentMode, setParentMode] = useState<"existing" | "new" | "none">(initialParentMode);
   const [selectedParentId, setSelectedParentId] = useState<string | undefined>(parentTaskId);
   const [newParentTitle, setNewParentTitle] = useState("");
+
+  // Reset form to blank defaults whenever the dialog opens for a NEW task.
+  // Prevents stale values from a previous create or edit leaking into the next "New" click.
+  useEffect(() => {
+    if (!open || isEdit) return;
+    setTitle("");
+    setDescription("");
+    setModule("");
+    setSite("");
+    setManDays("");
+    setStartDate("");
+    setDueDate("");
+    setActual("");
+    setStatus(statusOptions[0]?.key ?? "todo");
+    setPicOrgs([]);
+    setRemark("");
+    setProgress("0");
+    setPredecessors([]);
+    setParentMode(parentTaskId ? "existing" : "none");
+    setSelectedParentId(parentTaskId);
+    setNewParentTitle("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const togglePicOrg = (name: string) => {
+    setPicOrgs((prev) => prev.includes(name) ? prev.filter((p) => p !== name) : [...prev, name]);
+  };
 
   const hasChildren = useMemo(
     () => !!task && allTasks.some((t) => t.parent_task_id === task.id),
@@ -580,7 +647,8 @@ function TaskDialog({
       due_date: dueDate || null,
       actual_completion_date: actual || null,
       status,
-      pic_org: picOrg ?? null,
+      pic_org: picOrgs[0] ?? null,
+      pic_orgs: picOrgs,
       remark: remark || null,
       progress: hasChildren ? 0 : Math.max(0, Math.min(100, Number(progress) || 0)),
       predecessor_ids: predecessors,
@@ -681,12 +749,22 @@ function TaskDialog({
             <div className="space-y-1"><Label>Man-Days</Label><Input type="number" step="0.5" min="0" value={manDays} onChange={(e) => setManDays(e.target.value)} /></div>
             <div className="space-y-1">
               <Label>PIC (Organization)</Label>
-              <Select value={picOrg} onValueChange={(v) => setPicOrg(v || undefined)}>
-                <SelectTrigger><SelectValue placeholder="Select organization" /></SelectTrigger>
-                <SelectContent>
-                  {orgs.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="border rounded p-2 space-y-1 max-h-32 overflow-y-auto">
+                {orgs.length === 0 ? (
+                  <p className="text-[11px] text-muted-foreground px-1 py-0.5">No organizations available.</p>
+                ) : orgs.map((o) => {
+                  const checked = picOrgs.includes(o);
+                  return (
+                    <label key={o} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-muted/40 px-1 py-0.5 rounded">
+                      <input type="checkbox" checked={checked} onChange={() => togglePicOrg(o)} className="h-3.5 w-3.5" />
+                      <span className="truncate">{o}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              {picOrgs.length > 0 && (
+                <p className="text-[10px] text-muted-foreground">{picOrgs.join(", ")}</p>
+              )}
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
@@ -700,7 +778,7 @@ function TaskDialog({
               <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {metaEntries(TASK_STATUS_META).map(([k, m]) => <SelectItem key={k} value={k}>{m.label}</SelectItem>)}
+                  {statusOptions.map((s) => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

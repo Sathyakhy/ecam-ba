@@ -1130,6 +1130,7 @@ export type Database = {
           order_index: number
           parent_task_id: string | null
           pic_org: string | null
+          pic_orgs: string[]
           predecessor_ids: string[]
           priority: string
           progress: number
@@ -1154,6 +1155,7 @@ export type Database = {
           order_index?: number
           parent_task_id?: string | null
           pic_org?: string | null
+          pic_orgs?: string[]
           predecessor_ids?: string[]
           priority?: string
           progress?: number
@@ -1178,6 +1180,7 @@ export type Database = {
           order_index?: number
           parent_task_id?: string | null
           pic_org?: string | null
+          pic_orgs?: string[]
           predecessor_ids?: string[]
           priority?: string
           progress?: number
@@ -1290,6 +1293,33 @@ export type Database = {
           id?: string
           modules?: string[]
           name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      task_statuses: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          label?: string
+          sort_order?: number
           updated_at?: string
         }
         Relationships: []
