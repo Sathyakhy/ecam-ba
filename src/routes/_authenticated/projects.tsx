@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { Plus, FolderKanban, Calendar, Users, Search } from "lucide-react";
@@ -28,9 +28,14 @@ export function ProjectsIndex() {
   const { profile } = useAuth();
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [customerFilter, setCustomerFilter] = useState<string>("all");
   const [query, setQuery] = useState("");
+
+  if (pathname !== "/projects" && pathname !== "/projects/") {
+    return <Outlet />;
+  }
 
   const projects = useQuery({
     queryKey: ["projects"],
