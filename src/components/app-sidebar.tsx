@@ -35,23 +35,34 @@ import { useAuth } from "@/hooks/use-auth";
 import { useAppSettings } from "@/hooks/use-app-settings";
 
 const main = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Onboarding", url: "/onboarding", icon: UserPlus },
-  { title: "Projects", url: "/projects", icon: FolderKanban },
-  { title: "Learning", url: "/learning", icon: GraduationCap },
-  { title: "Tasks", url: "/tasks", icon: CheckSquare },
-  { title: "Staff", url: "/staff", icon: Users },
-  { title: "Org chart", url: "/org-chart", icon: Network },
-  { title: "Announcements", url: "/announcements", icon: Megaphone },
-  { title: "My profile", url: "/profile", icon: UserCircle },
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, moduleKey: "dashboard" },
+  { title: "Onboarding", url: "/onboarding", icon: UserPlus, moduleKey: "onboarding" },
+  { title: "Projects", url: "/projects", icon: FolderKanban, moduleKey: "projects" },
+  { title: "Learning", url: "/learning", icon: GraduationCap, moduleKey: "learning" },
+  { title: "Tasks", url: "/tasks", icon: CheckSquare, moduleKey: "tasks" },
+  { title: "Staff", url: "/staff", icon: Users, moduleKey: "staff" },
+  { title: "Org chart", url: "/org-chart", icon: Network, moduleKey: "org-chart" },
+  { title: "Announcements", url: "/announcements", icon: Megaphone, moduleKey: "announcements" },
+  { title: "My profile", url: "/profile", icon: UserCircle, moduleKey: "profile" },
+] as const;
+
+const adminItems = [
+  { title: "User management", url: "/admin", icon: ShieldCheck, moduleKey: "admin" },
+  { title: "Positions", url: "/positions", icon: Briefcase, moduleKey: "positions" },
+  { title: "Project Config", url: "/project-config", icon: SlidersHorizontal, moduleKey: "project-config" },
+  { title: "System Roles", url: "/system-roles", icon: KeyRound, moduleKey: "admin" },
+  { title: "Settings", url: "/settings", icon: Settings, moduleKey: "settings" },
 ] as const;
 
 export function AppSidebar() {
   const path = useRouterState({ select: (s) => s.location.pathname });
-  const { profile, isAdmin, signOut } = useAuth();
+  const { profile, isAdmin, canAccess, signOut } = useAuth();
   const settings = useAppSettings();
   const initials = (profile?.full_name ?? profile?.username ?? "U")
     .split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
+
+  const visibleMain = main.filter((item) => canAccess(item.moduleKey));
+  const visibleAdmin = adminItems.filter((item) => isAdmin || canAccess(item.moduleKey));
 
   return (
     <Sidebar collapsible="icon">
@@ -80,7 +91,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Workspace</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {main.map((item) => {
+              {visibleMain.map((item) => {
                 const active = path === item.url || path.startsWith(item.url + "/");
                 return (
                   <SidebarMenuItem key={item.url}>
