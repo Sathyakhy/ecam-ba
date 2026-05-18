@@ -395,7 +395,13 @@ function TaskDialog({
   const [status, setStatus] = useState(task?.status ?? "todo");
   const [assigneeId, setAssigneeId] = useState<string | undefined>(task?.assignee_id ?? undefined);
   const [remark, setRemark] = useState(task?.remark ?? "");
+  const [progress, setProgress] = useState<string>(task?.progress?.toString() ?? "0");
   const [predecessors, setPredecessors] = useState<string[]>(task?.predecessor_ids ?? []);
+
+  const hasChildren = useMemo(
+    () => !!task && allTasks.some((t) => t.parent_task_id === task.id),
+    [allTasks, task],
+  );
 
   const isEdit = !!task;
 
