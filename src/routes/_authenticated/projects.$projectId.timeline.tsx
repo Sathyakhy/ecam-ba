@@ -113,6 +113,19 @@ function TimelinePage() {
       return (data ?? []) as { key: string; label: string; sort_order: number }[];
     },
   });
+  const modesQ = useQuery({
+    queryKey: ["task-modes"],
+    queryFn: async () => {
+      const { data } = await supabase.from("task_modes").select("key,label,sort_order").order("sort_order");
+      return (data ?? []) as { key: string; label: string; sort_order: number }[];
+    },
+  });
+  const modeOptions = useMemo(() => {
+    const rows = modesQ.data ?? [];
+    return rows.length ? rows.map((r) => ({ key: r.key, label: r.label })) : [
+      { key: "auto", label: "Auto" }, { key: "manual", label: "Manually" },
+    ];
+  }, [modesQ.data]);
   const statusOptions = useMemo(() => {
     const rows = statusesQ.data ?? [];
     if (rows.length === 0) {
