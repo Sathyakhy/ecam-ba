@@ -462,7 +462,7 @@ function RowItem({
       <Td className="text-center whitespace-nowrap">{formatDate(task.start_date)}</Td>
       <Td className="text-center whitespace-nowrap">{formatDate(task.due_date)}</Td>
       <Td className="text-center whitespace-nowrap">{formatDate(task.actual_completion_date)}</Td>
-      <Td className="text-center">{assignee?.full_name ?? "—"}</Td>
+      <Td className="text-center">{task.pic_org ?? "—"}</Td>
       <Td className="text-center"><Badge variant={meta.variant} className="text-[9px]">{meta.label}</Badge></Td>
       <Td className="text-center min-w-[90px]">
         <div className="flex items-center gap-1.5">
