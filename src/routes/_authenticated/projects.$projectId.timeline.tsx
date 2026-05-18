@@ -262,7 +262,7 @@ function RowGroup({
 }
 
 function RowItem({
-  no, task, staff, canEdit, onEdit, onDeleted, isParent, hasChildren, isOpen, onToggle, extraActions,
+  no, task, staff, canEdit, onEdit, onDeleted, isParent, hasChildren, isOpen, onToggle, extraActions, taskNo,
 }: {
   no: string;
   task: Task;
@@ -275,6 +275,7 @@ function RowItem({
   isOpen?: boolean;
   onToggle?: () => void;
   extraActions?: React.ReactNode;
+  taskNo: Record<string, string>;
 }) {
   const assignee = staff.find((s) => s.id === task.assignee_id);
   const meta = TASK_STATUS_META[task.status] ?? TASK_STATUS_META.todo;
@@ -287,6 +288,8 @@ function RowItem({
     toast.success("Deleted");
     onDeleted();
   };
+
+  const depLabels = (task.predecessor_ids ?? []).map((id) => taskNo[id]).filter(Boolean);
 
   return (
     <tr className={cn("hover:bg-muted/30", rowCls)}>
@@ -313,6 +316,7 @@ function RowItem({
       <Td className="text-center whitespace-nowrap">{formatDate(task.actual_completion_date)}</Td>
       <Td className="text-center">{assignee?.full_name ?? "—"}</Td>
       <Td className="text-center"><Badge variant={meta.variant} className="text-[9px]">{meta.label}</Badge></Td>
+      <Td className="text-center text-[11px] whitespace-nowrap">{depLabels.length ? depLabels.join(", ") : "—"}</Td>
       <Td className="text-[11px] max-w-[200px] whitespace-pre-wrap">{task.remark ?? ""}</Td>
       <Td className="text-center">
         {canEdit && (
