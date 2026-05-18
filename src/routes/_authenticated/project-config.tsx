@@ -327,7 +327,7 @@ function ContactsDialog({ kind, company, canEdit }: { kind: Kind; company: Compa
 
   const contacts = useQuery({
     queryKey: key,
-    queryFn: async () => (await supabase.from(table).select("*").eq(fkCol, company.id).order("full_name")).data as Contact[] ?? [],
+    queryFn: async () => (await (supabase.from(table) as never as { select: (s: string) => { eq: (c: string, v: string) => { order: (col: string) => Promise<{ data: Contact[] | null }> } } }).select("*").eq(fkCol, company.id).order("full_name")).data as Contact[] ?? [],
     enabled: open,
   });
 

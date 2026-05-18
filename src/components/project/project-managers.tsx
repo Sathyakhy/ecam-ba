@@ -95,7 +95,7 @@ function AddPMDialog({ projectId, onAdded }: { projectId: string; onAdded: () =>
       if (!companyId) return [];
       const fk = kind === "customer" ? "customer_id" : "vendor_id";
       const table = kind === "customer" ? "customer_contacts" : "vendor_contacts";
-      return (await supabase.from(table).select("*").eq(fk, companyId)).data ?? [];
+      return (await (supabase.from(table) as never as { select: (s: string) => { eq: (c: string, v: string) => Promise<{ data: unknown[] | null }> } }).select("*").eq(fk, companyId)).data ?? [];
     },
     enabled: open && !!companyId && (kind === "customer" || kind === "vendor"),
   });
