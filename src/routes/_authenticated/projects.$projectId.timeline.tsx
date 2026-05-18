@@ -312,6 +312,8 @@ function TimelinePage() {
           projectId={projectId}
           authorId={profile?.id ?? ""}
           staff={staff.data ?? []}
+          orgs={orgs}
+          roots={roots}
           onSaved={refresh}
           allTasks={tasks}
           taskNo={taskNo}
