@@ -236,6 +236,7 @@ function TimelinePage() {
               orgs={orgs}
               roots={roots}
               statusOptions={statusOptions}
+              modeOptions={modeOptions}
               onSaved={refresh}
               allTasks={tasks}
               taskNo={taskNo}
