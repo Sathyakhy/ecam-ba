@@ -344,6 +344,19 @@ function EditUserDialog({
             <div className="space-y-2"><Label>Start date</Label><Input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} /></div>
             <div className="space-y-2"><Label>Reset password (optional)</Label><Input type="text" placeholder="Leave blank to keep" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} minLength={form.password ? 8 : 0} maxLength={128} /></div>
           </div>
+          <div className="space-y-2">
+            <Label>System role (custom)</Label>
+            <Select value={systemRoleId || "__none"} onValueChange={(v) => setSystemRoleId(v === "__none" ? "" : v)}>
+              <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none">None</SelectItem>
+                {(systemRoles.data ?? []).map((r) => (
+                  <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">Only one custom role can be assigned per user.</p>
+          </div>
           <DialogFooter><Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save changes"}</Button></DialogFooter>
         </form>
       </DialogContent>
