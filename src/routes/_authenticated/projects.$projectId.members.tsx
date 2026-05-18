@@ -429,10 +429,13 @@ function AddMemberDialog({ projectId, projectCustomerId, projectVendorId, staff,
                   }}>
                     <SelectTrigger><SelectValue placeholder="Pick a contact or type manually below" /></SelectTrigger>
                     <SelectContent>
-                      {(contacts.data ?? []).map((c) => {
-                        const x = c as { id: string; full_name: string };
-                        return <SelectItem key={x.id} value={x.id}>{x.full_name}</SelectItem>;
-                      })}
+                      {availableContacts.length === 0 ? (
+                        <div className="px-2 py-1.5 text-xs text-muted-foreground">No contacts available.</div>
+                      ) : (
+                        availableContacts.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>{c.full_name}</SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
