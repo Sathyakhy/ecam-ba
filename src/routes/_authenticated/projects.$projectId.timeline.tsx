@@ -359,10 +359,10 @@ function RowGroup({
           />
         )}
       />
-      {isOpen && children.map((c, idx) => (
+      {isOpen && children.map((c) => (
         <RowItem
           key={c.id}
-          no={`${no}.${idx + 1}`}
+          no={taskNo[c.id] ?? ""}
           task={c}
           staff={staff}
           canEdit={canEdit}
