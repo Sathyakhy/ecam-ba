@@ -749,12 +749,22 @@ function TaskDialog({
             <div className="space-y-1"><Label>Man-Days</Label><Input type="number" step="0.5" min="0" value={manDays} onChange={(e) => setManDays(e.target.value)} /></div>
             <div className="space-y-1">
               <Label>PIC (Organization)</Label>
-              <Select value={picOrg} onValueChange={(v) => setPicOrg(v || undefined)}>
-                <SelectTrigger><SelectValue placeholder="Select organization" /></SelectTrigger>
-                <SelectContent>
-                  {orgs.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="border rounded p-2 space-y-1 max-h-32 overflow-y-auto">
+                {orgs.length === 0 ? (
+                  <p className="text-[11px] text-muted-foreground px-1 py-0.5">No organizations available.</p>
+                ) : orgs.map((o) => {
+                  const checked = picOrgs.includes(o);
+                  return (
+                    <label key={o} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-muted/40 px-1 py-0.5 rounded">
+                      <input type="checkbox" checked={checked} onChange={() => togglePicOrg(o)} className="h-3.5 w-3.5" />
+                      <span className="truncate">{o}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              {picOrgs.length > 0 && (
+                <p className="text-[10px] text-muted-foreground">{picOrgs.join(", ")}</p>
+              )}
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
