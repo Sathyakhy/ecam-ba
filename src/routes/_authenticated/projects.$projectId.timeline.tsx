@@ -38,6 +38,10 @@ type Task = {
   start_date: string | null;
   due_date: string | null;
   actual_completion_date: string | null;
+  actual_start: string | null;
+  baseline_start: string | null;
+  baseline_finish: string | null;
+  task_mode: string | null;
   assignee_id: string | null;
   module: string | null;
   site: string | null;
