@@ -218,6 +218,7 @@ function EditUserDialog({
   onSaved: () => void;
 }) {
   const updateFn = useServerFn(adminUpdateUser);
+  const qc = useQueryClient();
   const [form, setForm] = useState({
     full_name: user.full_name,
     email: user.email,
@@ -230,6 +231,32 @@ function EditUserDialog({
     avatar_url: user.avatar_url ?? null as string | null,
   });
   const [saving, setSaving] = useState(false);
+
+  const systemRoles = useQuery({
+    queryKey: ["system_roles"],
+    queryFn: async () => {
+      const { data } = await supabase.from("system_roles").select("id,name").order("name");
+      return data ?? [];
+    },
+  });
+
+  const currentAssignment = useQuery({
+    queryKey: ["user_system_role", user.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("user_system_roles")
+        .select("role_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      return data?.role_id ?? "";
+    },
+  });
+
+  const [systemRoleId, setSystemRoleId] = useState<string>("");
+  // sync once loaded
+  if (currentAssignment.data !== undefined && systemRoleId === "" && currentAssignment.data) {
+    setSystemRoleId(currentAssignment.data);
+  }
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -249,6 +276,15 @@ function EditUserDialog({
           password: form.password || undefined,
         },
       });
+      // Enforce exactly one system role: delete existing, insert if selected
+      await supabase.from("user_system_roles").delete().eq("user_id", user.id);
+      if (systemRoleId) {
+        const { error } = await supabase
+          .from("user_system_roles")
+          .insert({ user_id: user.id, role_id: systemRoleId });
+        if (error) throw error;
+      }
+      qc.invalidateQueries({ queryKey: ["user_system_roles"] });
       toast.success("User updated");
       onSaved();
     } catch (e) {
