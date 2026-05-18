@@ -510,15 +510,19 @@ function GanttView({ tasks, projectStart, projectDue }: {
     return <p className="text-xs text-muted-foreground py-6 text-center">Add start/end dates on tasks to see them on the Gantt chart.</p>;
   }
 
-  const bars = tasks.map((t) => {
+  const ROW_H = 36; // px, matches h-9
+  const bars = tasks.map((t, idx) => {
     const endStr = t.due_date ?? t.start_date!;
     const startStr = t.start_date ?? t.due_date!;
     return {
       id: t.id, title: t.title, status: t.status,
       isParent: !t.parent_task_id,
+      predecessors: t.predecessor_ids ?? [],
+      idx,
       start: new Date(startStr), end: new Date(endStr),
     };
   });
+  const barIndex = new Map(bars.map((b) => [b.id, b]));
 
   const rangeStart = new Date(Math.min(
     projectStart ? new Date(projectStart).getTime() : Infinity,
@@ -544,6 +548,26 @@ function GanttView({ tasks, projectStart, projectDue }: {
     ? ((today.getTime() - rangeStart.getTime()) / DAY / totalDays) * 100
     : null;
 
+  const pctFor = (d: Date) => ((d.getTime() - rangeStart.getTime()) / DAY / totalDays) * 100;
+
+  // Dependency arrows: from end of predecessor to start of successor
+  const arrows: { fromX: number; fromY: number; toX: number; toY: number; key: string }[] = [];
+  bars.forEach((b) => {
+    b.predecessors.forEach((pid) => {
+      const p = barIndex.get(pid);
+      if (!p) return;
+      arrows.push({
+        key: `${pid}->${b.id}`,
+        fromX: pctFor(p.end),
+        fromY: p.idx * ROW_H + ROW_H / 2,
+        toX: pctFor(b.start),
+        toY: b.idx * ROW_H + ROW_H / 2,
+      });
+    });
+  });
+
+  const svgHeight = bars.length * ROW_H;
+
   return (
     <div className="min-w-[800px]">
       <div className="flex">
@@ -557,20 +581,25 @@ function GanttView({ tasks, projectStart, projectDue }: {
           ))}
         </div>
       </div>
-      <div className="relative">
-        {todayPct !== null && (
-          <div className="absolute top-0 bottom-0 w-px bg-primary z-10" style={{ left: `calc(16rem + ${todayPct}% * (100% - 16rem) / 100)` }} />
-        )}
-        {bars.map((b) => {
-          const left = ((b.start.getTime() - rangeStart.getTime()) / DAY / totalDays) * 100;
-          const width = Math.max(1, ((b.end.getTime() - b.start.getTime()) / DAY / totalDays) * 100);
-          return (
-            <div key={b.id} className="flex items-center border-b border-muted/40 hover:bg-muted/20">
-              <div className={cn("w-64 shrink-0 px-2 py-2 text-xs truncate", b.isParent && "font-semibold")} title={b.title}>
-                {!b.isParent && <span className="text-muted-foreground mr-1">↳</span>}
-                {b.title}
-              </div>
-              <div className="flex-1 relative h-9">
+      <div className="flex">
+        <div className="w-64 shrink-0">
+          {bars.map((b) => (
+            <div key={b.id} className={cn("px-2 text-xs truncate flex items-center border-b border-muted/40", b.isParent && "font-semibold")}
+              style={{ height: ROW_H }} title={b.title}>
+              {!b.isParent && <span className="text-muted-foreground mr-1">↳</span>}
+              {b.title}
+            </div>
+          ))}
+        </div>
+        <div className="flex-1 relative">
+          {todayPct !== null && (
+            <div className="absolute top-0 bottom-0 w-px bg-primary z-10" style={{ left: `${todayPct}%` }} />
+          )}
+          {bars.map((b) => {
+            const left = pctFor(b.start);
+            const width = Math.max(1, pctFor(b.end) - left);
+            return (
+              <div key={b.id} className="relative border-b border-muted/40 hover:bg-muted/20" style={{ height: ROW_H }}>
                 <div
                   className={cn(
                     "absolute top-1.5 bottom-1.5 rounded text-[10px] px-1.5 flex items-center text-white shadow-sm overflow-hidden",
@@ -586,15 +615,38 @@ function GanttView({ tasks, projectStart, projectDue }: {
                   <span className="truncate">{b.title}</span>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+          {/* Dependency arrows overlay */}
+          <svg
+            className="absolute inset-0 pointer-events-none"
+            width="100%"
+            height={svgHeight}
+            preserveAspectRatio="none"
+            viewBox={`0 0 100 ${svgHeight}`}
+          >
+            <defs>
+              <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
+              </marker>
+            </defs>
+            <g className="text-muted-foreground" stroke="currentColor" strokeWidth="0.15" fill="none">
+              {arrows.map((a) => {
+                // Elbow path: out 1.5%, down/up to target Y, then to target X
+                const midX = Math.max(a.fromX + 1.2, a.toX - 1.2);
+                const d = `M ${a.fromX} ${a.fromY} L ${midX} ${a.fromY} L ${midX} ${a.toY} L ${a.toX} ${a.toY}`;
+                return <path key={a.key} d={d} markerEnd="url(#arrow)" />;
+              })}
+            </g>
+          </svg>
+        </div>
       </div>
       <div className="flex items-center gap-4 mt-4 text-[11px] text-muted-foreground">
         <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm bg-slate-400" /> To do</span>
         <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm bg-blue-500" /> In progress</span>
         <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm bg-emerald-500" /> Done</span>
         <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm bg-destructive" /> Blocked</span>
+        <span className="flex items-center gap-1"><span className="h-3 w-3 inline-flex items-center justify-center">→</span> Dependency</span>
         {todayPct !== null && <span className="flex items-center gap-1"><span className="h-3 w-px bg-primary" /> Today</span>}
       </div>
     </div>
