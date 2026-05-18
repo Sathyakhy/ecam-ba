@@ -288,10 +288,14 @@ function ProjectRoleSlot({ projectId, memberId, catalog, assigned, canManage, on
   );
 }
 
-function AddMemberDialog({ projectId, staff, existingProfileIds, onAdded }: {
+function AddMemberDialog({ projectId, projectCustomerId, projectVendorId, staff, existingProfileIds, existingCustomerContactIds, existingVendorContactIds, onAdded }: {
   projectId: string;
+  projectCustomerId: string | null;
+  projectVendorId: string | null;
   staff: { id: string; full_name: string }[];
   existingProfileIds: string[];
+  existingCustomerContactIds: string[];
+  existingVendorContactIds: string[];
   onAdded: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -325,7 +329,21 @@ function AddMemberDialog({ projectId, staff, existingProfileIds, onAdded }: {
     enabled: open && !!companyId && (kind === "customer" || kind === "vendor"),
   });
 
+  // Auto-populate company from project when switching to customer/vendor
+  useEffect(() => {
+    if (!open) return;
+    if (kind === "customer" && projectCustomerId && companyId !== projectCustomerId) {
+      setCompanyId(projectCustomerId);
+    } else if (kind === "vendor" && projectVendorId && companyId !== projectVendorId) {
+      setCompanyId(projectVendorId);
+    }
+  }, [open, kind, projectCustomerId, projectVendorId]);
+
   const availableStaff = staff.filter((s) => !existingProfileIds.includes(s.id));
+  const usedContactIds = kind === "customer" ? existingCustomerContactIds : kind === "vendor" ? existingVendorContactIds : [];
+  const availableContacts = ((contacts.data ?? []) as Array<{ id: string; full_name: string; email: string | null; phone: string | null }>)
+    .filter((c) => !usedContactIds.includes(c.id));
+
 
   const reset = () => {
     setKind("ecam"); setProfileId(undefined); setCompanyId(undefined); setContactId(undefined);
