@@ -1131,6 +1131,7 @@ export type Database = {
           parent_task_id: string | null
           predecessor_ids: string[]
           priority: string
+          progress: number
           project_id: string
           remark: string | null
           site: string | null
@@ -1153,6 +1154,7 @@ export type Database = {
           parent_task_id?: string | null
           predecessor_ids?: string[]
           priority?: string
+          progress?: number
           project_id: string
           remark?: string | null
           site?: string | null
@@ -1175,6 +1177,7 @@ export type Database = {
           parent_task_id?: string | null
           predecessor_ids?: string[]
           priority?: string
+          progress?: number
           project_id?: string
           remark?: string | null
           site?: string | null

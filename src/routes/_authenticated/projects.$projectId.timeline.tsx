@@ -43,9 +43,18 @@ type Task = {
   man_days: number | null;
   remark: string | null;
   predecessor_ids: string[] | null;
+  progress: number | null;
   created_by: string;
   order_index: number;
 };
+
+// Compute effective progress: parents roll up from sub-task average; leaves use their own value.
+function effectiveProgress(task: Task, childMap: Record<string, Task[]>): number {
+  const kids = childMap[task.id] ?? [];
+  if (kids.length === 0) return Math.max(0, Math.min(100, task.progress ?? 0));
+  const sum = kids.reduce((acc, k) => acc + effectiveProgress(k, childMap), 0);
+  return Math.round(sum / kids.length);
+}
 
 function TimelinePage() {
   const { projectId } = Route.useParams();
@@ -133,6 +142,7 @@ function TimelinePage() {
               <Th>Actual</Th>
               <Th>Responsible</Th>
               <Th>Status</Th>
+              <Th>Progress</Th>
               <Th>Depends</Th>
               <Th>Remark</Th>
               <Th></Th>
@@ -140,7 +150,7 @@ function TimelinePage() {
           </thead>
           <tbody>
             {roots.length === 0 && (
-              <tr><td colSpan={13} className="text-center text-muted-foreground py-6">No tasks yet.</td></tr>
+              <tr><td colSpan={14} className="text-center text-muted-foreground py-6">No tasks yet.</td></tr>
             )}
             {roots.map((root, i) => {
               const children = childMap[root.id] ?? [];
@@ -162,6 +172,7 @@ function TimelinePage() {
                   onSaved={refresh}
                   allTasks={tasks}
                   taskNo={taskNo}
+                  childMap={childMap}
                 />
               );
             })}
@@ -171,7 +182,7 @@ function TimelinePage() {
 
       <Card className="p-4 overflow-x-auto">
         <h3 className="text-sm font-semibold mb-3">Gantt Chart</h3>
-        <GanttView tasks={bars} projectStart={project.data.start_date} projectDue={project.data.due_date} />
+        <GanttView tasks={bars} childMap={childMap} projectStart={project.data.start_date} projectDue={project.data.due_date} />
       </Card>
 
       {editing && (
@@ -200,7 +211,7 @@ function Td({ children, className }: { children?: React.ReactNode; className?: s
 }
 
 function RowGroup({
-  no, task, children, isOpen, onToggle, staff, canEdit, onEdit, onDeleted, projectId, authorId, onSaved, allTasks, taskNo,
+  no, task, children, isOpen, onToggle, staff, canEdit, onEdit, onDeleted, projectId, authorId, onSaved, allTasks, taskNo, childMap,
 }: {
   no: number;
   task: Task;
@@ -216,6 +227,7 @@ function RowGroup({
   onSaved: () => void;
   allTasks: Task[];
   taskNo: Record<string, string>;
+  childMap: Record<string, Task[]>;
 }) {
   return (
     <>
@@ -231,6 +243,8 @@ function RowGroup({
         isOpen={isOpen}
         onToggle={onToggle}
         taskNo={taskNo}
+        progressValue={effectiveProgress(task, childMap)}
+        isRollup={children.length > 0}
         extraActions={canEdit && (
           <TaskDialog
             projectId={projectId}
@@ -255,6 +269,8 @@ function RowGroup({
           onDeleted={onDeleted}
           isParent={false}
           taskNo={taskNo}
+          progressValue={effectiveProgress(c, childMap)}
+          isRollup={false}
         />
       ))}
     </>
@@ -262,7 +278,7 @@ function RowGroup({
 }
 
 function RowItem({
-  no, task, staff, canEdit, onEdit, onDeleted, isParent, hasChildren, isOpen, onToggle, extraActions, taskNo,
+  no, task, staff, canEdit, onEdit, onDeleted, isParent, hasChildren, isOpen, onToggle, extraActions, taskNo, progressValue, isRollup,
 }: {
   no: string;
   task: Task;
@@ -276,6 +292,8 @@ function RowItem({
   onToggle?: () => void;
   extraActions?: React.ReactNode;
   taskNo: Record<string, string>;
+  progressValue: number;
+  isRollup: boolean;
 }) {
   const assignee = staff.find((s) => s.id === task.assignee_id);
   const meta = TASK_STATUS_META[task.status] ?? TASK_STATUS_META.todo;
@@ -316,6 +334,17 @@ function RowItem({
       <Td className="text-center whitespace-nowrap">{formatDate(task.actual_completion_date)}</Td>
       <Td className="text-center">{assignee?.full_name ?? "—"}</Td>
       <Td className="text-center"><Badge variant={meta.variant} className="text-[9px]">{meta.label}</Badge></Td>
+      <Td className="text-center min-w-[90px]">
+        <div className="flex items-center gap-1.5">
+          <div className="flex-1 h-1.5 rounded bg-muted overflow-hidden">
+            <div
+              className={cn("h-full", progressValue >= 100 ? "bg-emerald-500" : "bg-blue-500")}
+              style={{ width: `${progressValue}%` }}
+            />
+          </div>
+          <span className="text-[10px] tabular-nums w-8 text-right">{progressValue}%{isRollup && "*"}</span>
+        </div>
+      </Td>
       <Td className="text-center text-[11px] whitespace-nowrap">{depLabels.length ? depLabels.join(", ") : "—"}</Td>
       <Td className="text-[11px] max-w-[200px] whitespace-pre-wrap">{task.remark ?? ""}</Td>
       <Td className="text-center">
@@ -366,7 +395,13 @@ function TaskDialog({
   const [status, setStatus] = useState(task?.status ?? "todo");
   const [assigneeId, setAssigneeId] = useState<string | undefined>(task?.assignee_id ?? undefined);
   const [remark, setRemark] = useState(task?.remark ?? "");
+  const [progress, setProgress] = useState<string>(task?.progress?.toString() ?? "0");
   const [predecessors, setPredecessors] = useState<string[]>(task?.predecessor_ids ?? []);
+
+  const hasChildren = useMemo(
+    () => !!task && allTasks.some((t) => t.parent_task_id === task.id),
+    [allTasks, task],
+  );
 
   const isEdit = !!task;
 
@@ -408,6 +443,7 @@ function TaskDialog({
       status,
       assignee_id: assigneeId ?? null,
       remark: remark || null,
+      progress: hasChildren ? 0 : Math.max(0, Math.min(100, Number(progress) || 0)),
       predecessor_ids: predecessors,
     };
     if (isEdit) {
@@ -472,6 +508,21 @@ function TaskDialog({
             </div>
             <div className="space-y-1"><Label>Remark</Label><Input value={remark} onChange={(e) => setRemark(e.target.value)} maxLength={500} /></div>
           </div>
+          <div className="space-y-1">
+            <Label>Progress (%)</Label>
+            {hasChildren ? (
+              <p className="text-[11px] text-muted-foreground">Rolled up automatically from sub-tasks.</p>
+            ) : (
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                step={5}
+                value={progress}
+                onChange={(e) => setProgress(e.target.value)}
+              />
+            )}
+          </div>
 
           <div className="space-y-1">
             <Label>Depends on (predecessors)</Label>
@@ -501,8 +552,9 @@ function TaskDialog({
   );
 }
 
-function GanttView({ tasks, projectStart, projectDue }: {
+function GanttView({ tasks, childMap, projectStart, projectDue }: {
   tasks: Task[];
+  childMap: Record<string, Task[]>;
   projectStart: string | null;
   projectDue: string | null;
 }) {
@@ -518,6 +570,7 @@ function GanttView({ tasks, projectStart, projectDue }: {
       id: t.id, title: t.title, status: t.status,
       isParent: !t.parent_task_id,
       predecessors: t.predecessor_ids ?? [],
+      progress: effectiveProgress(t, childMap),
       idx,
       start: new Date(startStr), end: new Date(endStr),
     };
@@ -602,17 +655,28 @@ function GanttView({ tasks, projectStart, projectDue }: {
               <div key={b.id} className="relative border-b border-muted/40 hover:bg-muted/20" style={{ height: ROW_H }}>
                 <div
                   className={cn(
-                    "absolute top-1.5 bottom-1.5 rounded text-[10px] px-1.5 flex items-center text-white shadow-sm overflow-hidden",
-                    b.status === "done" ? "bg-emerald-500" :
-                    b.status === "blocked" ? "bg-destructive" :
-                    b.status === "in_progress" ? "bg-blue-500" :
-                    "bg-slate-400",
+                    "absolute top-1.5 bottom-1.5 rounded text-[10px] flex items-center text-white shadow-sm overflow-hidden",
+                    b.status === "done" ? "bg-emerald-500/30" :
+                    b.status === "blocked" ? "bg-destructive/30" :
+                    b.status === "in_progress" ? "bg-blue-500/30" :
+                    "bg-slate-400/30",
                     b.isParent && "ring-1 ring-foreground/30"
                   )}
                   style={{ left: `${left}%`, width: `${width}%` }}
-                  title={`${b.title} · ${b.start.toDateString()} → ${b.end.toDateString()}`}
+                  title={`${b.title} · ${b.start.toDateString()} → ${b.end.toDateString()} · ${b.progress}%`}
                 >
-                  <span className="truncate">{b.title}</span>
+                  <div
+                    className={cn(
+                      "absolute inset-y-0 left-0 rounded-l",
+                      b.progress >= 100 ? "bg-emerald-500" :
+                      b.status === "blocked" ? "bg-destructive" :
+                      b.status === "in_progress" ? "bg-blue-500" :
+                      b.status === "done" ? "bg-emerald-500" :
+                      "bg-slate-500",
+                    )}
+                    style={{ width: `${b.progress}%` }}
+                  />
+                  <span className="relative truncate px-1.5 mix-blend-luminosity">{b.title} · {b.progress}%</span>
                 </div>
               </div>
             );
