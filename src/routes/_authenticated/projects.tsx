@@ -25,17 +25,22 @@ export const Route = createFileRoute("/_authenticated/projects")({
 });
 
 export function ProjectsIndex() {
-  const { profile } = useAuth();
-  const qc = useQueryClient();
-  const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [customerFilter, setCustomerFilter] = useState<string>("all");
-  const [query, setQuery] = useState("");
 
   if (pathname !== "/projects" && pathname !== "/projects/") {
     return <Outlet />;
   }
+
+  return <ProjectsList />;
+}
+
+function ProjectsList() {
+  const { profile } = useAuth();
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [customerFilter, setCustomerFilter] = useState<string>("all");
+  const [query, setQuery] = useState("");
 
   const projects = useQuery({
     queryKey: ["projects"],
