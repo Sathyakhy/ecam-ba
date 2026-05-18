@@ -43,9 +43,18 @@ type Task = {
   man_days: number | null;
   remark: string | null;
   predecessor_ids: string[] | null;
+  progress: number | null;
   created_by: string;
   order_index: number;
 };
+
+// Compute effective progress: parents roll up from sub-task average; leaves use their own value.
+function effectiveProgress(task: Task, childMap: Record<string, Task[]>): number {
+  const kids = childMap[task.id] ?? [];
+  if (kids.length === 0) return Math.max(0, Math.min(100, task.progress ?? 0));
+  const sum = kids.reduce((acc, k) => acc + effectiveProgress(k, childMap), 0);
+  return Math.round(sum / kids.length);
+}
 
 function TimelinePage() {
   const { projectId } = Route.useParams();
