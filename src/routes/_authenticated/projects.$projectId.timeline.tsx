@@ -19,6 +19,7 @@ import {
 import { useProject } from "@/hooks/use-project";
 import { TASK_STATUS_META, metaEntries } from "@/lib/project-meta";
 import { cn } from "@/lib/utils";
+import { TaskDetailDrawer } from "@/components/project/task-detail-drawer";
 
 export const Route = createFileRoute("/_authenticated/projects/$projectId/timeline")({
   component: TimelinePage,
