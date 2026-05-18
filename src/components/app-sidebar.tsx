@@ -14,7 +14,7 @@ import {
   Network,
   Briefcase,
   FolderKanban,
-  
+  KeyRound,
   SlidersHorizontal,
 } from "lucide-react";
 import {
