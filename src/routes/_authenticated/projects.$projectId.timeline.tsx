@@ -529,13 +529,14 @@ function RowItem({
 }
 
 function TaskDialog({
-  projectId, authorId, staff, orgs, roots, onSaved, parentTaskId, trigger, task, open: openProp, onOpenChange, allTasks, taskNo,
+  projectId, authorId, staff, orgs, roots, statusOptions, onSaved, parentTaskId, trigger, task, open: openProp, onOpenChange, allTasks, taskNo,
 }: {
   projectId: string;
   authorId: string;
   staff: { id: string; full_name: string }[];
   orgs: string[];
   roots: Task[];
+  statusOptions: { key: string; label: string }[];
   onSaved: () => void;
   parentTaskId?: string;
   trigger?: React.ReactNode;
@@ -545,10 +546,16 @@ function TaskDialog({
   allTasks: Task[];
   taskNo: Record<string, string>;
 }) {
+  void staff;
   const [openInner, setOpenInner] = useState(false);
   const isControlled = openProp !== undefined;
   const open = isControlled ? openProp : openInner;
   const setOpen = isControlled ? (onOpenChange ?? (() => {})) : setOpenInner;
+
+  const defaultStatus = task?.status ?? statusOptions[0]?.key ?? "todo";
+  const initialPicOrgs = (task?.pic_orgs && task.pic_orgs.length > 0)
+    ? task.pic_orgs
+    : (task?.pic_org ? [task.pic_org] : []);
 
   const [title, setTitle] = useState(task?.title ?? "");
   const [description, setDescription] = useState(task?.description ?? "");
@@ -558,8 +565,8 @@ function TaskDialog({
   const [startDate, setStartDate] = useState(task?.start_date ?? "");
   const [dueDate, setDueDate] = useState(task?.due_date ?? "");
   const [actual, setActual] = useState(task?.actual_completion_date ?? "");
-  const [status, setStatus] = useState(task?.status ?? "todo");
-  const [picOrg, setPicOrg] = useState<string | undefined>(task?.pic_org ?? undefined);
+  const [status, setStatus] = useState(defaultStatus);
+  const [picOrgs, setPicOrgs] = useState<string[]>(initialPicOrgs);
   const [remark, setRemark] = useState(task?.remark ?? "");
   const [progress, setProgress] = useState<string>(task?.progress?.toString() ?? "0");
   const [predecessors, setPredecessors] = useState<string[]>(task?.predecessor_ids ?? []);
@@ -571,6 +578,33 @@ function TaskDialog({
   const [parentMode, setParentMode] = useState<"existing" | "new" | "none">(initialParentMode);
   const [selectedParentId, setSelectedParentId] = useState<string | undefined>(parentTaskId);
   const [newParentTitle, setNewParentTitle] = useState("");
+
+  // Reset form to blank defaults whenever the dialog opens for a NEW task.
+  // Prevents stale values from a previous create or edit leaking into the next "New" click.
+  useEffect(() => {
+    if (!open || isEdit) return;
+    setTitle("");
+    setDescription("");
+    setModule("");
+    setSite("");
+    setManDays("");
+    setStartDate("");
+    setDueDate("");
+    setActual("");
+    setStatus(statusOptions[0]?.key ?? "todo");
+    setPicOrgs([]);
+    setRemark("");
+    setProgress("0");
+    setPredecessors([]);
+    setParentMode(parentTaskId ? "existing" : "none");
+    setSelectedParentId(parentTaskId);
+    setNewParentTitle("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const togglePicOrg = (name: string) => {
+    setPicOrgs((prev) => prev.includes(name) ? prev.filter((p) => p !== name) : [...prev, name]);
+  };
 
   const hasChildren = useMemo(
     () => !!task && allTasks.some((t) => t.parent_task_id === task.id),
