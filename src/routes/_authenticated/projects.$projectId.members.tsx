@@ -367,19 +367,21 @@ function AddMemberDialog({ projectId, projectCustomerId, projectVendorId, staff,
         <form onSubmit={async (e) => {
           e.preventDefault();
           if (!canSubmit) return;
+          const isEcamManual = kind === "ecam" && ecamManual;
           const payload: Record<string, unknown> = {
             project_id: projectId,
             role: roleName,
             kind,
-            profile_id: kind === "ecam" ? profileId : null,
-            name: kind === "ecam" ? null : name.trim(),
-            email: kind === "ecam" ? null : (email.trim() || null),
-            phone: kind === "ecam" ? null : (phone.trim() || null),
+            profile_id: kind === "ecam" && !ecamManual ? profileId : null,
+            name: kind === "ecam" && !ecamManual ? null : name.trim(),
+            email: kind === "ecam" && !ecamManual ? null : (email.trim() || null),
+            phone: kind === "ecam" && !ecamManual ? null : (phone.trim() || null),
             customer_id: kind === "customer" ? companyId ?? null : null,
             customer_contact_id: kind === "customer" ? contactId ?? null : null,
             vendor_id: kind === "vendor" ? companyId ?? null : null,
             vendor_contact_id: kind === "vendor" ? contactId ?? null : null,
           };
+          void isEcamManual;
           const { error } = await supabase.from("project_members").insert(payload as never);
           if (error) return toast.error(error.message);
           toast.success("Member added");
