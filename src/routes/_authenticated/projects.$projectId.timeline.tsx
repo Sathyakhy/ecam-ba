@@ -151,7 +151,12 @@ function TimelinePage() {
   // Distinct values for filter dropdowns
   const modules = useMemo(() => Array.from(new Set(tasks.map((t) => t.module).filter((x): x is string => !!x))).sort(), [tasks]);
   const sites = useMemo(() => Array.from(new Set(tasks.map((t) => t.site).filter((x): x is string => !!x))).sort(), [tasks]);
-  const statuses = useMemo(() => Array.from(new Set(tasks.map((t) => t.status))).sort(), [tasks]);
+
+  const taskPics = (t: Task): string[] => {
+    const arr = (t.pic_orgs ?? []).filter(Boolean);
+    if (arr.length === 0 && t.pic_org) return [t.pic_org];
+    return arr;
+  };
 
   const q = search.trim().toLowerCase();
   const taskMatches = (t: Task) => {
@@ -159,7 +164,12 @@ function TimelinePage() {
     if (fSite !== "all" && (t.site ?? "") !== fSite) return false;
     if (fStatus !== "all" && t.status !== fStatus) return false;
     if (fAssignee !== "all") {
-      if (fAssignee === "unassigned" ? !!t.pic_org : (t.pic_org ?? "") !== fAssignee) return false;
+      const pics = taskPics(t);
+      if (fAssignee === "unassigned") {
+        if (pics.length > 0) return false;
+      } else if (!pics.includes(fAssignee)) {
+        return false;
+      }
     }
     if (q) {
       const hay = `${t.title} ${t.description ?? ""} ${t.remark ?? ""} ${t.module ?? ""} ${t.site ?? ""}`.toLowerCase();
