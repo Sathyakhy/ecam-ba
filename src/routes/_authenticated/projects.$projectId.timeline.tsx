@@ -45,6 +45,7 @@ type Task = {
   predecessor_ids: string[] | null;
   progress: number | null;
   pic_org: string | null;
+  pic_orgs: string[] | null;
   created_by: string;
   order_index: number;
 };
