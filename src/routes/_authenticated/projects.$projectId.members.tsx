@@ -403,13 +403,24 @@ function AddMemberDialog({ projectId, projectCustomerId, projectVendorId, staff,
 
           {kind === "ecam" && (
             <div className="space-y-2">
-              <Label>Staff</Label>
-              <Select value={profileId} onValueChange={setProfileId}>
-                <SelectTrigger><SelectValue placeholder="Select staff" /></SelectTrigger>
-                <SelectContent>
-                  {availableStaff.map((s) => <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center justify-between">
+                <Label>Staff</Label>
+                <button
+                  type="button"
+                  className="text-xs text-muted-foreground hover:text-foreground underline"
+                  onClick={() => { setEcamManual((v) => !v); setProfileId(undefined); setName(""); setEmail(""); setPhone(""); }}
+                >
+                  {ecamManual ? "Pick from staff list" : "Enter manually"}
+                </button>
+              </div>
+              {!ecamManual && (
+                <Select value={profileId} onValueChange={setProfileId}>
+                  <SelectTrigger><SelectValue placeholder="Select staff" /></SelectTrigger>
+                  <SelectContent>
+                    {availableStaff.map((s) => <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           )}
 
