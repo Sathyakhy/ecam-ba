@@ -1129,6 +1129,7 @@ export type Database = {
           module: string | null
           order_index: number
           parent_task_id: string | null
+          pic_org: string | null
           predecessor_ids: string[]
           priority: string
           progress: number
@@ -1152,6 +1153,7 @@ export type Database = {
           module?: string | null
           order_index?: number
           parent_task_id?: string | null
+          pic_org?: string | null
           predecessor_ids?: string[]
           priority?: string
           progress?: number
@@ -1175,6 +1177,7 @@ export type Database = {
           module?: string | null
           order_index?: number
           parent_task_id?: string | null
+          pic_org?: string | null
           predecessor_ids?: string[]
           priority?: string
           progress?: number

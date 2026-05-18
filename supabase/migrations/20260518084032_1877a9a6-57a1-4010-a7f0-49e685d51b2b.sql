@@ -1,0 +1,1 @@
+ALTER TABLE public.project_tasks ADD COLUMN IF NOT EXISTS pic_org text;
