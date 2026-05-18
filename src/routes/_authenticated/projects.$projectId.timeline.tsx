@@ -425,7 +425,7 @@ function RowItem({
   progressValue: number;
   isRollup: boolean;
 }) {
-  const assignee = staff.find((s) => s.id === task.assignee_id);
+  void staff;
   const meta = TASK_STATUS_META[task.status] ?? TASK_STATUS_META.todo;
   const rowCls = isParent ? "bg-amber-50/60 dark:bg-amber-950/20 font-medium" : "";
 
