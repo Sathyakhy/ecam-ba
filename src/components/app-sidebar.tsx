@@ -35,6 +35,7 @@ import { useAppSettings } from "@/hooks/use-app-settings";
 const main = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Onboarding", url: "/onboarding", icon: UserPlus },
+  { title: "Projects", url: "/projects", icon: FolderKanban },
   { title: "Learning", url: "/learning", icon: GraduationCap },
   { title: "Tasks", url: "/tasks", icon: CheckSquare },
   { title: "Staff", url: "/staff", icon: Users },
