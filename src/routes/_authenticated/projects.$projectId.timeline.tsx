@@ -80,6 +80,24 @@ function TimelinePage() {
     },
   });
 
+  const orgsQ = useQuery({
+    queryKey: ["timeline-orgs", projectId, project.data?.customer_id, project.data?.vendor_id],
+    enabled: !!project.data,
+    queryFn: async () => {
+      const names: string[] = ["eCam"];
+      if (project.data?.customer_id) {
+        const { data } = await supabase.from("customers").select("name").eq("id", project.data.customer_id).maybeSingle();
+        if (data?.name) names.push(data.name);
+      }
+      if (project.data?.vendor_id) {
+        const { data } = await supabase.from("vendors").select("name").eq("id", project.data.vendor_id).maybeSingle();
+        if (data?.name) names.push(data.name);
+      }
+      return Array.from(new Set(names));
+    },
+  });
+  const orgs = orgsQ.data ?? ["eCam"];
+
   const tasks = tasksQ.data ?? [];
   const roots = useMemo(() => tasks.filter((t) => !t.parent_task_id), [tasks]);
   const childMap = useMemo(() => {
