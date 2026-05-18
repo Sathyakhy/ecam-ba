@@ -369,6 +369,7 @@ function TimelinePage() {
           orgs={orgs}
           roots={roots}
           statusOptions={statusOptions}
+          modeOptions={modeOptions}
           onSaved={refresh}
           allTasks={tasks}
           taskNo={taskNo}
@@ -377,6 +378,14 @@ function TimelinePage() {
           onOpenChange={(o) => !o && setEditing(null)}
         />
       )}
+
+      <TaskDetailDrawer
+        task={viewing}
+        open={!!viewing}
+        onOpenChange={(o) => !o && setViewing(null)}
+        taskNo={taskNo}
+        allTasks={tasks.map((t) => ({ id: t.id, title: t.title }))}
+      />
     </div>
   );
 }
