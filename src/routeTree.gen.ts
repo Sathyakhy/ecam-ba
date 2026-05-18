@@ -16,6 +16,7 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
+import { Route as AuthenticatedSystemRolesRouteImport } from './routes/_authenticated/system-roles'
 import { Route as AuthenticatedStaffRouteImport } from './routes/_authenticated/staff'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedProjectsRouteImport } from './routes/_authenticated/projects'
@@ -72,6 +73,12 @@ const AuthenticatedTasksRoute = AuthenticatedTasksRouteImport.update({
   path: '/tasks',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedSystemRolesRoute =
+  AuthenticatedSystemRolesRouteImport.update({
+    id: '/system-roles',
+    path: '/system-roles',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedStaffRoute = AuthenticatedStaffRouteImport.update({
   id: '/staff',
   path: '/staff',
@@ -207,6 +214,7 @@ export interface FileRoutesByFullPath {
   '/projects': typeof AuthenticatedProjectsRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRoute
   '/staff': typeof AuthenticatedStaffRoute
+  '/system-roles': typeof AuthenticatedSystemRolesRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/onboarding/$profileId': typeof AuthenticatedOnboardingProfileIdRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRouteWithChildren
@@ -236,6 +244,7 @@ export interface FileRoutesByTo {
   '/projects': typeof AuthenticatedProjectsRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRoute
   '/staff': typeof AuthenticatedStaffRoute
+  '/system-roles': typeof AuthenticatedSystemRolesRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/onboarding/$profileId': typeof AuthenticatedOnboardingProfileIdRoute
   '/projects/$projectId/activity': typeof AuthenticatedProjectsProjectIdActivityRoute
@@ -266,6 +275,7 @@ export interface FileRoutesById {
   '/_authenticated/projects': typeof AuthenticatedProjectsRouteWithChildren
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/staff': typeof AuthenticatedStaffRoute
+  '/_authenticated/system-roles': typeof AuthenticatedSystemRolesRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_authenticated/onboarding/$profileId': typeof AuthenticatedOnboardingProfileIdRoute
   '/_authenticated/projects/$projectId': typeof AuthenticatedProjectsProjectIdRouteWithChildren
@@ -297,6 +307,7 @@ export interface FileRouteTypes {
     | '/projects'
     | '/settings'
     | '/staff'
+    | '/system-roles'
     | '/tasks'
     | '/onboarding/$profileId'
     | '/projects/$projectId'
@@ -326,6 +337,7 @@ export interface FileRouteTypes {
     | '/projects'
     | '/settings'
     | '/staff'
+    | '/system-roles'
     | '/tasks'
     | '/onboarding/$profileId'
     | '/projects/$projectId/activity'
@@ -355,6 +367,7 @@ export interface FileRouteTypes {
     | '/_authenticated/projects'
     | '/_authenticated/settings'
     | '/_authenticated/staff'
+    | '/_authenticated/system-roles'
     | '/_authenticated/tasks'
     | '/_authenticated/onboarding/$profileId'
     | '/_authenticated/projects/$projectId'
@@ -424,6 +437,13 @@ declare module '@tanstack/react-router' {
       path: '/tasks'
       fullPath: '/tasks'
       preLoaderRoute: typeof AuthenticatedTasksRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/system-roles': {
+      id: '/_authenticated/system-roles'
+      path: '/system-roles'
+      fullPath: '/system-roles'
+      preLoaderRoute: typeof AuthenticatedSystemRolesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/staff': {
@@ -649,6 +669,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedProjectsRoute: typeof AuthenticatedProjectsRouteWithChildren
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedStaffRoute: typeof AuthenticatedStaffRoute
+  AuthenticatedSystemRolesRoute: typeof AuthenticatedSystemRolesRoute
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
 }
 
@@ -666,6 +687,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedProjectsRoute: AuthenticatedProjectsRouteWithChildren,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedStaffRoute: AuthenticatedStaffRoute,
+  AuthenticatedSystemRolesRoute: AuthenticatedSystemRolesRoute,
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,
 }
 
