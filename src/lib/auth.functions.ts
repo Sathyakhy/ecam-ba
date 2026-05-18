@@ -284,6 +284,7 @@ export const getMyProfile = createServerFn({ method: "GET" })
 
     const roleIds = (sysAssign ?? []).map((r) => r.role_id);
     const systemModules: Record<string, "view" | "edit"> = {};
+    let hasAdminSystemRole = false;
     if (roleIds.length > 0) {
       const { data: sr } = await context.supabase
         .from("system_roles")
@@ -295,13 +296,18 @@ export const getMyProfile = createServerFn({ method: "GET" })
         for (const m of modules) {
           if (systemModules[m] !== "edit") systemModules[m] = level;
         }
+        if (level === "edit" && modules.includes("admin")) {
+          hasAdminSystemRole = true;
+        }
       }
     }
+
+    const isAdmin = !!roles?.some((r) => r.role === "admin") || hasAdminSystemRole;
 
     return {
       profile,
       roles: roles?.map((r) => r.role) ?? [],
-      isAdmin: !!roles?.some((r) => r.role === "admin"),
+      isAdmin,
       systemModules,
     };
   });
