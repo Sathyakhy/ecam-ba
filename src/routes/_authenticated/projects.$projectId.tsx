@@ -19,7 +19,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { STATUS_META, PRIORITY_META } from "./projects";
+import { STATUS_META, PRIORITY_META, metaEntries } from "@/lib/project-meta";
 
 export const Route = createFileRoute("/_authenticated/projects/$projectId")({
   component: ProjectDetailPage,
@@ -410,7 +410,7 @@ function AddMemberDialog({ projectId, staff, existingIds, onAdded }: {
   onAdded: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [pid, setPid] = useState("");
+  const [pid, setPid] = useState<string | undefined>(undefined);
   const [role, setRole] = useState("member");
   const available = staff.filter((s) => !existingIds.includes(s.id));
   return (
@@ -424,7 +424,7 @@ function AddMemberDialog({ projectId, staff, existingIds, onAdded }: {
           const { error } = await supabase.from("project_members").insert({ project_id: projectId, profile_id: pid, role });
           if (error) return toast.error(error.message);
           toast.success("Member added");
-          setOpen(false); setPid(""); setRole("member");
+          setOpen(false); setPid(undefined); setRole("member");
           onAdded();
         }} className="space-y-4">
           <div className="space-y-2">
@@ -455,7 +455,7 @@ function AddMemberDialog({ projectId, staff, existingIds, onAdded }: {
 
 function NewStatusUpdate({ projectId, authorId, onPosted }: { projectId: string; authorId: string; onPosted: () => void }) {
   const [body, setBody] = useState("");
-  const [status, setStatus] = useState<string>("");
+  const [status, setStatus] = useState<string | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
   return (
     <form onSubmit={async (e) => {
@@ -463,11 +463,11 @@ function NewStatusUpdate({ projectId, authorId, onPosted }: { projectId: string;
       if (!body.trim() || !authorId) return;
       setSubmitting(true);
       const { error } = await supabase.from("project_status_updates").insert({
-        project_id: projectId, author_id: authorId, body, status: status || null,
+        project_id: projectId, author_id: authorId, body, status: status ?? null,
       });
       setSubmitting(false);
       if (error) return toast.error(error.message);
-      setBody(""); setStatus("");
+      setBody(""); setStatus(undefined);
       onPosted();
     }} className="space-y-2">
       <Textarea placeholder="Post a status update…" value={body} onChange={(e) => setBody(e.target.value)} rows={2} maxLength={2000} />
@@ -475,7 +475,7 @@ function NewStatusUpdate({ projectId, authorId, onPosted }: { projectId: string;
         <Select value={status} onValueChange={setStatus}>
           <SelectTrigger className="h-8 text-xs w-40"><SelectValue placeholder="Status (optional)" /></SelectTrigger>
           <SelectContent>
-            {Object.entries(STATUS_META).map(([k, m]) => <SelectItem key={k} value={k}>{m.label}</SelectItem>)}
+            {metaEntries(STATUS_META).map(([k, m]) => <SelectItem key={k} value={k}>{m.label}</SelectItem>)}
           </SelectContent>
         </Select>
         <Button type="submit" size="sm" className="ml-auto" disabled={submitting || !body.trim()}>Post</Button>
@@ -519,7 +519,7 @@ function EditProjectDialog({ project, onSaved }: {
               <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {Object.entries(STATUS_META).map(([k, m]) => <SelectItem key={k} value={k}>{m.label}</SelectItem>)}
+                  {metaEntries(STATUS_META).map(([k, m]) => <SelectItem key={k} value={k}>{m.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -528,7 +528,7 @@ function EditProjectDialog({ project, onSaved }: {
               <Select value={priority} onValueChange={setPriority}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {Object.entries(PRIORITY_META).map(([k, m]) => <SelectItem key={k} value={k}>{m.label}</SelectItem>)}
+                  {metaEntries(PRIORITY_META).map(([k, m]) => <SelectItem key={k} value={k}>{m.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

@@ -18,25 +18,11 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { PageHeader } from "@/components/page-header";
+import { STATUS_META, PRIORITY_META, metaEntries } from "@/lib/project-meta";
 
 export const Route = createFileRoute("/_authenticated/projects")({
   component: ProjectsIndex,
 });
-
-export const STATUS_META: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
-  planning: { label: "Planning", variant: "outline" },
-  active: { label: "Active", variant: "default" },
-  on_hold: { label: "On hold", variant: "secondary" },
-  completed: { label: "Completed", variant: "secondary" },
-  archived: { label: "Archived", variant: "outline" },
-};
-
-export const PRIORITY_META: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
-  low: { label: "Low", variant: "outline" },
-  normal: { label: "Normal", variant: "secondary" },
-  high: { label: "High", variant: "default" },
-  urgent: { label: "Urgent", variant: "destructive" },
-};
 
 export function ProjectsIndex() {
   const { profile } = useAuth();
@@ -81,7 +67,7 @@ export function ProjectsIndex() {
               <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All statuses</SelectItem>
-                {Object.entries(STATUS_META).map(([k, m]) => (
+                {metaEntries(STATUS_META).map(([k, m]) => (
                   <SelectItem key={k} value={k}>{m.label}</SelectItem>
                 ))}
               </SelectContent>
@@ -189,7 +175,7 @@ function NewProjectDialog({ ownerId, onCreated }: { ownerId: string; onCreated: 
               <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {Object.entries(STATUS_META).map(([k, m]) => <SelectItem key={k} value={k}>{m.label}</SelectItem>)}
+                  {metaEntries(STATUS_META).map(([k, m]) => <SelectItem key={k} value={k}>{m.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -198,7 +184,7 @@ function NewProjectDialog({ ownerId, onCreated }: { ownerId: string; onCreated: 
               <Select value={priority} onValueChange={setPriority}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {Object.entries(PRIORITY_META).map(([k, m]) => <SelectItem key={k} value={k}>{m.label}</SelectItem>)}
+                  {metaEntries(PRIORITY_META).map(([k, m]) => <SelectItem key={k} value={k}>{m.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
