@@ -29,12 +29,12 @@ function GanttPage() {
 
   const milestones = useQuery({
     queryKey: ["project-milestones", projectId],
-    queryFn: async () => (await supabase.from("project_milestones").select("*").eq("project_id", projectId)).data ?? [],
+    queryFn: async () => (await supabase.from("project_milestones").select("*").eq("project_id", projectId).is("deleted_at", null)).data ?? [],
   });
 
   const tasks = useQuery({
     queryKey: ["project-tasks-gantt", projectId],
-    queryFn: async () => (await supabase.from("project_tasks").select("id,title,start_date,due_date,status,priority").eq("project_id", projectId)).data ?? [],
+    queryFn: async () => (await supabase.from("project_tasks").select("id,title,start_date,due_date,status,priority").eq("project_id", projectId).is("deleted_at", null)).data ?? [],
   });
 
   const bars: Bar[] = useMemo(() => {

@@ -43,11 +43,11 @@ export function ProjectOverview({ projectId }: { projectId: string }) {
 
   const milestones = useQuery({
     queryKey: ["project-milestones", projectId],
-    queryFn: async () => (await supabase.from("project_milestones").select("*").eq("project_id", projectId)).data ?? [],
+    queryFn: async () => (await supabase.from("project_milestones").select("*").eq("project_id", projectId).is("deleted_at", null)).data ?? [],
   });
   const tasks = useQuery({
     queryKey: ["project-tasks", projectId],
-    queryFn: async () => (await supabase.from("project_tasks").select("id,status,assignee_id,title,due_date").eq("project_id", projectId)).data ?? [],
+    queryFn: async () => (await supabase.from("project_tasks").select("id,status,assignee_id,title,due_date").eq("project_id", projectId).is("deleted_at", null)).data ?? [],
   });
   const updates = useQuery({
     queryKey: ["project-updates", projectId],

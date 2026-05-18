@@ -19,6 +19,7 @@ import {
 import { useProject } from "@/hooks/use-project";
 import { TASK_STATUS_META, metaEntries } from "@/lib/project-meta";
 import { cn } from "@/lib/utils";
+import { TaskDetailDrawer } from "@/components/project/task-detail-drawer";
 
 export const Route = createFileRoute("/_authenticated/projects/$projectId/timeline")({
   component: TimelinePage,
@@ -37,6 +38,10 @@ type Task = {
   start_date: string | null;
   due_date: string | null;
   actual_completion_date: string | null;
+  actual_start: string | null;
+  baseline_start: string | null;
+  baseline_finish: string | null;
+  task_mode: string | null;
   assignee_id: string | null;
   module: string | null;
   site: string | null;
@@ -64,6 +69,7 @@ function TimelinePage() {
   const qc = useQueryClient();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [editing, setEditing] = useState<Task | null>(null);
+  const [viewing, setViewing] = useState<Task | null>(null);
   const [search, setSearch] = useState("");
   const [fModule, setFModule] = useState<string>("all");
   const [fSite, setFSite] = useState<string>("all");
@@ -75,6 +81,7 @@ function TimelinePage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("project_tasks").select("*").eq("project_id", projectId)
+        .is("deleted_at", null)
         .order("order_index").order("created_at");
       if (error) throw error;
       return (data ?? []) as Task[];
@@ -106,6 +113,19 @@ function TimelinePage() {
       return (data ?? []) as { key: string; label: string; sort_order: number }[];
     },
   });
+  const modesQ = useQuery({
+    queryKey: ["task-modes"],
+    queryFn: async () => {
+      const { data } = await supabase.from("task_modes").select("key,label,sort_order").order("sort_order");
+      return (data ?? []) as { key: string; label: string; sort_order: number }[];
+    },
+  });
+  const modeOptions = useMemo(() => {
+    const rows = modesQ.data ?? [];
+    return rows.length ? rows.map((r) => ({ key: r.key, label: r.label })) : [
+      { key: "auto", label: "Auto" }, { key: "manual", label: "Manually" },
+    ];
+  }, [modesQ.data]);
   const statusOptions = useMemo(() => {
     const rows = statusesQ.data ?? [];
     if (rows.length === 0) {
@@ -216,6 +236,7 @@ function TimelinePage() {
               orgs={orgs}
               roots={roots}
               statusOptions={statusOptions}
+              modeOptions={modeOptions}
               onSaved={refresh}
               allTasks={tasks}
               taskNo={taskNo}
@@ -317,8 +338,10 @@ function TimelinePage() {
                     orgs={orgs}
                     roots={roots}
                     statusOptions={statusOptions}
+                    modeOptions={modeOptions}
                     canEdit={canEdit}
                     onEdit={(t) => setEditing(t)}
+                    onView={(t) => setViewing(t)}
                     onDeleted={refresh}
                     projectId={projectId}
                     authorId={profile?.id ?? ""}
@@ -347,6 +370,7 @@ function TimelinePage() {
           orgs={orgs}
           roots={roots}
           statusOptions={statusOptions}
+          modeOptions={modeOptions}
           onSaved={refresh}
           allTasks={tasks}
           taskNo={taskNo}
@@ -355,6 +379,14 @@ function TimelinePage() {
           onOpenChange={(o) => !o && setEditing(null)}
         />
       )}
+
+      <TaskDetailDrawer
+        task={viewing}
+        open={!!viewing}
+        onOpenChange={(o) => !o && setViewing(null)}
+        taskNo={taskNo}
+        allTasks={tasks.map((t) => ({ id: t.id, title: t.title }))}
+      />
     </div>
   );
 }
@@ -368,7 +400,7 @@ function Td({ children, className }: { children?: React.ReactNode; className?: s
 }
 
 function RowGroup({
-  rowId, childRowIds, task, children, isOpen, onToggle, staff, orgs, roots, statusOptions, canEdit, onEdit, onDeleted, projectId, authorId, onSaved, allTasks, taskNo, childMap,
+  rowId, childRowIds, task, children, isOpen, onToggle, staff, orgs, roots, statusOptions, modeOptions, canEdit, onEdit, onView, onDeleted, projectId, authorId, onSaved, allTasks, taskNo, childMap,
 }: {
   rowId: number;
   childRowIds: number[];
@@ -380,8 +412,10 @@ function RowGroup({
   orgs: string[];
   roots: Task[];
   statusOptions: { key: string; label: string }[];
+  modeOptions: { key: string; label: string }[];
   canEdit: boolean;
   onEdit: (t: Task) => void;
+  onView: (t: Task) => void;
   onDeleted: () => void;
   projectId: string;
   authorId: string;
@@ -390,21 +424,80 @@ function RowGroup({
   taskNo: Record<string, string>;
   childMap: Record<string, Task[]>;
 }) {
+  void childRowIds;
+  return (
+    <RowSubtree
+      task={task}
+      children={children}
+      isOpen={isOpen}
+      onToggle={onToggle}
+      staff={staff}
+      orgs={orgs}
+      roots={roots}
+      statusOptions={statusOptions}
+      modeOptions={modeOptions}
+      canEdit={canEdit}
+      onEdit={onEdit}
+      onView={onView}
+      onDeleted={onDeleted}
+      projectId={projectId}
+      authorId={authorId}
+      onSaved={onSaved}
+      allTasks={allTasks}
+      taskNo={taskNo}
+      childMap={childMap}
+      level={0}
+      counter={{ n: rowId }}
+    />
+  );
+}
+
+function RowSubtree({
+  task, children, isOpen, onToggle, staff, orgs, roots, statusOptions, modeOptions, canEdit, onEdit, onView, onDeleted, projectId, authorId, onSaved, allTasks, taskNo, childMap, level, counter,
+}: {
+  task: Task;
+  children: Task[];
+  isOpen: boolean;
+  onToggle: () => void;
+  staff: { id: string; full_name: string }[];
+  orgs: string[];
+  roots: Task[];
+  statusOptions: { key: string; label: string }[];
+  modeOptions: { key: string; label: string }[];
+  canEdit: boolean;
+  onEdit: (t: Task) => void;
+  onView: (t: Task) => void;
+  onDeleted: () => void;
+  projectId: string;
+  authorId: string;
+  onSaved: () => void;
+  allTasks: Task[];
+  taskNo: Record<string, string>;
+  childMap: Record<string, Task[]>;
+  level: number;
+  counter: { n: number };
+}) {
+  const [openLocal, setOpenLocal] = useState(true);
+  const grandchildren = childMap[task.id] ?? [];
+  const visibleKids = level === 0 ? children : grandchildren;
+  const expanded = level === 0 ? isOpen : openLocal;
+  const myRowId = counter.n++;
   return (
     <>
       <RowItem
-        rowId={rowId}
+        rowId={myRowId}
         task={task}
         staff={staff}
         canEdit={canEdit}
         onEdit={onEdit}
+        onView={onView}
         onDeleted={onDeleted}
-        isParent
-        hasChildren={children.length > 0}
-        isOpen={isOpen}
-        onToggle={onToggle}
+        isParent={level === 0}
+        hasChildren={visibleKids.length > 0}
+        isOpen={expanded}
+        onToggle={level === 0 ? onToggle : () => setOpenLocal((v) => !v)}
         taskNo={taskNo}
-        indent={0}
+        indent={level}
         extraActions={canEdit && (
           <TaskDialog
             projectId={projectId}
@@ -413,6 +506,7 @@ function RowGroup({
             orgs={orgs}
             roots={roots}
             statusOptions={statusOptions}
+            modeOptions={modeOptions}
             onSaved={onSaved}
             parentTaskId={task.id}
             allTasks={allTasks}
@@ -421,21 +515,32 @@ function RowGroup({
           />
         )}
       />
-      {isOpen && children.map((c, i) => (
-        <RowItem
+      {expanded && visibleKids.map((c) => (
+        <RowSubtree
           key={c.id}
-          rowId={childRowIds[i]}
           task={c}
+          children={childMap[c.id] ?? []}
+          isOpen={true}
+          onToggle={() => {}}
           staff={staff}
+          orgs={orgs}
+          roots={roots}
+          statusOptions={statusOptions}
+          modeOptions={modeOptions}
           canEdit={canEdit}
           onEdit={onEdit}
+          onView={onView}
           onDeleted={onDeleted}
-          isParent={false}
+          projectId={projectId}
+          authorId={authorId}
+          onSaved={onSaved}
+          allTasks={allTasks}
           taskNo={taskNo}
-          indent={1}
+          childMap={childMap}
+          level={level + 1}
+          counter={counter}
         />
       ))}
-      {void childMap}
     </>
   );
 }
@@ -459,13 +564,14 @@ function formatMsDate(d: string | null): string {
 }
 
 function RowItem({
-  rowId, task, staff, canEdit, onEdit, onDeleted, isParent, hasChildren, isOpen, onToggle, extraActions, taskNo, indent,
+  rowId, task, staff, canEdit, onEdit, onView, onDeleted, isParent, hasChildren, isOpen, onToggle, extraActions, taskNo, indent,
 }: {
   rowId: number;
   task: Task;
   staff: { id: string; full_name: string }[];
   canEdit: boolean;
   onEdit: (t: Task) => void;
+  onView: (t: Task) => void;
   onDeleted: () => void;
   isParent: boolean;
   hasChildren?: boolean;
@@ -478,10 +584,13 @@ function RowItem({
   void staff;
 
   const handleDelete = async () => {
-    if (!confirm("Delete this task?")) return;
-    const { error } = await supabase.from("project_tasks").delete().eq("id", task.id);
+    if (!confirm("Archive this task? It will be hidden from views but can be restored from the database.")) return;
+    const { error } = await supabase
+      .from("project_tasks")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", task.id);
     if (error) return toast.error(error.message);
-    toast.success("Deleted");
+    toast.success("Archived");
     onDeleted();
   };
 
@@ -503,7 +612,14 @@ function RowItem({
           ) : (
             <span className="w-3.5 shrink-0" />
           )}
-          <span className="whitespace-pre-wrap break-words">{task.title}</span>
+          <button
+            type="button"
+            onClick={() => onView(task)}
+            className="whitespace-pre-wrap break-words text-left hover:underline hover:text-primary"
+            title="View task details"
+          >
+            {task.title}
+          </button>
         </div>
       </Td>
       <Td className="whitespace-nowrap">{duration}</Td>
@@ -512,24 +628,29 @@ function RowItem({
       <Td className="whitespace-nowrap text-center">{depLabels.length ? depLabels.join(";") : ""}</Td>
       <Td className="text-[11px] whitespace-pre-wrap">{task.remark ?? ""}</Td>
       <Td className="text-center">
-        {canEdit && (
-          <div className="flex items-center gap-0.5 justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => onEdit(task)} title="Edit">
-              <Pencil className="h-3 w-3" />
-            </Button>
-            {extraActions}
-            <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={handleDelete} title="Delete">
-              <Trash2 className="h-3 w-3" />
-            </Button>
-          </div>
-        )}
+        <div className="flex items-center gap-0.5 justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => onView(task)} title="View details">
+            <Search className="h-3 w-3" />
+          </Button>
+          {canEdit && (
+            <>
+              <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => onEdit(task)} title="Edit">
+                <Pencil className="h-3 w-3" />
+              </Button>
+              {extraActions}
+              <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={handleDelete} title="Archive">
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </>
+          )}
+        </div>
       </Td>
     </tr>
   );
 }
 
 function TaskDialog({
-  projectId, authorId, staff, orgs, roots, statusOptions, onSaved, parentTaskId, trigger, task, open: openProp, onOpenChange, allTasks, taskNo,
+  projectId, authorId, staff, orgs, roots, statusOptions, modeOptions, onSaved, parentTaskId, trigger, task, open: openProp, onOpenChange, allTasks, taskNo,
 }: {
   projectId: string;
   authorId: string;
@@ -537,6 +658,7 @@ function TaskDialog({
   orgs: string[];
   roots: Task[];
   statusOptions: { key: string; label: string }[];
+  modeOptions: { key: string; label: string }[];
   onSaved: () => void;
   parentTaskId?: string;
   trigger?: React.ReactNode;
@@ -570,6 +692,10 @@ function TaskDialog({
   const [remark, setRemark] = useState(task?.remark ?? "");
   const [progress, setProgress] = useState<string>(task?.progress?.toString() ?? "0");
   const [predecessors, setPredecessors] = useState<string[]>(task?.predecessor_ids ?? []);
+  const [baselineStart, setBaselineStart] = useState(task?.baseline_start ?? "");
+  const [baselineFinish, setBaselineFinish] = useState(task?.baseline_finish ?? "");
+  const [actualStart, setActualStart] = useState(task?.actual_start ?? "");
+  const [taskMode, setTaskMode] = useState(task?.task_mode ?? "auto");
 
   // Parent selection state (only for new sub-task flow)
   const isEdit = !!task;
@@ -596,6 +722,7 @@ function TaskDialog({
     setRemark("");
     setProgress("0");
     setPredecessors([]);
+    setBaselineStart(""); setBaselineFinish(""); setActualStart(""); setTaskMode("auto");
     setParentMode(parentTaskId ? "existing" : "none");
     setSelectedParentId(parentTaskId);
     setNewParentTitle("");
@@ -652,6 +779,10 @@ function TaskDialog({
       remark: remark || null,
       progress: hasChildren ? 0 : Math.max(0, Math.min(100, Number(progress) || 0)),
       predecessor_ids: predecessors,
+      baseline_start: baselineStart || null,
+      baseline_finish: baselineFinish || null,
+      actual_start: actualStart || null,
+      task_mode: taskMode || "auto",
     };
     if (isEdit) {
       const { error } = await supabase.from("project_tasks").update(payload).eq("id", task!.id);
@@ -770,15 +901,27 @@ function TaskDialog({
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1"><Label>Est. Start</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
             <div className="space-y-1"><Label>Est. End</Label><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
-            <div className="space-y-1"><Label>Actual</Label><Input type="date" value={actual} onChange={(e) => setActual(e.target.value)} /></div>
+            <div className="space-y-1"><Label>Actual Start</Label><Input type="date" value={actualStart} onChange={(e) => setActualStart(e.target.value)} /></div>
+            <div className="space-y-1"><Label>Actual Finish</Label><Input type="date" value={actual} onChange={(e) => setActual(e.target.value)} /></div>
+            <div className="space-y-1"><Label>Baseline Start</Label><Input type="date" value={baselineStart} onChange={(e) => setBaselineStart(e.target.value)} /></div>
+            <div className="space-y-1"><Label>Baseline Finish</Label><Input type="date" value={baselineFinish} onChange={(e) => setBaselineFinish(e.target.value)} /></div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1">
               <Label>Status</Label>
               <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {statusOptions.map((s) => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Task Mode</Label>
+              <Select value={taskMode} onValueChange={setTaskMode}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {modeOptions.map((m) => <SelectItem key={m.key} value={m.key}>{m.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
