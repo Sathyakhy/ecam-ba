@@ -20,12 +20,8 @@ import {
 import { PageHeader } from "@/components/page-header";
 
 export const Route = createFileRoute("/_authenticated/projects")({
-  component: ProjectsLayout,
+  component: ProjectsIndex,
 });
-
-function ProjectsLayout() {
-  return <Outlet />;
-}
 
 export const STATUS_META: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   planning: { label: "Planning", variant: "outline" },
