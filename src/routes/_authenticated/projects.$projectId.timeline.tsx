@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Plus, Trash2, ChevronRight, ChevronDown, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -182,7 +182,7 @@ function TimelinePage() {
 
       <Card className="p-4 overflow-x-auto">
         <h3 className="text-sm font-semibold mb-3">Gantt Chart</h3>
-        <GanttView tasks={bars} childMap={childMap} projectStart={project.data.start_date} projectDue={project.data.due_date} />
+        <GanttView tasks={bars} childMap={childMap} projectStart={project.data.start_date} projectDue={project.data.due_date} canEdit={canEdit} onChanged={refresh} />
       </Card>
 
       {editing && (
@@ -552,27 +552,51 @@ function TaskDialog({
   );
 }
 
-function GanttView({ tasks, childMap, projectStart, projectDue }: {
+function toISODate(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+type DragState = {
+  taskId: string;
+  mode: "move" | "resize-start" | "resize-end";
+  startX: number;
+  origStart: Date;
+  origEnd: Date;
+  pxPerDay: number;
+  dayDelta: number;
+};
+
+function GanttView({ tasks, childMap, projectStart, projectDue, canEdit, onChanged }: {
   tasks: Task[];
   childMap: Record<string, Task[]>;
   projectStart: string | null;
   projectDue: string | null;
+  canEdit: boolean;
+  onChanged: () => void;
 }) {
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const [drag, setDrag] = useState<DragState | null>(null);
+
   if (tasks.length === 0) {
     return <p className="text-xs text-muted-foreground py-6 text-center">Add start/end dates on tasks to see them on the Gantt chart.</p>;
   }
 
-  const ROW_H = 36; // px, matches h-9
+  const ROW_H = 36;
   const bars = tasks.map((t, idx) => {
     const endStr = t.due_date ?? t.start_date!;
     const startStr = t.start_date ?? t.due_date!;
     return {
       id: t.id, title: t.title, status: t.status,
       isParent: !t.parent_task_id,
+      hasChildren: (childMap[t.id] ?? []).length > 0,
       predecessors: t.predecessor_ids ?? [],
       progress: effectiveProgress(t, childMap),
       idx,
       start: new Date(startStr), end: new Date(endStr),
+      hasStart: !!t.start_date, hasEnd: !!t.due_date,
     };
   });
   const barIndex = new Map(bars.map((b) => [b.id, b]));
@@ -603,17 +627,78 @@ function GanttView({ tasks, childMap, projectStart, projectDue }: {
 
   const pctFor = (d: Date) => ((d.getTime() - rangeStart.getTime()) / DAY / totalDays) * 100;
 
-  // Dependency arrows: from end of predecessor to start of successor
+  // Apply in-flight drag preview to displayed bar
+  const displayBar = (b: typeof bars[number]) => {
+    if (!drag || drag.taskId !== b.id) return { start: b.start, end: b.end };
+    const days = drag.dayDelta;
+    const ms = days * DAY;
+    if (drag.mode === "move") return { start: new Date(drag.origStart.getTime() + ms), end: new Date(drag.origEnd.getTime() + ms) };
+    if (drag.mode === "resize-start") {
+      const ns = new Date(Math.min(drag.origStart.getTime() + ms, drag.origEnd.getTime()));
+      return { start: ns, end: drag.origEnd };
+    }
+    const ne = new Date(Math.max(drag.origEnd.getTime() + ms, drag.origStart.getTime()));
+    return { start: drag.origStart, end: ne };
+  };
+
+  const beginDrag = (e: React.PointerEvent, b: typeof bars[number], mode: DragState["mode"]) => {
+    if (!canEdit || b.hasChildren) return; // don't drag rollup parents
+    e.preventDefault();
+    e.stopPropagation();
+    const track = trackRef.current;
+    if (!track) return;
+    const rect = track.getBoundingClientRect();
+    const pxPerDay = rect.width / totalDays;
+    (e.target as Element).setPointerCapture?.(e.pointerId);
+    setDrag({
+      taskId: b.id, mode, startX: e.clientX,
+      origStart: b.start, origEnd: b.end,
+      pxPerDay, dayDelta: 0,
+    });
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!drag) return;
+    const days = Math.round((e.clientX - drag.startX) / drag.pxPerDay);
+    if (days !== drag.dayDelta) setDrag({ ...drag, dayDelta: days });
+  };
+
+  const onPointerUp = async () => {
+    if (!drag) return;
+    const d = drag;
+    setDrag(null);
+    if (d.dayDelta === 0) return;
+    const bar = barIndex.get(d.taskId);
+    if (!bar) return;
+    const ms = d.dayDelta * DAY;
+    let newStart = bar.start, newEnd = bar.end;
+    if (d.mode === "move") { newStart = new Date(d.origStart.getTime() + ms); newEnd = new Date(d.origEnd.getTime() + ms); }
+    else if (d.mode === "resize-start") { newStart = new Date(Math.min(d.origStart.getTime() + ms, d.origEnd.getTime())); }
+    else { newEnd = new Date(Math.max(d.origEnd.getTime() + ms, d.origStart.getTime())); }
+
+    const patch: { start_date?: string; due_date?: string } = {};
+    if (bar.hasStart || d.mode !== "resize-end") patch.start_date = toISODate(newStart);
+    if (bar.hasEnd || d.mode !== "resize-start") patch.due_date = toISODate(newEnd);
+
+    const { error } = await supabase.from("project_tasks").update(patch).eq("id", d.taskId);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Schedule updated");
+    onChanged();
+  };
+
+  // Dependency arrows using displayed positions
   const arrows: { fromX: number; fromY: number; toX: number; toY: number; key: string }[] = [];
   bars.forEach((b) => {
+    const bd = displayBar(b);
     b.predecessors.forEach((pid) => {
       const p = barIndex.get(pid);
       if (!p) return;
+      const pd = displayBar(p);
       arrows.push({
         key: `${pid}->${b.id}`,
-        fromX: pctFor(p.end),
+        fromX: pctFor(pd.end),
         fromY: p.idx * ROW_H + ROW_H / 2,
-        toX: pctFor(b.start),
+        toX: pctFor(bd.start),
         toY: b.idx * ROW_H + ROW_H / 2,
       });
     });
@@ -622,7 +707,7 @@ function GanttView({ tasks, childMap, projectStart, projectDue }: {
   const svgHeight = bars.length * ROW_H;
 
   return (
-    <div className="min-w-[800px]">
+    <div className="min-w-[800px]" onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
       <div className="flex">
         <div className="w-64 shrink-0 text-xs font-semibold text-muted-foreground px-2 py-1.5">Task</div>
         <div className="flex-1 relative h-8 border-b">
@@ -644,30 +729,36 @@ function GanttView({ tasks, childMap, projectStart, projectDue }: {
             </div>
           ))}
         </div>
-        <div className="flex-1 relative">
+        <div className="flex-1 relative" ref={trackRef}>
           {todayPct !== null && (
             <div className="absolute top-0 bottom-0 w-px bg-primary z-10" style={{ left: `${todayPct}%` }} />
           )}
           {bars.map((b) => {
-            const left = pctFor(b.start);
-            const width = Math.max(1, pctFor(b.end) - left);
+            const { start, end } = displayBar(b);
+            const left = pctFor(start);
+            const width = Math.max(0.4, pctFor(end) - left);
+            const draggable = canEdit && !b.hasChildren;
+            const isDragging = drag?.taskId === b.id;
             return (
               <div key={b.id} className="relative border-b border-muted/40 hover:bg-muted/20" style={{ height: ROW_H }}>
                 <div
+                  onPointerDown={(e) => beginDrag(e, b, "move")}
                   className={cn(
-                    "absolute top-1.5 bottom-1.5 rounded text-[10px] flex items-center text-white shadow-sm overflow-hidden",
+                    "absolute top-1.5 bottom-1.5 rounded text-[10px] flex items-center text-white shadow-sm overflow-hidden select-none",
                     b.status === "done" ? "bg-emerald-500/30" :
                     b.status === "blocked" ? "bg-destructive/30" :
                     b.status === "in_progress" ? "bg-blue-500/30" :
                     "bg-slate-400/30",
-                    b.isParent && "ring-1 ring-foreground/30"
+                    b.isParent && "ring-1 ring-foreground/30",
+                    draggable && "cursor-grab active:cursor-grabbing",
+                    isDragging && "ring-2 ring-primary",
                   )}
                   style={{ left: `${left}%`, width: `${width}%` }}
-                  title={`${b.title} · ${b.start.toDateString()} → ${b.end.toDateString()} · ${b.progress}%`}
+                  title={`${b.title} · ${start.toDateString()} → ${end.toDateString()} · ${b.progress}%${draggable ? " · drag to reschedule" : ""}`}
                 >
                   <div
                     className={cn(
-                      "absolute inset-y-0 left-0 rounded-l",
+                      "absolute inset-y-0 left-0 rounded-l pointer-events-none",
                       b.progress >= 100 ? "bg-emerald-500" :
                       b.status === "blocked" ? "bg-destructive" :
                       b.status === "in_progress" ? "bg-blue-500" :
@@ -676,7 +767,19 @@ function GanttView({ tasks, childMap, projectStart, projectDue }: {
                     )}
                     style={{ width: `${b.progress}%` }}
                   />
-                  <span className="relative truncate px-1.5 mix-blend-luminosity">{b.title} · {b.progress}%</span>
+                  <span className="relative truncate px-1.5 mix-blend-luminosity pointer-events-none">{b.title} · {b.progress}%</span>
+                  {draggable && (
+                    <>
+                      <div
+                        onPointerDown={(e) => beginDrag(e, b, "resize-start")}
+                        className="absolute left-0 top-0 bottom-0 w-1.5 cursor-ew-resize hover:bg-foreground/30"
+                      />
+                      <div
+                        onPointerDown={(e) => beginDrag(e, b, "resize-end")}
+                        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-ew-resize hover:bg-foreground/30"
+                      />
+                    </>
+                  )}
                 </div>
               </div>
             );
@@ -696,7 +799,6 @@ function GanttView({ tasks, childMap, projectStart, projectDue }: {
             </defs>
             <g className="text-muted-foreground" stroke="currentColor" strokeWidth="0.15" fill="none">
               {arrows.map((a) => {
-                // Elbow path: out 1.5%, down/up to target Y, then to target X
                 const midX = Math.max(a.fromX + 1.2, a.toX - 1.2);
                 const d = `M ${a.fromX} ${a.fromY} L ${midX} ${a.fromY} L ${midX} ${a.toY} L ${a.toX} ${a.toY}`;
                 return <path key={a.key} d={d} markerEnd="url(#arrow)" />;
@@ -712,6 +814,7 @@ function GanttView({ tasks, childMap, projectStart, projectDue }: {
         <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm bg-destructive" /> Blocked</span>
         <span className="flex items-center gap-1"><span className="h-3 w-3 inline-flex items-center justify-center">→</span> Dependency</span>
         {todayPct !== null && <span className="flex items-center gap-1"><span className="h-3 w-px bg-primary" /> Today</span>}
+        {canEdit && <span className="ml-auto italic">Tip: drag a bar to shift, or drag its edges to resize.</span>}
       </div>
     </div>
   );
