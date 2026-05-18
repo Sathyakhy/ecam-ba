@@ -7,14 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { requestPasswordReset } from "@/lib/auth.functions";
+import { supabase } from "@/integrations/supabase/client";
+import { lookupResetEmail } from "@/lib/auth.functions";
 
 export const Route = createFileRoute("/forgot-password")({
   component: ForgotPassword,
 });
 
 function ForgotPassword() {
-  const send = useServerFn(requestPasswordReset);
+  const lookup = useServerFn(lookupResetEmail);
   const [username, setUsername] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
@@ -23,7 +24,12 @@ function ForgotPassword() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await send({ data: { username: username.trim() } });
+      const { email } = await lookup({ data: { username: username.trim() } });
+      if (email) {
+        await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+      }
       setSent(true);
       toast.success("If that account exists, a reset link has been emailed.");
     } catch {
