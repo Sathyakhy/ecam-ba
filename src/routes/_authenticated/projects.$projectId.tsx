@@ -424,7 +424,7 @@ function AddMemberDialog({ projectId, staff, existingIds, onAdded }: {
           const { error } = await supabase.from("project_members").insert({ project_id: projectId, profile_id: pid, role });
           if (error) return toast.error(error.message);
           toast.success("Member added");
-          setOpen(false); setPid(""); setRole("member");
+          setOpen(false); setPid(undefined); setRole("member");
           onAdded();
         }} className="space-y-4">
           <div className="space-y-2">
