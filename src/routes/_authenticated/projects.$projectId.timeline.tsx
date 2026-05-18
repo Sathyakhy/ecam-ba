@@ -676,7 +676,7 @@ function GanttView({ tasks, childMap, projectStart, projectDue, canEdit, onChang
     else if (d.mode === "resize-start") { newStart = new Date(Math.min(d.origStart.getTime() + ms, d.origEnd.getTime())); }
     else { newEnd = new Date(Math.max(d.origEnd.getTime() + ms, d.origStart.getTime())); }
 
-    const patch: Record<string, string> = {};
+    const patch: { start_date?: string; due_date?: string } = {};
     if (bar.hasStart || d.mode !== "resize-end") patch.start_date = toISODate(newStart);
     if (bar.hasEnd || d.mode !== "resize-start") patch.due_date = toISODate(newEnd);
 
