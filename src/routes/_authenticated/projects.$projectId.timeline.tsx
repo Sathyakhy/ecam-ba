@@ -141,7 +141,7 @@ function TimelinePage() {
     if (fSite !== "all" && (t.site ?? "") !== fSite) return false;
     if (fStatus !== "all" && t.status !== fStatus) return false;
     if (fAssignee !== "all") {
-      if (fAssignee === "unassigned" ? !!t.assignee_id : t.assignee_id !== fAssignee) return false;
+      if (fAssignee === "unassigned" ? !!t.pic_org : (t.pic_org ?? "") !== fAssignee) return false;
     }
     if (q) {
       const hay = `${t.title} ${t.description ?? ""} ${t.remark ?? ""} ${t.module ?? ""} ${t.site ?? ""}`.toLowerCase();
