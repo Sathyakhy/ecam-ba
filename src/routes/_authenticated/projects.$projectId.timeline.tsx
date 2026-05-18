@@ -419,11 +419,9 @@ function formatMsDate(d: string | null): string {
   if (!d) return "—";
   const dt = new Date(d);
   const day = String(dt.getDate()).padStart(2, "0");
-  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   const weekdays = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
   const yr = String(dt.getFullYear()).slice(-2);
   return `${weekdays[dt.getDay()]} ${day}.${String(dt.getMonth()+1).padStart(2,"0")}.${yr}`;
-  void months;
 }
 
 function RowItem({
