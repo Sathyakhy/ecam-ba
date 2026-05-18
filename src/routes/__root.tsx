@@ -50,7 +50,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     if (!sessionStorage.getItem(KEY)) {
       sessionStorage.setItem(KEY, "1");
       window.location.reload();
-      return null as unknown as JSX.Element;
+      return null as never;
     }
   }
 
