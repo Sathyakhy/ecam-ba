@@ -200,7 +200,7 @@ function Td({ children, className }: { children?: React.ReactNode; className?: s
 }
 
 function RowGroup({
-  no, task, children, isOpen, onToggle, staff, canEdit, onEdit, onDeleted, projectId, authorId, onSaved,
+  no, task, children, isOpen, onToggle, staff, canEdit, onEdit, onDeleted, projectId, authorId, onSaved, allTasks, taskNo,
 }: {
   no: number;
   task: Task;
@@ -214,6 +214,8 @@ function RowGroup({
   projectId: string;
   authorId: string;
   onSaved: () => void;
+  allTasks: Task[];
+  taskNo: Record<string, string>;
 }) {
   return (
     <>
@@ -228,6 +230,7 @@ function RowGroup({
         hasChildren={children.length > 0}
         isOpen={isOpen}
         onToggle={onToggle}
+        taskNo={taskNo}
         extraActions={canEdit && (
           <TaskDialog
             projectId={projectId}
@@ -235,6 +238,8 @@ function RowGroup({
             staff={staff}
             onSaved={onSaved}
             parentTaskId={task.id}
+            allTasks={allTasks}
+            taskNo={taskNo}
             trigger={<Button size="icon" variant="ghost" className="h-6 w-6" title="Add sub-task"><Plus className="h-3 w-3" /></Button>}
           />
         )}
@@ -249,6 +254,7 @@ function RowGroup({
           onEdit={onEdit}
           onDeleted={onDeleted}
           isParent={false}
+          taskNo={taskNo}
         />
       ))}
     </>
