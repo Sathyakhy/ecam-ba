@@ -901,15 +901,27 @@ function TaskDialog({
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1"><Label>Est. Start</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
             <div className="space-y-1"><Label>Est. End</Label><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
-            <div className="space-y-1"><Label>Actual</Label><Input type="date" value={actual} onChange={(e) => setActual(e.target.value)} /></div>
+            <div className="space-y-1"><Label>Actual Start</Label><Input type="date" value={actualStart} onChange={(e) => setActualStart(e.target.value)} /></div>
+            <div className="space-y-1"><Label>Actual Finish</Label><Input type="date" value={actual} onChange={(e) => setActual(e.target.value)} /></div>
+            <div className="space-y-1"><Label>Baseline Start</Label><Input type="date" value={baselineStart} onChange={(e) => setBaselineStart(e.target.value)} /></div>
+            <div className="space-y-1"><Label>Baseline Finish</Label><Input type="date" value={baselineFinish} onChange={(e) => setBaselineFinish(e.target.value)} /></div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1">
               <Label>Status</Label>
               <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {statusOptions.map((s) => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Task Mode</Label>
+              <Select value={taskMode} onValueChange={setTaskMode}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {modeOptions.map((m) => <SelectItem key={m.key} value={m.key}>{m.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
