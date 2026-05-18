@@ -144,53 +144,63 @@ function AdminInner() {
         }
       />
 
-      <Card className="overflow-x-auto">
-        <table className="w-full text-sm min-w-[640px]">
-          <thead className="border-b border-border text-left">
-            <tr className="[&>th]:py-3 [&>th]:px-4 text-xs uppercase text-muted-foreground tracking-wide">
-              <th>User</th><th>Email</th><th>Role</th><th>Status</th><th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.data?.map((u) => {
-              const initials = u.full_name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
-              return (
-              <tr key={u.id} className="border-b border-border last:border-0 [&>td]:py-3 [&>td]:px-4">
-                <td>
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-9 w-9">
-                      {u.avatar_url && <AvatarImage src={u.avatar_url} alt={u.full_name} />}
-                      <AvatarFallback className="bg-primary/10 text-primary text-xs">{initials}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <div className="font-medium">{u.full_name}</div>
-                      <div className="text-xs text-muted-foreground">@{u.username} · {u.job_title ?? "—"}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="text-muted-foreground">{u.email}</td>
-                <td>
-                  <Badge variant={u.role === "admin" ? "default" : "secondary"}>
-                    {u.role === "admin" && <ShieldCheck className="h-3 w-3 mr-1" />}{u.role}
-                  </Badge>
-                </td>
-                <td><Badge variant="outline" className="capitalize">{u.status}</Badge></td>
-                <td className="text-right whitespace-nowrap">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditing(u)}>
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => remove(u.id, u.full_name)}>
-                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                  </Button>
-                </td>
+      <Card className="overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="border-b border-border bg-muted/30 text-left">
+              <tr className="[&>th]:py-3 [&>th]:px-4 text-[11px] uppercase text-muted-foreground tracking-wider font-medium">
+                <th>User</th>
+                <th className="hidden md:table-cell">Email</th>
+                <th>Role</th>
+                <th className="hidden sm:table-cell">Status</th>
+                <th aria-label="Actions"></th>
               </tr>
-              );
-            })}
-            {users.data?.length === 0 && (
-              <tr><td colSpan={5} className="text-center text-muted-foreground py-10">No users yet.</td></tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {users.data?.map((u) => {
+                const initials = u.full_name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
+                return (
+                <tr key={u.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors [&>td]:py-3 [&>td]:px-4">
+                  <td>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Avatar className="h-9 w-9 shrink-0">
+                        {u.avatar_url && <AvatarImage src={u.avatar_url} alt={u.full_name} />}
+                        <AvatarFallback className="bg-primary/10 text-primary text-xs">{initials}</AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        <div className="font-medium truncate">{u.full_name}</div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          @{u.username}
+                          <span className="md:hidden"> · {u.email}</span>
+                          {u.job_title && <span className="hidden md:inline"> · {u.job_title}</span>}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="text-muted-foreground hidden md:table-cell truncate max-w-[220px]">{u.email}</td>
+                  <td>
+                    <Badge variant={u.role === "admin" ? "default" : "secondary"} className="font-normal">
+                      {u.role === "admin" && <ShieldCheck className="h-3 w-3 mr-1" />}{u.role}
+                    </Badge>
+                  </td>
+                  <td className="hidden sm:table-cell"><Badge variant="outline" className="capitalize font-normal">{u.status}</Badge></td>
+                  <td className="text-right whitespace-nowrap">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditing(u)} aria-label={`Edit ${u.full_name}`}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => remove(u.id, u.full_name)} aria-label={`Delete ${u.full_name}`}>
+                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                    </Button>
+                  </td>
+                </tr>
+                );
+              })}
+              {users.data?.length === 0 && (
+                <tr><td colSpan={5} className="text-center text-muted-foreground py-12">No users yet.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </Card>
 
       {editing && (

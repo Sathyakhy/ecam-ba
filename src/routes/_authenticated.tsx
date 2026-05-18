@@ -78,13 +78,17 @@ function AuthenticatedLayout() {
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 flex items-center gap-2 border-b border-border px-3 sm:px-4 sticky top-0 bg-background/95 backdrop-blur z-10">
-            <SidebarTrigger />
-            <div className="text-sm text-muted-foreground hidden sm:block">Department workspace</div>
+          <header className="h-14 flex items-center gap-2 border-b border-border px-3 sm:px-6 sticky top-0 bg-background/80 backdrop-blur-md z-10">
+            <SidebarTrigger aria-label="Toggle navigation" />
+            <div className="text-sm text-muted-foreground hidden sm:block">
+              {profile.full_name}
+            </div>
             <div className="ml-auto"><ThemeToggle /></div>
           </header>
-          <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0 overflow-x-hidden">
-            <Outlet />
+          <main className="flex-1 px-4 py-5 sm:px-6 sm:py-7 lg:px-10 lg:py-8 min-w-0 overflow-x-hidden">
+            <div className="mx-auto w-full max-w-6xl">
+              <Outlet />
+            </div>
           </main>
         </div>
       </div>

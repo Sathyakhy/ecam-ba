@@ -308,13 +308,16 @@ function AssignmentsTab() {
 
   return (
     <div className="space-y-3">
-      <div className="overflow-x-auto rounded-md border">
+      <p className="text-xs text-muted-foreground sm:hidden">Swipe horizontally to see all roles →</p>
+      <div className="overflow-x-auto rounded-lg border bg-card">
         <table className="w-full text-sm">
-          <thead className="bg-muted/50">
+          <thead className="bg-muted/40">
             <tr>
-              <th className="text-left px-3 py-2 font-medium">User</th>
+              <th className="sticky left-0 z-10 bg-muted/40 text-left px-4 py-2.5 font-medium text-[11px] uppercase tracking-wider text-muted-foreground">
+                User
+              </th>
               {roles.data.map((r) => (
-                <th key={r.id} className="text-center px-3 py-2 font-medium whitespace-nowrap">
+                <th key={r.id} className="text-center px-3 py-2.5 font-medium whitespace-nowrap text-[11px] uppercase tracking-wider text-muted-foreground">
                   {r.name}
                 </th>
               ))}
@@ -324,10 +327,10 @@ function AssignmentsTab() {
             {(profiles.data ?? []).map((p) => {
               const assigned = rolesByUser.get(p.id) ?? [];
               return (
-                <tr key={p.id} className="border-t">
-                  <td className="px-3 py-2">
-                    <div className="font-medium">{p.full_name}</div>
-                    <div className="text-xs text-muted-foreground">{p.email}</div>
+                <tr key={p.id} className="border-t hover:bg-muted/20 transition-colors">
+                  <td className="sticky left-0 z-10 bg-card px-4 py-2.5">
+                    <div className="font-medium truncate max-w-[160px]">{p.full_name}</div>
+                    <div className="text-xs text-muted-foreground truncate max-w-[160px]">{p.email}</div>
                   </td>
                   {roles.data!.map((r) => {
                     const on = assigned.includes(r.id);
