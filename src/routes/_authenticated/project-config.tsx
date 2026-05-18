@@ -68,7 +68,12 @@ function RolesTab() {
           {(roles.data ?? []).map((r) => (
             <Card key={r.id} className="p-3 flex items-start gap-2">
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate">{r.name}</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium text-sm truncate">{r.name}</p>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded ${r.access_level === "view" ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary"}`}>
+                    {r.access_level === "view" ? "View" : "Edit"}
+                  </span>
+                </div>
                 {r.description && <p className="text-xs text-muted-foreground line-clamp-2">{r.description}</p>}
               </div>
               {isAdmin && (
@@ -92,13 +97,16 @@ function RolesTab() {
 }
 
 function RoleDialog({ role, onSaved, trigger }: {
-  role?: { id: string; name: string; description: string | null };
+  role?: { id: string; name: string; description: string | null; access_level?: string };
   onSaved: () => void;
   trigger: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(role?.name ?? "");
   const [desc, setDesc] = useState(role?.description ?? "");
+  const [accessLevel, setAccessLevel] = useState<"view" | "edit">(
+    (role?.access_level as "view" | "edit") ?? "edit",
+  );
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
@@ -106,7 +114,7 @@ function RoleDialog({ role, onSaved, trigger }: {
         <DialogHeader><DialogTitle>{role ? "Edit role" : "New role"}</DialogTitle></DialogHeader>
         <form onSubmit={async (e) => {
           e.preventDefault();
-          const payload = { name, description: desc || null };
+          const payload = { name, description: desc || null, access_level: accessLevel };
           const { error } = role
             ? await supabase.from("project_roles_catalog").update(payload).eq("id", role.id)
             : await supabase.from("project_roles_catalog").insert(payload);
@@ -117,6 +125,19 @@ function RoleDialog({ role, onSaved, trigger }: {
         }} className="space-y-4">
           <div className="space-y-2"><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} required maxLength={100} /></div>
           <div className="space-y-2"><Label>Description</Label><Textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} maxLength={500} /></div>
+          <div className="space-y-2">
+            <Label>Access level</Label>
+            <div className="flex gap-2">
+              <label className={`flex-1 cursor-pointer rounded-md border px-3 py-2 text-sm ${accessLevel === "view" ? "border-primary bg-primary/10" : "border-input"}`}>
+                <input type="radio" className="sr-only" checked={accessLevel === "view"} onChange={() => setAccessLevel("view")} />
+                View only
+              </label>
+              <label className={`flex-1 cursor-pointer rounded-md border px-3 py-2 text-sm ${accessLevel === "edit" ? "border-primary bg-primary/10" : "border-input"}`}>
+                <input type="radio" className="sr-only" checked={accessLevel === "edit"} onChange={() => setAccessLevel("edit")} />
+                Editable
+              </label>
+            </div>
+          </div>
           <DialogFooter><Button type="submit">{role ? "Save" : "Create"}</Button></DialogFooter>
         </form>
       </DialogContent>

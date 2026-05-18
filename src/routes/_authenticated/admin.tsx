@@ -1,7 +1,7 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { UserPlus, Trash2, ShieldCheck, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,7 +24,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { adminCreateUser, adminDeleteUser, adminUpdateUser } from "@/lib/auth.functions";
 import type { Tables } from "@/integrations/supabase/types";
 
-type UserRow = Tables<"profiles"> & { role: string };
+type UserRow = Tables<"profiles"> & {
+  system_role_id: string | null;
+  system_role_name: string | null;
+};
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
@@ -46,21 +49,27 @@ function AdminInner() {
   const users = useQuery({
     queryKey: ["admin-users"],
     queryFn: async () => {
-      const [profiles, roles] = await Promise.all([
+      const [profiles, sysRoles, assigns] = await Promise.all([
         supabase.from("profiles").select("*").order("created_at", { ascending: false }),
-        supabase.from("user_roles").select("user_id,role"),
+        supabase.from("system_roles").select("id,name"),
+        supabase.from("user_system_roles").select("user_id,role_id"),
       ]);
-      return (profiles.data ?? []).map((p) => ({
-        ...p,
-        role: roles.data?.find((r) => r.user_id === p.id)?.role ?? "staff",
-      }));
+      const roleById = new Map((sysRoles.data ?? []).map((r) => [r.id, r.name]));
+      return (profiles.data ?? []).map((p) => {
+        const a = assigns.data?.find((x) => x.user_id === p.id);
+        return {
+          ...p,
+          system_role_id: a?.role_id ?? null,
+          system_role_name: a ? roleById.get(a.role_id) ?? null : null,
+        };
+      });
     },
   });
 
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     username: "", full_name: "", email: "", password: "",
-    job_title: "", department: "", role: "staff" as "admin" | "staff",
+    job_title: "", department: "",
     manager_id: "", start_date: "",
   });
 
@@ -75,14 +84,14 @@ function AdminInner() {
           password: form.password,
           job_title: form.job_title || null,
           department: form.department || null,
-          role: form.role,
+          role: "staff",
           manager_id: form.manager_id || null,
           start_date: form.start_date || null,
         },
       });
       toast.success("User created");
       setOpen(false);
-      setForm({ username: "", full_name: "", email: "", password: "", job_title: "", department: "", role: "staff", manager_id: "", start_date: "" });
+      setForm({ username: "", full_name: "", email: "", password: "", job_title: "", department: "", manager_id: "", start_date: "" });
       qc.invalidateQueries({ queryKey: ["admin-users"] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed");
@@ -104,7 +113,7 @@ function AdminInner() {
     <div>
       <PageHeader
         title="User management"
-        description="Create staff accounts and manage department access."
+        description="Create staff accounts and assign system roles."
         actions={
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild><Button><UserPlus className="h-4 w-4 mr-1" /> New user</Button></DialogTrigger>
@@ -124,19 +133,8 @@ function AdminInner() {
                   <div className="space-y-2"><Label>Job title</Label><Input value={form.job_title} onChange={(e) => setForm({ ...form, job_title: e.target.value })} maxLength={120} /></div>
                   <div className="space-y-2"><Label>Department</Label><Input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} maxLength={120} /></div>
                 </div>
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>Role</Label>
-                    <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as "admin" | "staff" })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="staff">Staff</SelectItem>
-                        <SelectItem value="admin">Admin / Manager</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2"><Label>Start date</Label><Input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} /></div>
-                </div>
+                <div className="space-y-2"><Label>Start date</Label><Input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} /></div>
+                <p className="text-xs text-muted-foreground">Assign a system role after creation using the edit dialog.</p>
                 <DialogFooter><Button type="submit">Create user</Button></DialogFooter>
               </form>
             </DialogContent>
@@ -151,7 +149,7 @@ function AdminInner() {
               <tr className="[&>th]:py-3 [&>th]:px-4 text-[11px] uppercase text-muted-foreground tracking-wider font-medium">
                 <th>User</th>
                 <th className="hidden md:table-cell">Email</th>
-                <th>Role</th>
+                <th>System role</th>
                 <th className="hidden sm:table-cell">Status</th>
                 <th aria-label="Actions"></th>
               </tr>
@@ -179,9 +177,13 @@ function AdminInner() {
                   </td>
                   <td className="text-muted-foreground hidden md:table-cell truncate max-w-[220px]">{u.email}</td>
                   <td>
-                    <Badge variant={u.role === "admin" ? "default" : "secondary"} className="font-normal">
-                      {u.role === "admin" && <ShieldCheck className="h-3 w-3 mr-1" />}{u.role}
-                    </Badge>
+                    {u.system_role_name ? (
+                      <Badge variant="secondary" className="font-normal">
+                        <ShieldCheck className="h-3 w-3 mr-1" />{u.system_role_name}
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">None</span>
+                    )}
                   </td>
                   <td className="hidden sm:table-cell"><Badge variant="outline" className="capitalize font-normal">{u.status}</Badge></td>
                   <td className="text-right whitespace-nowrap">
@@ -236,7 +238,6 @@ function EditUserDialog({
     department: user.department ?? "",
     start_date: user.start_date ?? "",
     status: (user.status as "active" | "inactive") ?? "active",
-    role: (user.role as "admin" | "staff") ?? "staff",
     password: "",
     avatar_url: user.avatar_url ?? null as string | null,
   });
@@ -245,28 +246,15 @@ function EditUserDialog({
   const systemRoles = useQuery({
     queryKey: ["system_roles"],
     queryFn: async () => {
-      const { data } = await supabase.from("system_roles").select("id,name").order("name");
+      const { data } = await supabase.from("system_roles").select("id,name,access_level").order("name");
       return data ?? [];
     },
   });
 
-  const currentAssignment = useQuery({
-    queryKey: ["user_system_role", user.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("user_system_roles")
-        .select("role_id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      return data?.role_id ?? "";
-    },
-  });
-
-  const [systemRoleId, setSystemRoleId] = useState<string>("");
-  // sync once loaded
-  if (currentAssignment.data !== undefined && systemRoleId === "" && currentAssignment.data) {
-    setSystemRoleId(currentAssignment.data);
-  }
+  const [systemRoleId, setSystemRoleId] = useState<string>(user.system_role_id ?? "");
+  useEffect(() => {
+    setSystemRoleId(user.system_role_id ?? "");
+  }, [user.system_role_id]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -281,7 +269,6 @@ function EditUserDialog({
           department: form.department || null,
           start_date: form.start_date || null,
           status: form.status,
-          role: form.role,
           avatar_url: form.avatar_url,
           password: form.password || undefined,
         },
@@ -330,16 +317,6 @@ function EditUserDialog({
           </div>
           <div className="grid sm:grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label>Role</Label>
-              <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as "admin" | "staff" })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="staff">Staff</SelectItem>
-                  <SelectItem value="admin">Admin / Manager</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
               <Label>Status</Label>
               <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as "active" | "inactive" })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -349,23 +326,23 @@ function EditUserDialog({
                 </SelectContent>
               </Select>
             </div>
-          </div>
-          <div className="grid sm:grid-cols-2 gap-3">
             <div className="space-y-2"><Label>Start date</Label><Input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} /></div>
-            <div className="space-y-2"><Label>Reset password (optional)</Label><Input type="text" placeholder="Leave blank to keep" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} minLength={form.password ? 8 : 0} maxLength={128} /></div>
           </div>
+          <div className="space-y-2"><Label>Reset password (optional)</Label><Input type="text" placeholder="Leave blank to keep" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} minLength={form.password ? 8 : 0} maxLength={128} /></div>
           <div className="space-y-2">
-            <Label>System role (custom)</Label>
+            <Label>System role</Label>
             <Select value={systemRoleId || "__none"} onValueChange={(v) => setSystemRoleId(v === "__none" ? "" : v)}>
               <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none">None</SelectItem>
                 {(systemRoles.data ?? []).map((r) => (
-                  <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                  <SelectItem key={r.id} value={r.id}>
+                    {r.name} <span className="text-muted-foreground">({r.access_level === "view" ? "View" : "Edit"})</span>
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">Only one custom role can be assigned per user.</p>
+            <p className="text-xs text-muted-foreground">Only one system role can be assigned per user. Manage roles in System Roles.</p>
           </div>
           <DialogFooter><Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save changes"}</Button></DialogFooter>
         </form>

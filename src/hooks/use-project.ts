@@ -30,13 +30,25 @@ export function useProject(projectId: string) {
       (await supabase.from("profiles").select("id,full_name,avatar_url,job_title").order("full_name")).data ?? [],
   });
 
+  const rolesCatalog = useQuery({
+    queryKey: ["project_roles_catalog"],
+    queryFn: async () =>
+      (await supabase.from("project_roles_catalog").select("name,access_level")).data ?? [],
+  });
+
   const canManage = useMemo(() => {
     if (!project.data || !profile) return false;
     if (isAdmin) return true;
     if (project.data.owner_id === profile.id) return true;
     if (project.data.manager_id === profile.id) return true;
-    return members.data?.some((m) => m.profile_id === profile.id && (m.role === "owner" || m.role === "manager")) ?? false;
-  }, [project.data, profile, isAdmin, members.data]);
+    const myMembership = members.data?.find((m) => m.profile_id === profile.id);
+    if (!myMembership) return false;
+    // Legacy/builtin access values
+    if (myMembership.role === "owner" || myMembership.role === "manager") return true;
+    // Role from project_roles_catalog: managers if marked editable
+    const entry = rolesCatalog.data?.find((r) => r.name === myMembership.role);
+    return entry?.access_level === "edit";
+  }, [project.data, profile, isAdmin, members.data, rolesCatalog.data]);
 
   const isMember = useMemo(() => {
     if (!profile || !project.data) return false;

@@ -185,8 +185,15 @@ function AddMemberDialog({ projectId, staff, existingIds, onAdded }: {
 }) {
   const [open, setOpen] = useState(false);
   const [pid, setPid] = useState<string | undefined>(undefined);
-  const [role, setRole] = useState("member");
+  const [roleName, setRoleName] = useState<string | undefined>(undefined);
   const available = staff.filter((s) => !existingIds.includes(s.id));
+
+  const rolesCatalog = useQuery({
+    queryKey: ["project_roles_catalog"],
+    queryFn: async () =>
+      (await supabase.from("project_roles_catalog").select("id,name,access_level").order("name")).data ?? [],
+  });
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild><Button size="sm"><UserPlus className="h-3.5 w-3.5 mr-1" /> Add member</Button></DialogTrigger>
@@ -194,11 +201,11 @@ function AddMemberDialog({ projectId, staff, existingIds, onAdded }: {
         <DialogHeader><DialogTitle>Add team member</DialogTitle></DialogHeader>
         <form onSubmit={async (e) => {
           e.preventDefault();
-          if (!pid) return;
-          const { error } = await supabase.from("project_members").insert({ project_id: projectId, profile_id: pid, role });
+          if (!pid || !roleName) return;
+          const { error } = await supabase.from("project_members").insert({ project_id: projectId, profile_id: pid, role: roleName });
           if (error) return toast.error(error.message);
           toast.success("Member added");
-          setOpen(false); setPid(undefined); setRole("member");
+          setOpen(false); setPid(undefined); setRoleName(undefined);
           onAdded();
         }} className="space-y-4">
           <div className="space-y-2">
@@ -212,15 +219,22 @@ function AddMemberDialog({ projectId, staff, existingIds, onAdded }: {
           </div>
           <div className="space-y-2">
             <Label>Access</Label>
-            <Select value={role} onValueChange={setRole}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select value={roleName} onValueChange={setRoleName}>
+              <SelectTrigger><SelectValue placeholder="Select role from Project Config" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="member">Member</SelectItem>
-                <SelectItem value="manager">Manager</SelectItem>
+                {(rolesCatalog.data ?? []).length === 0 ? (
+                  <div className="px-2 py-1.5 text-xs text-muted-foreground">No roles yet. Add some in Project Config → Roles.</div>
+                ) : (
+                  (rolesCatalog.data ?? []).map((r) => (
+                    <SelectItem key={r.id} value={r.name}>
+                      {r.name} <span className="text-muted-foreground">({r.access_level === "view" ? "View" : "Edit"})</span>
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
-          <DialogFooter><Button type="submit">Add</Button></DialogFooter>
+          <DialogFooter><Button type="submit" disabled={!pid || !roleName}>Add</Button></DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

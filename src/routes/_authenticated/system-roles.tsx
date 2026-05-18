@@ -43,6 +43,7 @@ type SystemRole = {
   name: string;
   description: string | null;
   modules: string[];
+  access_level: "view" | "edit";
 };
 
 function SystemRolesPage() {
@@ -104,7 +105,12 @@ function RolesTab() {
             <Card key={r.id} className="p-4 space-y-2">
               <div className="flex items-start gap-2">
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm">{r.name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-sm">{r.name}</p>
+                    <Badge variant={r.access_level === "view" ? "outline" : "default"} className="text-[10px] px-1.5 py-0">
+                      {r.access_level === "view" ? "View" : "Edit"}
+                    </Badge>
+                  </div>
                   {r.description && (
                     <p className="text-xs text-muted-foreground line-clamp-2">{r.description}</p>
                   )}
@@ -168,6 +174,7 @@ function RoleDialog({
   const [name, setName] = useState(role?.name ?? "");
   const [description, setDescription] = useState(role?.description ?? "");
   const [modules, setModules] = useState<string[]>(role?.modules ?? []);
+  const [accessLevel, setAccessLevel] = useState<"view" | "edit">(role?.access_level ?? "edit");
   const [saving, setSaving] = useState(false);
 
   const toggle = (key: string) =>
@@ -180,6 +187,7 @@ function RoleDialog({
       name: name.trim(),
       description: description.trim() || null,
       modules,
+      access_level: accessLevel,
     };
     const { error } = role
       ? await supabase.from("system_roles").update(payload).eq("id", role.id)
@@ -211,6 +219,19 @@ function RoleDialog({
               rows={2}
               placeholder="What can this role do?"
             />
+          </div>
+          <div className="space-y-1">
+            <Label>Access level</Label>
+            <div className="flex gap-2">
+              <label className={`flex-1 cursor-pointer rounded-md border px-3 py-2 text-sm ${accessLevel === "view" ? "border-primary bg-primary/10" : "border-input"}`}>
+                <input type="radio" className="sr-only" checked={accessLevel === "view"} onChange={() => setAccessLevel("view")} />
+                View only
+              </label>
+              <label className={`flex-1 cursor-pointer rounded-md border px-3 py-2 text-sm ${accessLevel === "edit" ? "border-primary bg-primary/10" : "border-input"}`}>
+                <input type="radio" className="sr-only" checked={accessLevel === "edit"} onChange={() => setAccessLevel("edit")} />
+                Editable
+              </label>
+            </div>
           </div>
           <div className="space-y-2">
             <Label>Modules</Label>
