@@ -133,10 +133,16 @@ function ProductsTab() {
     queryKey: ["products"],
     queryFn: async () => (await supabase.from("products").select("*").order("name")).data ?? [],
   });
+  const vendors = useQuery({
+    queryKey: ["vendors"],
+    queryFn: async () => (await supabase.from("vendors").select("id,name").order("name")).data ?? [],
+  });
+  const vendorMap = new Map((vendors.data ?? []).map((v) => [v.id, v.name]));
   return (
     <div className="space-y-3">
       <div className="flex justify-end">
-        <ProductDialog ownerId={profile?.id ?? ""} onSaved={() => qc.invalidateQueries({ queryKey: ["products"] })}
+        <ProductDialog ownerId={profile?.id ?? ""} vendors={vendors.data ?? []}
+          onSaved={() => qc.invalidateQueries({ queryKey: ["products"] })}
           trigger={<Button size="sm"><Plus className="h-4 w-4 mr-1" /> New product</Button>} />
       </div>
       {(products.data ?? []).length === 0 ? (
@@ -145,15 +151,18 @@ function ProductsTab() {
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {(products.data ?? []).map((p) => {
             const canEdit = isAdmin || p.created_by === profile?.id;
+            const vendorName = p.vendor_id ? vendorMap.get(p.vendor_id) : null;
             return (
               <Card key={p.id} className="p-3 flex items-start gap-2">
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">{p.name}</p>
                   {p.code && <p className="text-[11px] text-muted-foreground">{p.code}</p>}
+                  {vendorName && <p className="text-[11px] text-muted-foreground mt-0.5"><Truck className="inline h-3 w-3 mr-1" />{vendorName}</p>}
                   {p.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{p.description}</p>}
                 </div>
                 {canEdit && (
-                  <ProductDialog product={p} ownerId={profile?.id ?? ""} onSaved={() => qc.invalidateQueries({ queryKey: ["products"] })}
+                  <ProductDialog product={p} ownerId={profile?.id ?? ""} vendors={vendors.data ?? []}
+                    onSaved={() => qc.invalidateQueries({ queryKey: ["products"] })}
                     trigger={<Button size="icon" variant="ghost" className="h-7 w-7"><Pencil className="h-3.5 w-3.5" /></Button>} />
                 )}
                 {isAdmin && (
@@ -173,9 +182,10 @@ function ProductsTab() {
   );
 }
 
-function ProductDialog({ product, ownerId, onSaved, trigger }: {
-  product?: { id: string; name: string; code: string | null; description: string | null };
+function ProductDialog({ product, ownerId, vendors, onSaved, trigger }: {
+  product?: { id: string; name: string; code: string | null; description: string | null; vendor_id?: string | null };
   ownerId: string;
+  vendors: { id: string; name: string }[];
   onSaved: () => void;
   trigger: React.ReactNode;
 }) {
@@ -183,6 +193,7 @@ function ProductDialog({ product, ownerId, onSaved, trigger }: {
   const [name, setName] = useState(product?.name ?? "");
   const [code, setCode] = useState(product?.code ?? "");
   const [desc, setDesc] = useState(product?.description ?? "");
+  const [vendorId, setVendorId] = useState<string>(product?.vendor_id ?? "");
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
