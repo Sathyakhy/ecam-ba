@@ -42,6 +42,7 @@ type Task = {
   site: string | null;
   man_days: number | null;
   remark: string | null;
+  predecessor_ids: string[] | null;
   created_by: string;
   order_index: number;
 };
