@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useRef, useState } from "react";
-import { Plus, Trash2, ChevronRight, ChevronDown, Pencil, Search, X } from "lucide-react";
+import { Plus, Trash2, ChevronRight, ChevronDown, Pencil, Search, X, ListChecks } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -251,55 +251,54 @@ function TimelinePage() {
         <table className="w-full text-xs border-collapse">
           <thead>
             <tr className="bg-muted/50 text-muted-foreground">
-              <Th>No</Th>
-              <Th>Module</Th>
-              <Th>Site</Th>
-              <Th className="min-w-[280px] text-left">Task</Th>
-              <Th>Man-Days</Th>
-              <Th>Est. Start</Th>
-              <Th>Est. End</Th>
-              <Th>Actual</Th>
-              <Th>Responsible</Th>
-              <Th>Status</Th>
-              <Th>Progress</Th>
-              <Th>Depends</Th>
-              <Th>Remark</Th>
-              <Th></Th>
+              <Th className="w-10">ID</Th>
+              <Th className="w-14">Task<br/>Mode</Th>
+              <Th className="min-w-[320px] text-left">Task Name</Th>
+              <Th className="w-20">Duration</Th>
+              <Th className="w-28">Start</Th>
+              <Th className="w-28">Finish</Th>
+              <Th className="w-28">Predecessors</Th>
+              <Th className="w-20"></Th>
             </tr>
           </thead>
           <tbody>
             {visibleRoots.length === 0 && (
-              <tr><td colSpan={14} className="text-center text-muted-foreground py-6">
+              <tr><td colSpan={8} className="text-center text-muted-foreground py-6">
                 {tasks.length === 0 ? "No tasks yet." : "No tasks match the current filters."}
               </td></tr>
             )}
-            {visibleRoots.map((root) => {
-              const children = visibleChildren(root.id);
-              const isOpen = expanded[root.id] ?? true;
-              const no = Number(taskNo[root.id] ?? "0");
-              return (
-                <RowGroup
-                  key={root.id}
-                  no={no}
-                  task={root}
-                  children={children}
-                  isOpen={isOpen}
-                  onToggle={() => toggle(root.id)}
-                  staff={staff.data ?? []}
-                  orgs={orgs}
-                  roots={roots}
-                  canEdit={canEdit}
-                  onEdit={(t) => setEditing(t)}
-                  onDeleted={refresh}
-                  projectId={projectId}
-                  authorId={profile?.id ?? ""}
-                  onSaved={refresh}
-                  allTasks={tasks}
-                  taskNo={taskNo}
-                  childMap={childMap}
-                />
-              );
-            })}
+            {(() => {
+              let rowId = 0;
+              return visibleRoots.map((root) => {
+                const children = visibleChildren(root.id);
+                const isOpen = expanded[root.id] ?? true;
+                const rootId = rowId++;
+                const childIds = children.map(() => rowId++);
+                return (
+                  <RowGroup
+                    key={root.id}
+                    rowId={rootId}
+                    childRowIds={childIds}
+                    task={root}
+                    children={children}
+                    isOpen={isOpen}
+                    onToggle={() => toggle(root.id)}
+                    staff={staff.data ?? []}
+                    orgs={orgs}
+                    roots={roots}
+                    canEdit={canEdit}
+                    onEdit={(t) => setEditing(t)}
+                    onDeleted={refresh}
+                    projectId={projectId}
+                    authorId={profile?.id ?? ""}
+                    onSaved={refresh}
+                    allTasks={tasks}
+                    taskNo={taskNo}
+                    childMap={childMap}
+                  />
+                );
+              });
+            })()}
           </tbody>
         </table>
       </Card>
@@ -337,9 +336,10 @@ function Td({ children, className }: { children?: React.ReactNode; className?: s
 }
 
 function RowGroup({
-  no, task, children, isOpen, onToggle, staff, orgs, roots, canEdit, onEdit, onDeleted, projectId, authorId, onSaved, allTasks, taskNo, childMap,
+  rowId, childRowIds, task, children, isOpen, onToggle, staff, orgs, roots, canEdit, onEdit, onDeleted, projectId, authorId, onSaved, allTasks, taskNo, childMap,
 }: {
-  no: number;
+  rowId: number;
+  childRowIds: number[];
   task: Task;
   children: Task[];
   isOpen: boolean;
@@ -360,7 +360,7 @@ function RowGroup({
   return (
     <>
       <RowItem
-        no={String(no)}
+        rowId={rowId}
         task={task}
         staff={staff}
         canEdit={canEdit}
@@ -371,8 +371,7 @@ function RowGroup({
         isOpen={isOpen}
         onToggle={onToggle}
         taskNo={taskNo}
-        progressValue={effectiveProgress(task, childMap)}
-        isRollup={children.length > 0}
+        indent={0}
         extraActions={canEdit && (
           <TaskDialog
             projectId={projectId}
@@ -388,10 +387,10 @@ function RowGroup({
           />
         )}
       />
-      {isOpen && children.map((c) => (
+      {isOpen && children.map((c, i) => (
         <RowItem
           key={c.id}
-          no={taskNo[c.id] ?? ""}
+          rowId={childRowIds[i]}
           task={c}
           staff={staff}
           canEdit={canEdit}
@@ -399,18 +398,36 @@ function RowGroup({
           onDeleted={onDeleted}
           isParent={false}
           taskNo={taskNo}
-          progressValue={effectiveProgress(c, childMap)}
-          isRollup={false}
+          indent={1}
         />
       ))}
+      {void childMap}
     </>
   );
 }
 
+function computeDuration(start: string | null, end: string | null): string {
+  if (!start && !end) return "—";
+  if (start && end) {
+    const d = Math.max(0, Math.round((new Date(end).getTime() - new Date(start).getTime()) / DAY)) + 1;
+    return `${d} day${d === 1 ? "" : "s"}`;
+  }
+  return "1 day?";
+}
+
+function formatMsDate(d: string | null): string {
+  if (!d) return "—";
+  const dt = new Date(d);
+  const day = String(dt.getDate()).padStart(2, "0");
+  const weekdays = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const yr = String(dt.getFullYear()).slice(-2);
+  return `${weekdays[dt.getDay()]} ${day}.${String(dt.getMonth()+1).padStart(2,"0")}.${yr}`;
+}
+
 function RowItem({
-  no, task, staff, canEdit, onEdit, onDeleted, isParent, hasChildren, isOpen, onToggle, extraActions, taskNo, progressValue, isRollup,
+  rowId, task, staff, canEdit, onEdit, onDeleted, isParent, hasChildren, isOpen, onToggle, extraActions, taskNo, indent,
 }: {
-  no: string;
+  rowId: number;
   task: Task;
   staff: { id: string; full_name: string }[];
   canEdit: boolean;
@@ -422,12 +439,9 @@ function RowItem({
   onToggle?: () => void;
   extraActions?: React.ReactNode;
   taskNo: Record<string, string>;
-  progressValue: number;
-  isRollup: boolean;
+  indent: number;
 }) {
   void staff;
-  const meta = TASK_STATUS_META[task.status] ?? TASK_STATUS_META.todo;
-  const rowCls = isParent ? "bg-amber-50/60 dark:bg-amber-950/20 font-medium" : "";
 
   const handleDelete = async () => {
     if (!confirm("Delete this task?")) return;
@@ -438,48 +452,33 @@ function RowItem({
   };
 
   const depLabels = (task.predecessor_ids ?? []).map((id) => taskNo[id]).filter(Boolean);
+  const duration = computeDuration(task.start_date, task.due_date);
 
   return (
-    <tr className={cn("hover:bg-muted/30", rowCls)}>
-      <Td className="text-center">{no}</Td>
-      <Td className="text-center">{task.module ?? "—"}</Td>
-      <Td className="text-center">{task.site ?? "—"}</Td>
+    <tr className={cn("hover:bg-muted/30 group", isParent && "font-semibold")}>
+      <Td className="text-center text-muted-foreground tabular-nums">{rowId}</Td>
+      <Td className="text-center">
+        <ListChecks className="h-3.5 w-3.5 mx-auto text-blue-600" />
+      </Td>
       <Td>
-        <div className="flex items-start gap-1">
-          {isParent && hasChildren && (
+        <div className="flex items-start gap-1" style={{ paddingLeft: `${indent * 18}px` }}>
+          {isParent && hasChildren ? (
             <button onClick={onToggle} className="mt-0.5 shrink-0">
               {isOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
             </button>
+          ) : (
+            <span className="w-3.5 shrink-0" />
           )}
-          {!isParent && <span className="w-4 shrink-0" />}
-          <div className="min-w-0">
-            <p className="whitespace-pre-wrap break-words">{task.title}</p>
-            {task.description && <p className="text-[10px] text-muted-foreground mt-0.5 whitespace-pre-wrap">{task.description}</p>}
-          </div>
+          <span className="whitespace-pre-wrap break-words">{task.title}</span>
         </div>
       </Td>
-      <Td className="text-center">{task.man_days ?? "—"}</Td>
-      <Td className="text-center whitespace-nowrap">{formatDate(task.start_date)}</Td>
-      <Td className="text-center whitespace-nowrap">{formatDate(task.due_date)}</Td>
-      <Td className="text-center whitespace-nowrap">{formatDate(task.actual_completion_date)}</Td>
-      <Td className="text-center">{task.pic_org ?? "—"}</Td>
-      <Td className="text-center"><Badge variant={meta.variant} className="text-[9px]">{meta.label}</Badge></Td>
-      <Td className="text-center min-w-[90px]">
-        <div className="flex items-center gap-1.5">
-          <div className="flex-1 h-1.5 rounded bg-muted overflow-hidden">
-            <div
-              className={cn("h-full", progressValue >= 100 ? "bg-emerald-500" : "bg-blue-500")}
-              style={{ width: `${progressValue}%` }}
-            />
-          </div>
-          <span className="text-[10px] tabular-nums w-8 text-right">{progressValue}%{isRollup && "*"}</span>
-        </div>
-      </Td>
-      <Td className="text-center text-[11px] whitespace-nowrap">{depLabels.length ? depLabels.join(", ") : "—"}</Td>
-      <Td className="text-[11px] max-w-[200px] whitespace-pre-wrap">{task.remark ?? ""}</Td>
+      <Td className="whitespace-nowrap">{duration}</Td>
+      <Td className="whitespace-nowrap">{formatMsDate(task.start_date)}</Td>
+      <Td className="whitespace-nowrap">{formatMsDate(task.due_date)}</Td>
+      <Td className="whitespace-nowrap text-center">{depLabels.length ? depLabels.join(";") : ""}</Td>
       <Td className="text-center">
         {canEdit && (
-          <div className="flex items-center gap-0.5 justify-center">
+          <div className="flex items-center gap-0.5 justify-center opacity-0 group-hover:opacity-100 transition-opacity">
             <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => onEdit(task)} title="Edit">
               <Pencil className="h-3 w-3" />
             </Button>
