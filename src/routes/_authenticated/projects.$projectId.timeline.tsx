@@ -345,6 +345,7 @@ function TimelinePage() {
           staff={staff.data ?? []}
           orgs={orgs}
           roots={roots}
+          statusOptions={statusOptions}
           onSaved={refresh}
           allTasks={tasks}
           taskNo={taskNo}
