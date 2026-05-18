@@ -368,7 +368,7 @@ function Td({ children, className }: { children?: React.ReactNode; className?: s
 }
 
 function RowGroup({
-  rowId, childRowIds, task, children, isOpen, onToggle, staff, orgs, roots, canEdit, onEdit, onDeleted, projectId, authorId, onSaved, allTasks, taskNo, childMap,
+  rowId, childRowIds, task, children, isOpen, onToggle, staff, orgs, roots, statusOptions, canEdit, onEdit, onDeleted, projectId, authorId, onSaved, allTasks, taskNo, childMap,
 }: {
   rowId: number;
   childRowIds: number[];
@@ -379,6 +379,7 @@ function RowGroup({
   staff: { id: string; full_name: string }[];
   orgs: string[];
   roots: Task[];
+  statusOptions: { key: string; label: string }[];
   canEdit: boolean;
   onEdit: (t: Task) => void;
   onDeleted: () => void;
