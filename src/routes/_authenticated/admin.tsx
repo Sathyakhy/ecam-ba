@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
@@ -218,6 +218,7 @@ function EditUserDialog({
   onSaved: () => void;
 }) {
   const updateFn = useServerFn(adminUpdateUser);
+  const qc = useQueryClient();
   const [form, setForm] = useState({
     full_name: user.full_name,
     email: user.email,
@@ -230,6 +231,32 @@ function EditUserDialog({
     avatar_url: user.avatar_url ?? null as string | null,
   });
   const [saving, setSaving] = useState(false);
+
+  const systemRoles = useQuery({
+    queryKey: ["system_roles"],
+    queryFn: async () => {
+      const { data } = await supabase.from("system_roles").select("id,name").order("name");
+      return data ?? [];
+    },
+  });
+
+  const currentAssignment = useQuery({
+    queryKey: ["user_system_role", user.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("user_system_roles")
+        .select("role_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      return data?.role_id ?? "";
+    },
+  });
+
+  const [systemRoleId, setSystemRoleId] = useState<string>("");
+  // sync once loaded
+  if (currentAssignment.data !== undefined && systemRoleId === "" && currentAssignment.data) {
+    setSystemRoleId(currentAssignment.data);
+  }
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -249,6 +276,15 @@ function EditUserDialog({
           password: form.password || undefined,
         },
       });
+      // Enforce exactly one system role: delete existing, insert if selected
+      await supabase.from("user_system_roles").delete().eq("user_id", user.id);
+      if (systemRoleId) {
+        const { error } = await supabase
+          .from("user_system_roles")
+          .insert({ user_id: user.id, role_id: systemRoleId });
+        if (error) throw error;
+      }
+      qc.invalidateQueries({ queryKey: ["user_system_roles"] });
       toast.success("User updated");
       onSaved();
     } catch (e) {
@@ -307,6 +343,19 @@ function EditUserDialog({
           <div className="grid sm:grid-cols-2 gap-3">
             <div className="space-y-2"><Label>Start date</Label><Input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} /></div>
             <div className="space-y-2"><Label>Reset password (optional)</Label><Input type="text" placeholder="Leave blank to keep" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} minLength={form.password ? 8 : 0} maxLength={128} /></div>
+          </div>
+          <div className="space-y-2">
+            <Label>System role (custom)</Label>
+            <Select value={systemRoleId || "__none"} onValueChange={(v) => setSystemRoleId(v === "__none" ? "" : v)}>
+              <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none">None</SelectItem>
+                {(systemRoles.data ?? []).map((r) => (
+                  <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">Only one custom role can be assigned per user.</p>
           </div>
           <DialogFooter><Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save changes"}</Button></DialogFooter>
         </form>
