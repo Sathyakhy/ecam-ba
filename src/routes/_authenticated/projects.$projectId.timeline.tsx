@@ -140,7 +140,7 @@ function TimelinePage() {
                   staff={staff.data ?? []}
                   canEdit={canEdit}
                   onEdit={(t) => setEditing(t)}
-                  onAddSub={() => {/* handled via dialog */}}
+                  onDeleted={refresh}
                   projectId={projectId}
                   authorId={profile?.id ?? ""}
                   onSaved={refresh}

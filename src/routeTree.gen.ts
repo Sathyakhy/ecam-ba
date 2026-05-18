@@ -33,6 +33,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedProjectsProjectIdRouteImport } from './routes/_authenticated/projects.$projectId'
 import { Route as AuthenticatedOnboardingProfileIdRouteImport } from './routes/_authenticated/onboarding.$profileId'
 import { Route as AuthenticatedProjectsProjectIdIndexRouteImport } from './routes/_authenticated/projects.$projectId.index'
+import { Route as AuthenticatedProjectsProjectIdTimelineRouteImport } from './routes/_authenticated/projects.$projectId.timeline'
 import { Route as AuthenticatedProjectsProjectIdTasksRouteImport } from './routes/_authenticated/projects.$projectId.tasks'
 import { Route as AuthenticatedProjectsProjectIdMilestonesRouteImport } from './routes/_authenticated/projects.$projectId.milestones'
 import { Route as AuthenticatedProjectsProjectIdMembersRouteImport } from './routes/_authenticated/projects.$projectId.members'
@@ -164,6 +165,12 @@ const AuthenticatedProjectsProjectIdIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
   } as any)
+const AuthenticatedProjectsProjectIdTimelineRoute =
+  AuthenticatedProjectsProjectIdTimelineRouteImport.update({
+    id: '/timeline',
+    path: '/timeline',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
 const AuthenticatedProjectsProjectIdTasksRoute =
   AuthenticatedProjectsProjectIdTasksRouteImport.update({
     id: '/tasks',
@@ -223,6 +230,7 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId/members': typeof AuthenticatedProjectsProjectIdMembersRoute
   '/projects/$projectId/milestones': typeof AuthenticatedProjectsProjectIdMilestonesRoute
   '/projects/$projectId/tasks': typeof AuthenticatedProjectsProjectIdTasksRoute
+  '/projects/$projectId/timeline': typeof AuthenticatedProjectsProjectIdTimelineRoute
   '/projects/$projectId/': typeof AuthenticatedProjectsProjectIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -252,6 +260,7 @@ export interface FileRoutesByTo {
   '/projects/$projectId/members': typeof AuthenticatedProjectsProjectIdMembersRoute
   '/projects/$projectId/milestones': typeof AuthenticatedProjectsProjectIdMilestonesRoute
   '/projects/$projectId/tasks': typeof AuthenticatedProjectsProjectIdTasksRoute
+  '/projects/$projectId/timeline': typeof AuthenticatedProjectsProjectIdTimelineRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdIndexRoute
 }
 export interface FileRoutesById {
@@ -284,6 +293,7 @@ export interface FileRoutesById {
   '/_authenticated/projects/$projectId/members': typeof AuthenticatedProjectsProjectIdMembersRoute
   '/_authenticated/projects/$projectId/milestones': typeof AuthenticatedProjectsProjectIdMilestonesRoute
   '/_authenticated/projects/$projectId/tasks': typeof AuthenticatedProjectsProjectIdTasksRoute
+  '/_authenticated/projects/$projectId/timeline': typeof AuthenticatedProjectsProjectIdTimelineRoute
   '/_authenticated/projects/$projectId/': typeof AuthenticatedProjectsProjectIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -316,6 +326,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/members'
     | '/projects/$projectId/milestones'
     | '/projects/$projectId/tasks'
+    | '/projects/$projectId/timeline'
     | '/projects/$projectId/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -345,6 +356,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/members'
     | '/projects/$projectId/milestones'
     | '/projects/$projectId/tasks'
+    | '/projects/$projectId/timeline'
     | '/projects/$projectId'
   id:
     | '__root__'
@@ -376,6 +388,7 @@ export interface FileRouteTypes {
     | '/_authenticated/projects/$projectId/members'
     | '/_authenticated/projects/$projectId/milestones'
     | '/_authenticated/projects/$projectId/tasks'
+    | '/_authenticated/projects/$projectId/timeline'
     | '/_authenticated/projects/$projectId/'
   fileRoutesById: FileRoutesById
 }
@@ -558,6 +571,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjectsProjectIdIndexRouteImport
       parentRoute: typeof AuthenticatedProjectsProjectIdRoute
     }
+    '/_authenticated/projects/$projectId/timeline': {
+      id: '/_authenticated/projects/$projectId/timeline'
+      path: '/timeline'
+      fullPath: '/projects/$projectId/timeline'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdTimelineRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
     '/_authenticated/projects/$projectId/tasks': {
       id: '/_authenticated/projects/$projectId/tasks'
       path: '/tasks'
@@ -617,6 +637,7 @@ interface AuthenticatedProjectsProjectIdRouteChildren {
   AuthenticatedProjectsProjectIdMembersRoute: typeof AuthenticatedProjectsProjectIdMembersRoute
   AuthenticatedProjectsProjectIdMilestonesRoute: typeof AuthenticatedProjectsProjectIdMilestonesRoute
   AuthenticatedProjectsProjectIdTasksRoute: typeof AuthenticatedProjectsProjectIdTasksRoute
+  AuthenticatedProjectsProjectIdTimelineRoute: typeof AuthenticatedProjectsProjectIdTimelineRoute
   AuthenticatedProjectsProjectIdIndexRoute: typeof AuthenticatedProjectsProjectIdIndexRoute
 }
 
@@ -632,6 +653,8 @@ const AuthenticatedProjectsProjectIdRouteChildren: AuthenticatedProjectsProjectI
       AuthenticatedProjectsProjectIdMilestonesRoute,
     AuthenticatedProjectsProjectIdTasksRoute:
       AuthenticatedProjectsProjectIdTasksRoute,
+    AuthenticatedProjectsProjectIdTimelineRoute:
+      AuthenticatedProjectsProjectIdTimelineRoute,
     AuthenticatedProjectsProjectIdIndexRoute:
       AuthenticatedProjectsProjectIdIndexRoute,
   }
