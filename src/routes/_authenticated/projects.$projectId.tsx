@@ -1,7 +1,7 @@
-import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate, useRouter, Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Trash2, Pencil } from "lucide-react";
+import { Trash2, Pencil, Loader2, AlertTriangle, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,38 @@ import { useQuery } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_authenticated/projects/$projectId")({
   component: ProjectLayout,
+  pendingComponent: ProjectPending,
+  errorComponent: ProjectError,
+  pendingMs: 200,
 });
+
+function ProjectPending() {
+  return (
+    <div className="flex items-center gap-2 text-sm text-muted-foreground py-10 justify-center">
+      <Loader2 className="h-4 w-4 animate-spin" />
+      Loading project…
+    </div>
+  );
+}
+
+function ProjectError({ error, reset }: { error: Error; reset: () => void }) {
+  const router = useRouter();
+  return (
+    <Card className="p-6 border-destructive/40 space-y-3">
+      <div className="flex items-center gap-2 text-destructive">
+        <AlertTriangle className="h-4 w-4" />
+        <p className="text-sm font-medium">Couldn't load this project</p>
+      </div>
+      <p className="text-xs text-muted-foreground break-words">{error.message}</p>
+      <div className="flex gap-2">
+        <Button size="sm" onClick={() => { router.invalidate(); reset(); }}>Retry</Button>
+        <Button size="sm" variant="outline" asChild>
+          <Link to="/projects"><ArrowLeft className="h-3.5 w-3.5 mr-1" /> Back to projects</Link>
+        </Button>
+      </div>
+    </Card>
+  );
+}
 
 function ProjectLayout() {
   const { projectId } = Route.useParams();
@@ -31,19 +62,23 @@ function ProjectLayout() {
   const navigate = useNavigate();
 
   if (project.isLoading) {
-    return <p className="text-sm text-muted-foreground">Loading project…</p>;
+    return <ProjectPending />;
   }
   if (project.error) {
     return (
-      <Card className="p-6 border-destructive/40">
-        <p className="text-sm text-destructive">{(project.error as Error).message}</p>
-      </Card>
+      <ProjectError
+        error={project.error as Error}
+        reset={() => qc.invalidateQueries({ queryKey: ["project", projectId] })}
+      />
     );
   }
   if (!project.data) {
     return (
-      <Card className="p-10 text-center">
-        <p className="text-sm">Project not found.</p>
+      <Card className="p-10 text-center space-y-3">
+        <p className="text-sm font-medium">Project not found.</p>
+        <Button size="sm" variant="outline" asChild>
+          <Link to="/projects"><ArrowLeft className="h-3.5 w-3.5 mr-1" /> Back to projects</Link>
+        </Button>
       </Card>
     );
   }
