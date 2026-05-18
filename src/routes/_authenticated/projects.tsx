@@ -24,7 +24,7 @@ export const Route = createFileRoute("/_authenticated/projects")({
   component: ProjectsIndex,
 });
 
-export function ProjectsIndex() {
+function ProjectsIndex() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
 
   if (pathname !== "/projects" && pathname !== "/projects/") {
