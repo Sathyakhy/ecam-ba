@@ -722,6 +722,7 @@ function TaskDialog({
     setRemark("");
     setProgress("0");
     setPredecessors([]);
+    setBaselineStart(""); setBaselineFinish(""); setActualStart(""); setTaskMode("auto");
     setParentMode(parentTaskId ? "existing" : "none");
     setSelectedParentId(parentTaskId);
     setNewParentTitle("");
