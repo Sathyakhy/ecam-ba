@@ -345,13 +345,16 @@ function AddMemberDialog({ projectId, projectCustomerId, projectVendorId, staff,
     .filter((c) => !usedContactIds.includes(c.id));
 
 
+  const [ecamManual, setEcamManual] = useState(false);
+
   const reset = () => {
     setKind("ecam"); setProfileId(undefined); setCompanyId(undefined); setContactId(undefined);
-    setName(""); setEmail(""); setPhone(""); setRoleName(undefined);
+    setName(""); setEmail(""); setPhone(""); setRoleName(undefined); setEcamManual(false);
   };
 
   const canSubmit = !!roleName && (
-    (kind === "ecam" && !!profileId) ||
+    (kind === "ecam" && !ecamManual && !!profileId) ||
+    (kind === "ecam" && ecamManual && name.trim().length > 0) ||
     (kind === "manual" && name.trim().length > 0) ||
     ((kind === "customer" || kind === "vendor") && !!companyId && name.trim().length > 0)
   );
@@ -364,19 +367,21 @@ function AddMemberDialog({ projectId, projectCustomerId, projectVendorId, staff,
         <form onSubmit={async (e) => {
           e.preventDefault();
           if (!canSubmit) return;
+          const isEcamManual = kind === "ecam" && ecamManual;
           const payload: Record<string, unknown> = {
             project_id: projectId,
             role: roleName,
             kind,
-            profile_id: kind === "ecam" ? profileId : null,
-            name: kind === "ecam" ? null : name.trim(),
-            email: kind === "ecam" ? null : (email.trim() || null),
-            phone: kind === "ecam" ? null : (phone.trim() || null),
+            profile_id: kind === "ecam" && !ecamManual ? profileId : null,
+            name: kind === "ecam" && !ecamManual ? null : name.trim(),
+            email: kind === "ecam" && !ecamManual ? null : (email.trim() || null),
+            phone: kind === "ecam" && !ecamManual ? null : (phone.trim() || null),
             customer_id: kind === "customer" ? companyId ?? null : null,
             customer_contact_id: kind === "customer" ? contactId ?? null : null,
             vendor_id: kind === "vendor" ? companyId ?? null : null,
             vendor_contact_id: kind === "vendor" ? contactId ?? null : null,
           };
+          void isEcamManual;
           const { error } = await supabase.from("project_members").insert(payload as never);
           if (error) return toast.error(error.message);
           toast.success("Member added");
@@ -398,13 +403,24 @@ function AddMemberDialog({ projectId, projectCustomerId, projectVendorId, staff,
 
           {kind === "ecam" && (
             <div className="space-y-2">
-              <Label>Staff</Label>
-              <Select value={profileId} onValueChange={setProfileId}>
-                <SelectTrigger><SelectValue placeholder="Select staff" /></SelectTrigger>
-                <SelectContent>
-                  {availableStaff.map((s) => <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center justify-between">
+                <Label>Staff</Label>
+                <button
+                  type="button"
+                  className="text-xs text-muted-foreground hover:text-foreground underline"
+                  onClick={() => { setEcamManual((v) => !v); setProfileId(undefined); setName(""); setEmail(""); setPhone(""); }}
+                >
+                  {ecamManual ? "Pick from staff list" : "Enter manually"}
+                </button>
+              </div>
+              {!ecamManual && (
+                <Select value={profileId} onValueChange={setProfileId}>
+                  <SelectTrigger><SelectValue placeholder="Select staff" /></SelectTrigger>
+                  <SelectContent>
+                    {availableStaff.map((s) => <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           )}
 
@@ -443,7 +459,7 @@ function AddMemberDialog({ projectId, projectCustomerId, projectVendorId, staff,
             </>
           )}
 
-          {kind !== "ecam" && (
+          {(kind !== "ecam" || ecamManual) && (
             <div className="space-y-2">
               <div className="space-y-2"><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} required maxLength={120} /></div>
               <div className="grid grid-cols-2 gap-2">
