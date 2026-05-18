@@ -286,6 +286,8 @@ function TimelinePage() {
                   isOpen={isOpen}
                   onToggle={() => toggle(root.id)}
                   staff={staff.data ?? []}
+                  orgs={orgs}
+                  roots={roots}
                   canEdit={canEdit}
                   onEdit={(t) => setEditing(t)}
                   onDeleted={refresh}
