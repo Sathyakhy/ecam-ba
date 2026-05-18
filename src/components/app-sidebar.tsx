@@ -127,6 +127,14 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={path.startsWith("/system-roles")}>
+                    <Link to="/system-roles">
+                      <ShieldCheck className="h-4 w-4" />
+                      <span>System Roles</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={path.startsWith("/settings")}>
                     <Link to="/settings">
                       <Settings className="h-4 w-4" />
