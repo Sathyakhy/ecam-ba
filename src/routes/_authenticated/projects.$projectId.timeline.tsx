@@ -564,13 +564,14 @@ function formatMsDate(d: string | null): string {
 }
 
 function RowItem({
-  rowId, task, staff, canEdit, onEdit, onDeleted, isParent, hasChildren, isOpen, onToggle, extraActions, taskNo, indent,
+  rowId, task, staff, canEdit, onEdit, onView, onDeleted, isParent, hasChildren, isOpen, onToggle, extraActions, taskNo, indent,
 }: {
   rowId: number;
   task: Task;
   staff: { id: string; full_name: string }[];
   canEdit: boolean;
   onEdit: (t: Task) => void;
+  onView: (t: Task) => void;
   onDeleted: () => void;
   isParent: boolean;
   hasChildren?: boolean;
@@ -583,10 +584,13 @@ function RowItem({
   void staff;
 
   const handleDelete = async () => {
-    if (!confirm("Delete this task?")) return;
-    const { error } = await supabase.from("project_tasks").delete().eq("id", task.id);
+    if (!confirm("Archive this task? It will be hidden from views but can be restored from the database.")) return;
+    const { error } = await supabase
+      .from("project_tasks")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", task.id);
     if (error) return toast.error(error.message);
-    toast.success("Deleted");
+    toast.success("Archived");
     onDeleted();
   };
 
@@ -608,7 +612,14 @@ function RowItem({
           ) : (
             <span className="w-3.5 shrink-0" />
           )}
-          <span className="whitespace-pre-wrap break-words">{task.title}</span>
+          <button
+            type="button"
+            onClick={() => onView(task)}
+            className="whitespace-pre-wrap break-words text-left hover:underline hover:text-primary"
+            title="View task details"
+          >
+            {task.title}
+          </button>
         </div>
       </Td>
       <Td className="whitespace-nowrap">{duration}</Td>
@@ -617,17 +628,22 @@ function RowItem({
       <Td className="whitespace-nowrap text-center">{depLabels.length ? depLabels.join(";") : ""}</Td>
       <Td className="text-[11px] whitespace-pre-wrap">{task.remark ?? ""}</Td>
       <Td className="text-center">
-        {canEdit && (
-          <div className="flex items-center gap-0.5 justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => onEdit(task)} title="Edit">
-              <Pencil className="h-3 w-3" />
-            </Button>
-            {extraActions}
-            <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={handleDelete} title="Delete">
-              <Trash2 className="h-3 w-3" />
-            </Button>
-          </div>
-        )}
+        <div className="flex items-center gap-0.5 justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => onView(task)} title="View details">
+            <Search className="h-3 w-3" />
+          </Button>
+          {canEdit && (
+            <>
+              <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => onEdit(task)} title="Edit">
+                <Pencil className="h-3 w-3" />
+              </Button>
+              {extraActions}
+              <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={handleDelete} title="Archive">
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </>
+          )}
+        </div>
       </Td>
     </tr>
   );
