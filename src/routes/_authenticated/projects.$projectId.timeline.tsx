@@ -236,13 +236,14 @@ function RowGroup({
 }
 
 function RowItem({
-  no, task, staff, canEdit, onEdit, isParent, hasChildren, isOpen, onToggle, extraActions,
+  no, task, staff, canEdit, onEdit, onDeleted, isParent, hasChildren, isOpen, onToggle, extraActions,
 }: {
   no: string;
   task: Task;
   staff: { id: string; full_name: string }[];
   canEdit: boolean;
   onEdit: (t: Task) => void;
+  onDeleted: () => void;
   isParent: boolean;
   hasChildren?: boolean;
   isOpen?: boolean;
@@ -258,9 +259,7 @@ function RowItem({
     const { error } = await supabase.from("project_tasks").delete().eq("id", task.id);
     if (error) return toast.error(error.message);
     toast.success("Deleted");
-    onEdit(null as any);
-    // parent will refresh via invalidate elsewhere
-    window.dispatchEvent(new Event("focus"));
+    onDeleted();
   };
 
   return (
