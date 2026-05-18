@@ -78,7 +78,11 @@ function MembersPage() {
         {canManage && (
           <AddMemberDialog
             projectId={projectId}
+            projectCustomerId={p.customer_id ?? null}
+            projectVendorId={p.vendor_id ?? null}
             existingProfileIds={[p.owner_id, p.manager_id, ...(members.data ?? []).map((m) => m.profile_id)].filter(Boolean) as string[]}
+            existingCustomerContactIds={(members.data ?? []).map((m) => (m as MemberRecord).customer_contact_id).filter(Boolean) as string[]}
+            existingVendorContactIds={(members.data ?? []).map((m) => (m as MemberRecord).vendor_contact_id).filter(Boolean) as string[]}
             staff={staff.data ?? []}
             onAdded={() => qc.invalidateQueries({ queryKey: ["project-members", projectId] })}
           />
