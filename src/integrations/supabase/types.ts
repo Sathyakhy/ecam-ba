@@ -869,6 +869,59 @@ export type Database = {
           },
         ]
       }
+      project_milestone_items: {
+        Row: {
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          milestone_id: string
+          order_index: number
+          progress: number
+          project_id: string
+          remark: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          milestone_id: string
+          order_index?: number
+          progress?: number
+          project_id: string
+          remark?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          milestone_id?: string
+          order_index?: number
+          progress?: number
+          project_id?: string
+          remark?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_milestone_items_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "project_milestones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_milestones: {
         Row: {
           created_at: string
@@ -876,8 +929,10 @@ export type Database = {
           due_date: string | null
           id: string
           order_index: number
+          phase: string | null
           progress: number
           project_id: string
+          remark: string | null
           status: string
           title: string
           updated_at: string
@@ -888,8 +943,10 @@ export type Database = {
           due_date?: string | null
           id?: string
           order_index?: number
+          phase?: string | null
           progress?: number
           project_id: string
+          remark?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -900,8 +957,10 @@ export type Database = {
           due_date?: string | null
           id?: string
           order_index?: number
+          phase?: string | null
           progress?: number
           project_id?: string
+          remark?: string | null
           status?: string
           title?: string
           updated_at?: string
