@@ -207,9 +207,16 @@ export const adminUpdateUser = createServerFn({ method: "POST" })
     const { error: pErr } = await supabaseAdmin.from("profiles").update(profilePatch as never).eq("id", data.user_id);
     if (pErr) throw new Error(pErr.message);
 
-    const authPatch: { email?: string; password?: string } = { email: data.email };
+    const authPatch: { email?: string; password?: string; email_confirm?: boolean } = {
+      email: data.email,
+      email_confirm: true,
+    };
     if (data.password) authPatch.password = data.password;
-    await supabaseAdmin.auth.admin.updateUserById(data.user_id, authPatch);
+    const { error: authErr } = await supabaseAdmin.auth.admin.updateUserById(
+      data.user_id,
+      authPatch,
+    );
+    if (authErr) throw new Error(authErr.message);
 
     if (data.role) {
       await supabaseAdmin.from("user_roles").delete().eq("user_id", data.user_id);
