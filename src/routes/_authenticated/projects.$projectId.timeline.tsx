@@ -85,6 +85,18 @@ function TimelinePage() {
 
   const toggle = (id: string) => setExpanded((e) => ({ ...e, [id]: !e[id] }));
 
+  // Numbering map: task.id -> "1" or "1.2"
+  const taskNo = useMemo(() => {
+    const m: Record<string, string> = {};
+    roots.forEach((r, i) => {
+      m[r.id] = String(i + 1);
+      (childMap[r.id] ?? []).forEach((c, j) => {
+        m[c.id] = `${i + 1}.${j + 1}`;
+      });
+    });
+    return m;
+  }, [roots, childMap]);
+
   if (!project.data) return null;
 
   // Gantt bars (include both roots and children that have any date)
@@ -101,6 +113,8 @@ function TimelinePage() {
               authorId={profile?.id ?? ""}
               staff={staff.data ?? []}
               onSaved={refresh}
+              allTasks={tasks}
+              taskNo={taskNo}
               trigger={<Button size="sm"><Plus className="h-3.5 w-3.5 mr-1" /> New main task</Button>}
             />
           )}
@@ -119,13 +133,14 @@ function TimelinePage() {
               <Th>Actual</Th>
               <Th>Responsible</Th>
               <Th>Status</Th>
+              <Th>Depends</Th>
               <Th>Remark</Th>
               <Th></Th>
             </tr>
           </thead>
           <tbody>
             {roots.length === 0 && (
-              <tr><td colSpan={12} className="text-center text-muted-foreground py-6">No tasks yet.</td></tr>
+              <tr><td colSpan={13} className="text-center text-muted-foreground py-6">No tasks yet.</td></tr>
             )}
             {roots.map((root, i) => {
               const children = childMap[root.id] ?? [];
@@ -145,6 +160,8 @@ function TimelinePage() {
                   projectId={projectId}
                   authorId={profile?.id ?? ""}
                   onSaved={refresh}
+                  allTasks={tasks}
+                  taskNo={taskNo}
                 />
               );
             })}
@@ -163,6 +180,8 @@ function TimelinePage() {
           authorId={profile?.id ?? ""}
           staff={staff.data ?? []}
           onSaved={refresh}
+          allTasks={tasks}
+          taskNo={taskNo}
           task={editing}
           open={!!editing}
           onOpenChange={(o) => !o && setEditing(null)}
