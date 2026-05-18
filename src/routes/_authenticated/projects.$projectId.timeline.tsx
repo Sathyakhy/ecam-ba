@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useRef, useState } from "react";
-import { Plus, Trash2, ChevronRight, ChevronDown, Pencil } from "lucide-react";
+import { Plus, Trash2, ChevronRight, ChevronDown, Pencil, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -62,6 +62,11 @@ function TimelinePage() {
   const qc = useQueryClient();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [editing, setEditing] = useState<Task | null>(null);
+  const [search, setSearch] = useState("");
+  const [fModule, setFModule] = useState<string>("all");
+  const [fSite, setFSite] = useState<string>("all");
+  const [fStatus, setFStatus] = useState<string>("all");
+  const [fAssignee, setFAssignee] = useState<string>("all");
 
   const tasksQ = useQuery({
     queryKey: ["timeline-tasks", projectId],
@@ -94,7 +99,7 @@ function TimelinePage() {
 
   const toggle = (id: string) => setExpanded((e) => ({ ...e, [id]: !e[id] }));
 
-  // Numbering map: task.id -> "1" or "1.2"
+  // Numbering map: task.id -> "1" or "1.2"  (stable, based on full unfiltered tree)
   const taskNo = useMemo(() => {
     const m: Record<string, string> = {};
     roots.forEach((r, i) => {
@@ -106,15 +111,55 @@ function TimelinePage() {
     return m;
   }, [roots, childMap]);
 
+  // Distinct values for filter dropdowns
+  const modules = useMemo(() => Array.from(new Set(tasks.map((t) => t.module).filter((x): x is string => !!x))).sort(), [tasks]);
+  const sites = useMemo(() => Array.from(new Set(tasks.map((t) => t.site).filter((x): x is string => !!x))).sort(), [tasks]);
+  const statuses = useMemo(() => Array.from(new Set(tasks.map((t) => t.status))).sort(), [tasks]);
+
+  const q = search.trim().toLowerCase();
+  const taskMatches = (t: Task) => {
+    if (fModule !== "all" && (t.module ?? "") !== fModule) return false;
+    if (fSite !== "all" && (t.site ?? "") !== fSite) return false;
+    if (fStatus !== "all" && t.status !== fStatus) return false;
+    if (fAssignee !== "all") {
+      if (fAssignee === "unassigned" ? !!t.assignee_id : t.assignee_id !== fAssignee) return false;
+    }
+    if (q) {
+      const hay = `${t.title} ${t.description ?? ""} ${t.remark ?? ""} ${t.module ?? ""} ${t.site ?? ""}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  };
+
+  const filtersActive = !!q || fModule !== "all" || fSite !== "all" || fStatus !== "all" || fAssignee !== "all";
+
+  // For the table: keep a root if it matches or any child matches; keep matching children.
+  // If a filter is set and a parent only matches via its children, show all its kids too? -- show only matching kids so user sees the slice.
+  const visibleRoots = useMemo(() => {
+    if (!filtersActive) return roots;
+    return roots.filter((r) => taskMatches(r) || (childMap[r.id] ?? []).some(taskMatches));
+  }, [roots, childMap, filtersActive, q, fModule, fSite, fStatus, fAssignee]);
+
+  const visibleChildren = (rootId: string) => {
+    const kids = childMap[rootId] ?? [];
+    if (!filtersActive) return kids;
+    return kids.filter(taskMatches);
+  };
+
+  // Gantt bars: only filtered tasks that have any date.
+  const filteredTasks = useMemo(() => tasks.filter(taskMatches), [tasks, q, fModule, fSite, fStatus, fAssignee]);
+  const bars = filteredTasks.filter((t) => t.start_date || t.due_date);
+
   if (!project.data) return null;
 
-  // Gantt bars (include both roots and children that have any date)
-  const bars = tasks.filter((t) => t.start_date || t.due_date);
+  const clearFilters = () => {
+    setSearch(""); setFModule("all"); setFSite("all"); setFStatus("all"); setFAssignee("all");
+  };
 
   return (
     <div className="space-y-6">
       <Card className="p-3 overflow-x-auto">
-        <div className="flex items-center justify-between mb-3 px-1">
+        <div className="flex items-center justify-between mb-3 px-1 gap-2 flex-wrap">
           <h3 className="text-sm font-semibold">Timeline (Tasks)</h3>
           {canEdit && (
             <TaskDialog
@@ -126,6 +171,59 @@ function TimelinePage() {
               taskNo={taskNo}
               trigger={<Button size="sm"><Plus className="h-3.5 w-3.5 mr-1" /> New main task</Button>}
             />
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 mb-3 px-1">
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search tasks…"
+              className="h-8 pl-7 w-56 text-xs"
+            />
+          </div>
+          <Select value={fModule} onValueChange={setFModule}>
+            <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue placeholder="Module" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All modules</SelectItem>
+              {modules.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={fSite} onValueChange={setFSite}>
+            <SelectTrigger className="h-8 w-[140px] text-xs"><SelectValue placeholder="Site" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All sites</SelectItem>
+              {sites.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={fStatus} onValueChange={setFStatus}>
+            <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              {statuses.map((s) => (
+                <SelectItem key={s} value={s}>{TASK_STATUS_META[s]?.label ?? s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={fAssignee} onValueChange={setFAssignee}>
+            <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue placeholder="Assignee" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All assignees</SelectItem>
+              <SelectItem value="unassigned">Unassigned</SelectItem>
+              {(staff.data ?? []).map((s) => <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          {filtersActive && (
+            <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={clearFilters}>
+              <X className="h-3 w-3 mr-1" /> Clear
+            </Button>
+          )}
+          {filtersActive && (
+            <span className="text-[11px] text-muted-foreground ml-auto">
+              Showing {filteredTasks.length} of {tasks.length} task{tasks.length === 1 ? "" : "s"}
+            </span>
           )}
         </div>
 
@@ -149,16 +247,19 @@ function TimelinePage() {
             </tr>
           </thead>
           <tbody>
-            {roots.length === 0 && (
-              <tr><td colSpan={14} className="text-center text-muted-foreground py-6">No tasks yet.</td></tr>
+            {visibleRoots.length === 0 && (
+              <tr><td colSpan={14} className="text-center text-muted-foreground py-6">
+                {tasks.length === 0 ? "No tasks yet." : "No tasks match the current filters."}
+              </td></tr>
             )}
-            {roots.map((root, i) => {
-              const children = childMap[root.id] ?? [];
+            {visibleRoots.map((root) => {
+              const children = visibleChildren(root.id);
               const isOpen = expanded[root.id] ?? true;
+              const no = Number(taskNo[root.id] ?? "0");
               return (
                 <RowGroup
                   key={root.id}
-                  no={i + 1}
+                  no={no}
                   task={root}
                   children={children}
                   isOpen={isOpen}
@@ -181,7 +282,7 @@ function TimelinePage() {
       </Card>
 
       <Card className="p-4 overflow-x-auto">
-        <h3 className="text-sm font-semibold mb-3">Gantt Chart</h3>
+        <h3 className="text-sm font-semibold mb-3">Gantt Chart {filtersActive && <span className="text-[11px] font-normal text-muted-foreground">(filtered)</span>}</h3>
         <GanttView tasks={bars} childMap={childMap} projectStart={project.data.start_date} projectDue={project.data.due_date} canEdit={canEdit} onChanged={refresh} />
       </Card>
 
@@ -258,10 +359,10 @@ function RowGroup({
           />
         )}
       />
-      {isOpen && children.map((c, idx) => (
+      {isOpen && children.map((c) => (
         <RowItem
           key={c.id}
-          no={`${no}.${idx + 1}`}
+          no={taskNo[c.id] ?? ""}
           task={c}
           staff={staff}
           canEdit={canEdit}
