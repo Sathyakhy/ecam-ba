@@ -443,6 +443,7 @@ function TaskDialog({
       status,
       assignee_id: assigneeId ?? null,
       remark: remark || null,
+      progress: hasChildren ? 0 : Math.max(0, Math.min(100, Number(progress) || 0)),
       predecessor_ids: predecessors,
     };
     if (isEdit) {
