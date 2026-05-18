@@ -334,6 +334,17 @@ function RowItem({
       <Td className="text-center whitespace-nowrap">{formatDate(task.actual_completion_date)}</Td>
       <Td className="text-center">{assignee?.full_name ?? "—"}</Td>
       <Td className="text-center"><Badge variant={meta.variant} className="text-[9px]">{meta.label}</Badge></Td>
+      <Td className="text-center min-w-[90px]">
+        <div className="flex items-center gap-1.5">
+          <div className="flex-1 h-1.5 rounded bg-muted overflow-hidden">
+            <div
+              className={cn("h-full", progressValue >= 100 ? "bg-emerald-500" : "bg-blue-500")}
+              style={{ width: `${progressValue}%` }}
+            />
+          </div>
+          <span className="text-[10px] tabular-nums w-8 text-right">{progressValue}%{isRollup && "*"}</span>
+        </div>
+      </Td>
       <Td className="text-center text-[11px] whitespace-nowrap">{depLabels.length ? depLabels.join(", ") : "—"}</Td>
       <Td className="text-[11px] max-w-[200px] whitespace-pre-wrap">{task.remark ?? ""}</Td>
       <Td className="text-center">
