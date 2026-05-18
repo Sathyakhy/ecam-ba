@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.tg_log_project_activity() FROM PUBLIC, anon, authenticated;
