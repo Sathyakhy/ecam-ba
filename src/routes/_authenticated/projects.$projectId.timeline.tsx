@@ -150,7 +150,7 @@ function TimelinePage() {
           </thead>
           <tbody>
             {roots.length === 0 && (
-              <tr><td colSpan={13} className="text-center text-muted-foreground py-6">No tasks yet.</td></tr>
+              <tr><td colSpan={14} className="text-center text-muted-foreground py-6">No tasks yet.</td></tr>
             )}
             {roots.map((root, i) => {
               const children = childMap[root.id] ?? [];
