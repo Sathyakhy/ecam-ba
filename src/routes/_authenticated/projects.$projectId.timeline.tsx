@@ -316,6 +316,7 @@ function TimelinePage() {
                     staff={staff.data ?? []}
                     orgs={orgs}
                     roots={roots}
+                    statusOptions={statusOptions}
                     canEdit={canEdit}
                     onEdit={(t) => setEditing(t)}
                     onDeleted={refresh}
