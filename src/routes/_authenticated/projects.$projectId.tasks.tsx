@@ -52,6 +52,7 @@ function TasksPage() {
     queryKey: ["project-tasks-full", projectId],
     queryFn: async () => {
       const { data, error } = await supabase.from("project_tasks").select("*").eq("project_id", projectId)
+        .is("deleted_at", null)
         .order("order_index").order("created_at");
       if (error) throw error;
       return (data ?? []) as Task[];
