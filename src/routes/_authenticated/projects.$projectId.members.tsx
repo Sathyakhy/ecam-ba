@@ -459,7 +459,7 @@ function AddMemberDialog({ projectId, projectCustomerId, projectVendorId, staff,
             </>
           )}
 
-          {kind !== "ecam" && (
+          {(kind !== "ecam" || ecamManual) && (
             <div className="space-y-2">
               <div className="space-y-2"><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} required maxLength={120} /></div>
               <div className="grid grid-cols-2 gap-2">
