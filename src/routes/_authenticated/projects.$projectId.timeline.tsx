@@ -495,11 +495,13 @@ function RowItem({
 }
 
 function TaskDialog({
-  projectId, authorId, staff, onSaved, parentTaskId, trigger, task, open: openProp, onOpenChange, allTasks, taskNo,
+  projectId, authorId, staff, orgs, roots, onSaved, parentTaskId, trigger, task, open: openProp, onOpenChange, allTasks, taskNo,
 }: {
   projectId: string;
   authorId: string;
   staff: { id: string; full_name: string }[];
+  orgs: string[];
+  roots: Task[];
   onSaved: () => void;
   parentTaskId?: string;
   trigger?: React.ReactNode;
@@ -523,17 +525,23 @@ function TaskDialog({
   const [dueDate, setDueDate] = useState(task?.due_date ?? "");
   const [actual, setActual] = useState(task?.actual_completion_date ?? "");
   const [status, setStatus] = useState(task?.status ?? "todo");
-  const [assigneeId, setAssigneeId] = useState<string | undefined>(task?.assignee_id ?? undefined);
+  const [picOrg, setPicOrg] = useState<string | undefined>(task?.pic_org ?? undefined);
   const [remark, setRemark] = useState(task?.remark ?? "");
   const [progress, setProgress] = useState<string>(task?.progress?.toString() ?? "0");
   const [predecessors, setPredecessors] = useState<string[]>(task?.predecessor_ids ?? []);
+
+  // Parent selection state (only for new sub-task flow)
+  const isEdit = !!task;
+  // "existing" = pick from roots; "new" = create a new main task on submit; "none" = no parent (top-level)
+  const initialParentMode: "existing" | "new" | "none" = parentTaskId ? "existing" : "none";
+  const [parentMode, setParentMode] = useState<"existing" | "new" | "none">(initialParentMode);
+  const [selectedParentId, setSelectedParentId] = useState<string | undefined>(parentTaskId);
+  const [newParentTitle, setNewParentTitle] = useState("");
 
   const hasChildren = useMemo(
     () => !!task && allTasks.some((t) => t.parent_task_id === task.id),
     [allTasks, task],
   );
-
-  const isEdit = !!task;
 
   // Build a flat ordered list of candidate predecessor tasks, excluding self and own descendants
   const descendants = useMemo(() => {
@@ -571,7 +579,7 @@ function TaskDialog({
       due_date: dueDate || null,
       actual_completion_date: actual || null,
       status,
-      assignee_id: assigneeId ?? null,
+      pic_org: picOrg ?? null,
       remark: remark || null,
       progress: hasChildren ? 0 : Math.max(0, Math.min(100, Number(progress) || 0)),
       predecessor_ids: predecessors,
@@ -581,10 +589,33 @@ function TaskDialog({
       if (error) return toast.error(error.message);
       toast.success("Saved");
     } else {
+      // Resolve parent task id for the new row
+      let resolvedParentId: string | null = null;
+      if (parentTaskId) {
+        if (parentMode === "existing") {
+          resolvedParentId = selectedParentId ?? parentTaskId;
+        } else if (parentMode === "new") {
+          if (!newParentTitle.trim()) {
+            return toast.error("Enter a name for the new main task");
+          }
+          const ins = await supabase.from("project_tasks").insert({
+            project_id: projectId,
+            parent_task_id: null,
+            title: newParentTitle.trim(),
+            status: "todo",
+            priority: "normal",
+            progress: 0,
+            predecessor_ids: [],
+            created_by: authorId,
+          }).select("id").single();
+          if (ins.error || !ins.data) return toast.error(ins.error?.message ?? "Failed to create main task");
+          resolvedParentId = ins.data.id;
+        }
+      }
       const { error } = await supabase.from("project_tasks").insert({
         ...payload,
         project_id: projectId,
-        parent_task_id: parentTaskId ?? null,
+        parent_task_id: resolvedParentId,
         priority: "normal",
         created_by: authorId,
       });
@@ -595,6 +626,8 @@ function TaskDialog({
     onSaved();
   };
 
+  const showParentPicker = !isEdit && !!parentTaskId;
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
@@ -603,6 +636,40 @@ function TaskDialog({
           <DialogTitle>{isEdit ? "Edit task" : parentTaskId ? "New sub-task" : "New main task"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
+          {showParentPicker && (
+            <div className="space-y-2 border rounded p-3 bg-muted/30">
+              <Label>Main task</Label>
+              <Select
+                value={parentMode === "new" ? "__new__" : (selectedParentId ?? "")}
+                onValueChange={(v) => {
+                  if (v === "__new__") {
+                    setParentMode("new");
+                  } else {
+                    setParentMode("existing");
+                    setSelectedParentId(v);
+                  }
+                }}
+              >
+                <SelectTrigger><SelectValue placeholder="Select a main task" /></SelectTrigger>
+                <SelectContent>
+                  {roots.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {(taskNo[r.id] ?? "") + ". " + r.title}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="__new__">+ New main task…</SelectItem>
+                </SelectContent>
+              </Select>
+              {parentMode === "new" && (
+                <Input
+                  value={newParentTitle}
+                  onChange={(e) => setNewParentTitle(e.target.value)}
+                  placeholder="New main task title"
+                  maxLength={200}
+                />
+              )}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1"><Label>Module</Label><Input value={module} onChange={(e) => setModule(e.target.value)} placeholder="e.g. Pre Implementation" maxLength={100} /></div>
             <div className="space-y-1"><Label>Site</Label><Input value={site} onChange={(e) => setSite(e.target.value)} placeholder="e.g. DC & DR" maxLength={100} /></div>
@@ -612,11 +679,11 @@ function TaskDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1"><Label>Man-Days</Label><Input type="number" step="0.5" min="0" value={manDays} onChange={(e) => setManDays(e.target.value)} /></div>
             <div className="space-y-1">
-              <Label>Responsible</Label>
-              <Select value={assigneeId} onValueChange={(v) => setAssigneeId(v || undefined)}>
-                <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
+              <Label>PIC (Organization)</Label>
+              <Select value={picOrg} onValueChange={(v) => setPicOrg(v || undefined)}>
+                <SelectTrigger><SelectValue placeholder="Select organization" /></SelectTrigger>
                 <SelectContent>
-                  {staff.map((s) => <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>)}
+                  {orgs.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
