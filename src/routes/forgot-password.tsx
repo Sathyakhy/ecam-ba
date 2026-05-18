@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
@@ -15,19 +15,19 @@ export const Route = createFileRoute("/forgot-password")({
 
 function ForgotPassword() {
   const send = useServerFn(requestPasswordReset);
-  const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [sent, setSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     try {
       await send({ data: { username: username.trim() } });
-      toast.success("If that account exists, a code has been emailed.");
-      navigate({ to: "/reset-password", search: { username: username.trim() } });
+      setSent(true);
+      toast.success("If that account exists, a reset link has been emailed.");
     } catch {
-      toast.error("Could not send reset code");
+      toast.error("Could not send reset email");
     } finally {
       setSubmitting(false);
     }
@@ -41,28 +41,31 @@ function ForgotPassword() {
         </Link>
         <h2 className="text-2xl font-semibold tracking-tight mt-4">Reset password</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Enter your username. We'll email a 6-digit verification code to the
-          address on file. You'll use it on the next step to set a new password.
+          Enter your username. We'll email a reset link to the address on file.
+          Click the link to set a new password.
         </p>
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
-            <Input
-              id="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              maxLength={64}
-              autoComplete="username"
-            />
+        {sent ? (
+          <div className="mt-6 rounded-md border border-border bg-muted/30 p-4 text-sm">
+            Check your inbox for the reset link. It may take a minute to arrive.
           </div>
-          <Button type="submit" className="w-full" disabled={submitting}>
-            {submitting ? "Sending…" : "Send verification code"}
-          </Button>
-          <p className="text-xs text-muted-foreground text-center">
-            Already have a code? <Link to="/reset-password" search={{ username: "" }} className="underline">Enter it here</Link>
-          </p>
-        </form>
+        ) : (
+          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                maxLength={64}
+                autoComplete="username"
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={submitting}>
+              {submitting ? "Sending…" : "Send reset link"}
+            </Button>
+          </form>
+        )}
       </Card>
     </div>
   );
