@@ -264,7 +264,7 @@ function TimelinePage() {
           </thead>
           <tbody>
             {visibleRoots.length === 0 && (
-              <tr><td colSpan={8} className="text-center text-muted-foreground py-6">
+              <tr><td colSpan={9} className="text-center text-muted-foreground py-6">
                 {tasks.length === 0 ? "No tasks yet." : "No tasks match the current filters."}
               </td></tr>
             )}
