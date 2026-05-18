@@ -22,7 +22,38 @@ import { useQuery } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_authenticated/projects/$projectId")({
   component: ProjectLayout,
+  pendingComponent: ProjectPending,
+  errorComponent: ProjectError,
+  pendingMs: 200,
 });
+
+function ProjectPending() {
+  return (
+    <div className="flex items-center gap-2 text-sm text-muted-foreground py-10 justify-center">
+      <Loader2 className="h-4 w-4 animate-spin" />
+      Loading project…
+    </div>
+  );
+}
+
+function ProjectError({ error, reset }: { error: Error; reset: () => void }) {
+  const router = useRouter();
+  return (
+    <Card className="p-6 border-destructive/40 space-y-3">
+      <div className="flex items-center gap-2 text-destructive">
+        <AlertTriangle className="h-4 w-4" />
+        <p className="text-sm font-medium">Couldn't load this project</p>
+      </div>
+      <p className="text-xs text-muted-foreground break-words">{error.message}</p>
+      <div className="flex gap-2">
+        <Button size="sm" onClick={() => { router.invalidate(); reset(); }}>Retry</Button>
+        <Button size="sm" variant="outline" asChild>
+          <Link to="/projects"><ArrowLeft className="h-3.5 w-3.5 mr-1" /> Back to projects</Link>
+        </Button>
+      </div>
+    </Card>
+  );
+}
 
 function ProjectLayout() {
   const { projectId } = Route.useParams();
