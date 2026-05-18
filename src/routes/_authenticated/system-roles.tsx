@@ -279,17 +279,12 @@ function AssignmentsTab() {
   }
 
   const toggleAssignment = async (userId: string, roleId: string, on: boolean) => {
+    // Enforce a single role per user: clear any existing assignment first.
+    await supabase.from("user_system_roles").delete().eq("user_id", userId);
     if (on) {
       const { error } = await supabase
         .from("user_system_roles")
         .insert({ user_id: userId, role_id: roleId });
-      if (error) return toast.error(error.message);
-    } else {
-      const { error } = await supabase
-        .from("user_system_roles")
-        .delete()
-        .eq("user_id", userId)
-        .eq("role_id", roleId);
       if (error) return toast.error(error.message);
     }
     invalidate();
