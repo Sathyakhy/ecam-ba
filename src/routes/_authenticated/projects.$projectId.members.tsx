@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { UserPlus, Trash2, Tag, Plus, X, Mail, Phone, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -78,7 +78,11 @@ function MembersPage() {
         {canManage && (
           <AddMemberDialog
             projectId={projectId}
+            projectCustomerId={p.customer_id ?? null}
+            projectVendorId={p.vendor_id ?? null}
             existingProfileIds={[p.owner_id, p.manager_id, ...(members.data ?? []).map((m) => m.profile_id)].filter(Boolean) as string[]}
+            existingCustomerContactIds={(members.data ?? []).map((m) => (m as MemberRecord).customer_contact_id).filter(Boolean) as string[]}
+            existingVendorContactIds={(members.data ?? []).map((m) => (m as MemberRecord).vendor_contact_id).filter(Boolean) as string[]}
             staff={staff.data ?? []}
             onAdded={() => qc.invalidateQueries({ queryKey: ["project-members", projectId] })}
           />
@@ -284,10 +288,14 @@ function ProjectRoleSlot({ projectId, memberId, catalog, assigned, canManage, on
   );
 }
 
-function AddMemberDialog({ projectId, staff, existingProfileIds, onAdded }: {
+function AddMemberDialog({ projectId, projectCustomerId, projectVendorId, staff, existingProfileIds, existingCustomerContactIds, existingVendorContactIds, onAdded }: {
   projectId: string;
+  projectCustomerId: string | null;
+  projectVendorId: string | null;
   staff: { id: string; full_name: string }[];
   existingProfileIds: string[];
+  existingCustomerContactIds: string[];
+  existingVendorContactIds: string[];
   onAdded: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -321,7 +329,21 @@ function AddMemberDialog({ projectId, staff, existingProfileIds, onAdded }: {
     enabled: open && !!companyId && (kind === "customer" || kind === "vendor"),
   });
 
+  // Auto-populate company from project when switching to customer/vendor
+  useEffect(() => {
+    if (!open) return;
+    if (kind === "customer" && projectCustomerId && companyId !== projectCustomerId) {
+      setCompanyId(projectCustomerId);
+    } else if (kind === "vendor" && projectVendorId && companyId !== projectVendorId) {
+      setCompanyId(projectVendorId);
+    }
+  }, [open, kind, projectCustomerId, projectVendorId]);
+
   const availableStaff = staff.filter((s) => !existingProfileIds.includes(s.id));
+  const usedContactIds = kind === "customer" ? existingCustomerContactIds : kind === "vendor" ? existingVendorContactIds : [];
+  const availableContacts = ((contacts.data ?? []) as Array<{ id: string; full_name: string; email: string | null; phone: string | null }>)
+    .filter((c) => !usedContactIds.includes(c.id));
+
 
   const reset = () => {
     setKind("ecam"); setProfileId(undefined); setCompanyId(undefined); setContactId(undefined);
@@ -407,10 +429,13 @@ function AddMemberDialog({ projectId, staff, existingProfileIds, onAdded }: {
                   }}>
                     <SelectTrigger><SelectValue placeholder="Pick a contact or type manually below" /></SelectTrigger>
                     <SelectContent>
-                      {(contacts.data ?? []).map((c) => {
-                        const x = c as { id: string; full_name: string };
-                        return <SelectItem key={x.id} value={x.id}>{x.full_name}</SelectItem>;
-                      })}
+                      {availableContacts.length === 0 ? (
+                        <div className="px-2 py-1.5 text-xs text-muted-foreground">No contacts available.</div>
+                      ) : (
+                        availableContacts.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>{c.full_name}</SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
