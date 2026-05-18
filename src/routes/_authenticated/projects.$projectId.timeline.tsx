@@ -779,6 +779,10 @@ function TaskDialog({
       remark: remark || null,
       progress: hasChildren ? 0 : Math.max(0, Math.min(100, Number(progress) || 0)),
       predecessor_ids: predecessors,
+      baseline_start: baselineStart || null,
+      baseline_finish: baselineFinish || null,
+      actual_start: actualStart || null,
+      task_mode: taskMode || "auto",
     };
     if (isEdit) {
       const { error } = await supabase.from("project_tasks").update(payload).eq("id", task!.id);
