@@ -172,6 +172,7 @@ function TimelinePage() {
                   onSaved={refresh}
                   allTasks={tasks}
                   taskNo={taskNo}
+                  childMap={childMap}
                 />
               );
             })}
