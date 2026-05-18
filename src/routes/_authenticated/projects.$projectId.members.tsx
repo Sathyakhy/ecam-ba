@@ -345,13 +345,16 @@ function AddMemberDialog({ projectId, projectCustomerId, projectVendorId, staff,
     .filter((c) => !usedContactIds.includes(c.id));
 
 
+  const [ecamManual, setEcamManual] = useState(false);
+
   const reset = () => {
     setKind("ecam"); setProfileId(undefined); setCompanyId(undefined); setContactId(undefined);
-    setName(""); setEmail(""); setPhone(""); setRoleName(undefined);
+    setName(""); setEmail(""); setPhone(""); setRoleName(undefined); setEcamManual(false);
   };
 
   const canSubmit = !!roleName && (
-    (kind === "ecam" && !!profileId) ||
+    (kind === "ecam" && !ecamManual && !!profileId) ||
+    (kind === "ecam" && ecamManual && name.trim().length > 0) ||
     (kind === "manual" && name.trim().length > 0) ||
     ((kind === "customer" || kind === "vendor") && !!companyId && name.trim().length > 0)
   );
