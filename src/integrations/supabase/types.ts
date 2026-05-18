@@ -79,6 +79,47 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_contacts: {
+        Row: {
+          created_at: string
+          customer_id: string
+          email: string | null
+          full_name: string
+          id: string
+          job_title: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          email?: string | null
+          full_name: string
+          id?: string
+          job_title?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          job_title?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_contacts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           contact_email: string | null
@@ -514,6 +555,36 @@ export type Database = {
         }
         Relationships: []
       }
+      products: {
+        Row: {
+          code: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null
@@ -640,6 +711,105 @@ export type Database = {
         }
         Relationships: []
       }
+      project_managers: {
+        Row: {
+          created_at: string
+          customer_contact_id: string | null
+          customer_id: string | null
+          email: string | null
+          id: string
+          kind: string
+          name: string
+          phone: string | null
+          profile_id: string | null
+          project_id: string
+          vendor_contact_id: string | null
+          vendor_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_contact_id?: string | null
+          customer_id?: string | null
+          email?: string | null
+          id?: string
+          kind: string
+          name: string
+          phone?: string | null
+          profile_id?: string | null
+          project_id: string
+          vendor_contact_id?: string | null
+          vendor_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_contact_id?: string | null
+          customer_id?: string | null
+          email?: string | null
+          id?: string
+          kind?: string
+          name?: string
+          phone?: string | null
+          profile_id?: string | null
+          project_id?: string
+          vendor_contact_id?: string | null
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_managers_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_member_roles: {
+        Row: {
+          created_at: string
+          id: string
+          project_id: string
+          project_member_id: string
+          role_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          project_id: string
+          project_member_id: string
+          role_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          project_id?: string
+          project_member_id?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_member_roles_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_member_roles_project_member_id_fkey"
+            columns: ["project_member_id"]
+            isOneToOne: false
+            referencedRelation: "project_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_member_roles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "project_roles_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_members: {
         Row: {
           added_at: string
@@ -718,6 +888,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      project_roles_catalog: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       project_status_updates: {
         Row: {
@@ -904,9 +1098,11 @@ export type Database = {
           name: string
           owner_id: string
           priority: string
+          product_id: string | null
           start_date: string | null
           status: string
           updated_at: string
+          vendor_id: string | null
         }
         Insert: {
           created_at?: string
@@ -919,9 +1115,11 @@ export type Database = {
           name: string
           owner_id: string
           priority?: string
+          product_id?: string | null
           start_date?: string | null
           status?: string
           updated_at?: string
+          vendor_id?: string | null
         }
         Update: {
           created_at?: string
@@ -934,9 +1132,11 @@ export type Database = {
           name?: string
           owner_id?: string
           priority?: string
+          product_id?: string | null
           start_date?: string | null
           status?: string
           updated_at?: string
+          vendor_id?: string | null
         }
         Relationships: [
           {
@@ -1100,6 +1300,80 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      vendor_contacts: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          job_title: string | null
+          phone: string | null
+          updated_at: string
+          vendor_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id?: string
+          job_title?: string | null
+          phone?: string | null
+          updated_at?: string
+          vendor_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          job_title?: string | null
+          phone?: string | null
+          updated_at?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_contacts_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendors: {
+        Row: {
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
