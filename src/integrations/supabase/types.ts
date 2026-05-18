@@ -816,24 +816,48 @@ export type Database = {
       project_members: {
         Row: {
           added_at: string
+          customer_contact_id: string | null
+          customer_id: string | null
+          email: string | null
           id: string
-          profile_id: string
+          kind: string
+          name: string | null
+          phone: string | null
+          profile_id: string | null
           project_id: string
           role: string
+          vendor_contact_id: string | null
+          vendor_id: string | null
         }
         Insert: {
           added_at?: string
+          customer_contact_id?: string | null
+          customer_id?: string | null
+          email?: string | null
           id?: string
-          profile_id: string
+          kind?: string
+          name?: string | null
+          phone?: string | null
+          profile_id?: string | null
           project_id: string
           role?: string
+          vendor_contact_id?: string | null
+          vendor_id?: string | null
         }
         Update: {
           added_at?: string
+          customer_contact_id?: string | null
+          customer_id?: string | null
+          email?: string | null
           id?: string
-          profile_id?: string
+          kind?: string
+          name?: string | null
+          phone?: string | null
+          profile_id?: string | null
           project_id?: string
           role?: string
+          vendor_contact_id?: string | null
+          vendor_id?: string | null
         }
         Relationships: [
           {
