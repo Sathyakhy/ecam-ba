@@ -280,7 +280,7 @@ function TaskDialog({ taskId, projectId, open, onOpenChange, onStatusChange }: {
 
   const subtasks = useQuery({
     queryKey: ["task-subtasks", taskId],
-    queryFn: async () => (await supabase.from("project_tasks").select("*").eq("parent_task_id", taskId)
+    queryFn: async () => (await supabase.from("project_tasks").select("*").eq("parent_task_id", taskId).is("deleted_at", null)
       .order("created_at")).data as Task[] ?? [],
   });
 
