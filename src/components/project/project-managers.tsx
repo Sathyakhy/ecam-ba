@@ -169,7 +169,7 @@ function AddPMDialog({ projectId, onAdded }: { projectId: string; onAdded: () =>
                   <Label>Contact (optional)</Label>
                   <Select value={contactId} onValueChange={(v) => {
                     setContactId(v);
-                    const c = contacts.data?.find((x) => x.id === v) as { full_name?: string; email?: string | null; phone?: string | null } | undefined;
+                    const c = (contacts.data as Array<{ id: string; full_name: string; email: string | null; phone: string | null }> | undefined)?.find((x) => x.id === v);
                     if (c) { setName(c.full_name ?? ""); setEmail(c.email ?? ""); setPhone(c.phone ?? ""); }
                   }}>
                     <SelectTrigger><SelectValue placeholder="Pick a contact or type manually" /></SelectTrigger>
