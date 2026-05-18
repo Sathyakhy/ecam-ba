@@ -389,6 +389,3 @@ function ActivityPanel({ taskId }: { taskId: string }) {
     </ul>
   );
 }
-
-/** Keep the import surface stable even when unused at compile-time. */
-export const __noop = useEffect;
