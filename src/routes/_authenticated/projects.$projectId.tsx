@@ -215,40 +215,13 @@ function ProjectDetailPage() {
                 onPosted={() => qc.invalidateQueries({ queryKey: ["project-updates", projectId] })}
               />
             )}
-            <div className="space-y-2 mt-3">
-              {(updates.data ?? []).length === 0 ? (
-                <p className="text-xs text-muted-foreground py-4 text-center border border-dashed border-border rounded-md">No updates yet</p>
-              ) : (updates.data ?? []).map((u) => {
-                const author = staff.data?.find((s) => s.id === u.author_id);
-                const canDelete = u.author_id === profile?.id || canManage;
-                return (
-                  <Card key={u.id} className="p-3">
-                    <div className="flex items-start gap-3">
-                      <Avatar className="h-7 w-7">
-                        {author?.avatar_url && <AvatarImage src={author.avatar_url} />}
-                        <AvatarFallback className="text-xs">{(author?.full_name ?? "?").slice(0, 2).toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 text-xs">
-                          <span className="font-medium">{author?.full_name ?? "Unknown"}</span>
-                          {u.status && <Badge variant="outline" className="text-[10px]">{STATUS_META[u.status]?.label ?? u.status}</Badge>}
-                          <span className="text-muted-foreground ml-auto">{new Date(u.created_at).toLocaleString()}</span>
-                        </div>
-                        <p className="text-sm mt-1 whitespace-pre-wrap">{u.body}</p>
-                      </div>
-                      {canDelete && (
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={async () => {
-                          await supabase.from("project_status_updates").delete().eq("id", u.id);
-                          qc.invalidateQueries({ queryKey: ["project-updates", projectId] });
-                        }}>
-                          <Trash2 className="h-3 w-3 text-destructive" />
-                        </Button>
-                      )}
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
+            <StatusUpdatesList
+              updates={updates.data ?? []}
+              staff={staff.data ?? []}
+              currentUserId={profile?.id}
+              canManage={canManage}
+              onDeleted={() => qc.invalidateQueries({ queryKey: ["project-updates", projectId] })}
+            />
           </div>
         </div>
 
