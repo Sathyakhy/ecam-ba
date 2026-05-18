@@ -399,7 +399,7 @@ function Td({ children, className }: { children?: React.ReactNode; className?: s
 }
 
 function RowGroup({
-  rowId, childRowIds, task, children, isOpen, onToggle, staff, orgs, roots, statusOptions, canEdit, onEdit, onDeleted, projectId, authorId, onSaved, allTasks, taskNo, childMap,
+  rowId, childRowIds, task, children, isOpen, onToggle, staff, orgs, roots, statusOptions, modeOptions, canEdit, onEdit, onView, onDeleted, projectId, authorId, onSaved, allTasks, taskNo, childMap,
 }: {
   rowId: number;
   childRowIds: number[];
@@ -411,8 +411,10 @@ function RowGroup({
   orgs: string[];
   roots: Task[];
   statusOptions: { key: string; label: string }[];
+  modeOptions: { key: string; label: string }[];
   canEdit: boolean;
   onEdit: (t: Task) => void;
+  onView: (t: Task) => void;
   onDeleted: () => void;
   projectId: string;
   authorId: string;
@@ -421,21 +423,80 @@ function RowGroup({
   taskNo: Record<string, string>;
   childMap: Record<string, Task[]>;
 }) {
+  void childRowIds;
+  return (
+    <RowSubtree
+      task={task}
+      children={children}
+      isOpen={isOpen}
+      onToggle={onToggle}
+      staff={staff}
+      orgs={orgs}
+      roots={roots}
+      statusOptions={statusOptions}
+      modeOptions={modeOptions}
+      canEdit={canEdit}
+      onEdit={onEdit}
+      onView={onView}
+      onDeleted={onDeleted}
+      projectId={projectId}
+      authorId={authorId}
+      onSaved={onSaved}
+      allTasks={allTasks}
+      taskNo={taskNo}
+      childMap={childMap}
+      level={0}
+      counter={{ n: rowId }}
+    />
+  );
+}
+
+function RowSubtree({
+  task, children, isOpen, onToggle, staff, orgs, roots, statusOptions, modeOptions, canEdit, onEdit, onView, onDeleted, projectId, authorId, onSaved, allTasks, taskNo, childMap, level, counter,
+}: {
+  task: Task;
+  children: Task[];
+  isOpen: boolean;
+  onToggle: () => void;
+  staff: { id: string; full_name: string }[];
+  orgs: string[];
+  roots: Task[];
+  statusOptions: { key: string; label: string }[];
+  modeOptions: { key: string; label: string }[];
+  canEdit: boolean;
+  onEdit: (t: Task) => void;
+  onView: (t: Task) => void;
+  onDeleted: () => void;
+  projectId: string;
+  authorId: string;
+  onSaved: () => void;
+  allTasks: Task[];
+  taskNo: Record<string, string>;
+  childMap: Record<string, Task[]>;
+  level: number;
+  counter: { n: number };
+}) {
+  const [openLocal, setOpenLocal] = useState(true);
+  const grandchildren = childMap[task.id] ?? [];
+  const visibleKids = level === 0 ? children : grandchildren;
+  const expanded = level === 0 ? isOpen : openLocal;
+  const myRowId = counter.n++;
   return (
     <>
       <RowItem
-        rowId={rowId}
+        rowId={myRowId}
         task={task}
         staff={staff}
         canEdit={canEdit}
         onEdit={onEdit}
+        onView={onView}
         onDeleted={onDeleted}
-        isParent
-        hasChildren={children.length > 0}
-        isOpen={isOpen}
-        onToggle={onToggle}
+        isParent={level === 0}
+        hasChildren={visibleKids.length > 0}
+        isOpen={expanded}
+        onToggle={level === 0 ? onToggle : () => setOpenLocal((v) => !v)}
         taskNo={taskNo}
-        indent={0}
+        indent={level}
         extraActions={canEdit && (
           <TaskDialog
             projectId={projectId}
@@ -444,6 +505,7 @@ function RowGroup({
             orgs={orgs}
             roots={roots}
             statusOptions={statusOptions}
+            modeOptions={modeOptions}
             onSaved={onSaved}
             parentTaskId={task.id}
             allTasks={allTasks}
@@ -452,21 +514,32 @@ function RowGroup({
           />
         )}
       />
-      {isOpen && children.map((c, i) => (
-        <RowItem
+      {expanded && visibleKids.map((c) => (
+        <RowSubtree
           key={c.id}
-          rowId={childRowIds[i]}
           task={c}
+          children={childMap[c.id] ?? []}
+          isOpen={true}
+          onToggle={() => {}}
           staff={staff}
+          orgs={orgs}
+          roots={roots}
+          statusOptions={statusOptions}
+          modeOptions={modeOptions}
           canEdit={canEdit}
           onEdit={onEdit}
+          onView={onView}
           onDeleted={onDeleted}
-          isParent={false}
+          projectId={projectId}
+          authorId={authorId}
+          onSaved={onSaved}
+          allTasks={allTasks}
           taskNo={taskNo}
-          indent={1}
+          childMap={childMap}
+          level={level + 1}
+          counter={counter}
         />
       ))}
-      {void childMap}
     </>
   );
 }
