@@ -508,6 +508,21 @@ function TaskDialog({
             </div>
             <div className="space-y-1"><Label>Remark</Label><Input value={remark} onChange={(e) => setRemark(e.target.value)} maxLength={500} /></div>
           </div>
+          <div className="space-y-1">
+            <Label>Progress (%)</Label>
+            {hasChildren ? (
+              <p className="text-[11px] text-muted-foreground">Rolled up automatically from sub-tasks.</p>
+            ) : (
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                step={5}
+                value={progress}
+                onChange={(e) => setProgress(e.target.value)}
+              />
+            )}
+          </div>
 
           <div className="space-y-1">
             <Label>Depends on (predecessors)</Label>
