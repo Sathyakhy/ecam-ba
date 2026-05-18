@@ -258,12 +258,13 @@ function TimelinePage() {
               <Th className="w-28">Start</Th>
               <Th className="w-28">Finish</Th>
               <Th className="w-28">Predecessors</Th>
+              <Th className="min-w-[160px] text-left">Remark</Th>
               <Th className="w-20"></Th>
             </tr>
           </thead>
           <tbody>
             {visibleRoots.length === 0 && (
-              <tr><td colSpan={8} className="text-center text-muted-foreground py-6">
+              <tr><td colSpan={9} className="text-center text-muted-foreground py-6">
                 {tasks.length === 0 ? "No tasks yet." : "No tasks match the current filters."}
               </td></tr>
             )}
@@ -476,6 +477,7 @@ function RowItem({
       <Td className="whitespace-nowrap">{formatMsDate(task.start_date)}</Td>
       <Td className="whitespace-nowrap">{formatMsDate(task.due_date)}</Td>
       <Td className="whitespace-nowrap text-center">{depLabels.length ? depLabels.join(";") : ""}</Td>
+      <Td className="text-[11px] whitespace-pre-wrap">{task.remark ?? ""}</Td>
       <Td className="text-center">
         {canEdit && (
           <div className="flex items-center gap-0.5 justify-center opacity-0 group-hover:opacity-100 transition-opacity">
