@@ -251,55 +251,54 @@ function TimelinePage() {
         <table className="w-full text-xs border-collapse">
           <thead>
             <tr className="bg-muted/50 text-muted-foreground">
-              <Th>No</Th>
-              <Th>Module</Th>
-              <Th>Site</Th>
-              <Th className="min-w-[280px] text-left">Task</Th>
-              <Th>Man-Days</Th>
-              <Th>Est. Start</Th>
-              <Th>Est. End</Th>
-              <Th>Actual</Th>
-              <Th>Responsible</Th>
-              <Th>Status</Th>
-              <Th>Progress</Th>
-              <Th>Depends</Th>
-              <Th>Remark</Th>
-              <Th></Th>
+              <Th className="w-10">ID</Th>
+              <Th className="w-14">Task<br/>Mode</Th>
+              <Th className="min-w-[320px] text-left">Task Name</Th>
+              <Th className="w-20">Duration</Th>
+              <Th className="w-28">Start</Th>
+              <Th className="w-28">Finish</Th>
+              <Th className="w-28">Predecessors</Th>
+              <Th className="w-20"></Th>
             </tr>
           </thead>
           <tbody>
             {visibleRoots.length === 0 && (
-              <tr><td colSpan={14} className="text-center text-muted-foreground py-6">
+              <tr><td colSpan={8} className="text-center text-muted-foreground py-6">
                 {tasks.length === 0 ? "No tasks yet." : "No tasks match the current filters."}
               </td></tr>
             )}
-            {visibleRoots.map((root) => {
-              const children = visibleChildren(root.id);
-              const isOpen = expanded[root.id] ?? true;
-              const no = Number(taskNo[root.id] ?? "0");
-              return (
-                <RowGroup
-                  key={root.id}
-                  no={no}
-                  task={root}
-                  children={children}
-                  isOpen={isOpen}
-                  onToggle={() => toggle(root.id)}
-                  staff={staff.data ?? []}
-                  orgs={orgs}
-                  roots={roots}
-                  canEdit={canEdit}
-                  onEdit={(t) => setEditing(t)}
-                  onDeleted={refresh}
-                  projectId={projectId}
-                  authorId={profile?.id ?? ""}
-                  onSaved={refresh}
-                  allTasks={tasks}
-                  taskNo={taskNo}
-                  childMap={childMap}
-                />
-              );
-            })}
+            {(() => {
+              let rowId = 0;
+              return visibleRoots.map((root) => {
+                const children = visibleChildren(root.id);
+                const isOpen = expanded[root.id] ?? true;
+                const rootId = rowId++;
+                const childIds = children.map(() => rowId++);
+                return (
+                  <RowGroup
+                    key={root.id}
+                    rowId={rootId}
+                    childRowIds={childIds}
+                    task={root}
+                    children={children}
+                    isOpen={isOpen}
+                    onToggle={() => toggle(root.id)}
+                    staff={staff.data ?? []}
+                    orgs={orgs}
+                    roots={roots}
+                    canEdit={canEdit}
+                    onEdit={(t) => setEditing(t)}
+                    onDeleted={refresh}
+                    projectId={projectId}
+                    authorId={profile?.id ?? ""}
+                    onSaved={refresh}
+                    allTasks={tasks}
+                    taskNo={taskNo}
+                    childMap={childMap}
+                  />
+                );
+              });
+            })()}
           </tbody>
         </table>
       </Card>
