@@ -229,11 +229,11 @@ function TimelinePage() {
             </SelectContent>
           </Select>
           <Select value={fAssignee} onValueChange={setFAssignee}>
-            <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue placeholder="Assignee" /></SelectTrigger>
+            <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue placeholder="PIC" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All assignees</SelectItem>
+              <SelectItem value="all">All PIC</SelectItem>
               <SelectItem value="unassigned">Unassigned</SelectItem>
-              {(staff.data ?? []).map((s) => <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>)}
+              {orgs.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
             </SelectContent>
           </Select>
           {filtersActive && (
