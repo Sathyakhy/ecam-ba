@@ -564,6 +564,7 @@ export type Database = {
           id: string
           name: string
           updated_at: string
+          vendor_id: string | null
         }
         Insert: {
           code?: string | null
@@ -573,6 +574,7 @@ export type Database = {
           id?: string
           name: string
           updated_at?: string
+          vendor_id?: string | null
         }
         Update: {
           code?: string | null
@@ -582,6 +584,7 @@ export type Database = {
           id?: string
           name?: string
           updated_at?: string
+          vendor_id?: string | null
         }
         Relationships: []
       }
