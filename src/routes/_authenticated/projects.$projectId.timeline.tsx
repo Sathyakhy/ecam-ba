@@ -99,6 +99,23 @@ function TimelinePage() {
   });
   const orgs = orgsQ.data ?? ["eCam"];
 
+  const statusesQ = useQuery({
+    queryKey: ["task-statuses"],
+    queryFn: async () => {
+      const { data } = await supabase.from("task_statuses").select("key,label,sort_order").order("sort_order");
+      return (data ?? []) as { key: string; label: string; sort_order: number }[];
+    },
+  });
+  const statusOptions = useMemo(() => {
+    const rows = statusesQ.data ?? [];
+    if (rows.length === 0) {
+      return metaEntries(TASK_STATUS_META).map(([k, m]) => ({ key: k, label: m.label }));
+    }
+    return rows.map((r) => ({ key: r.key, label: r.label }));
+  }, [statusesQ.data]);
+  const statusLabel = (k: string) =>
+    statusOptions.find((s) => s.key === k)?.label ?? TASK_STATUS_META[k]?.label ?? k;
+
   const tasks = tasksQ.data ?? [];
   const roots = useMemo(() => tasks.filter((t) => !t.parent_task_id), [tasks]);
   const childMap = useMemo(() => {
