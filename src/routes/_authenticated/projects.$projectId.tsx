@@ -455,7 +455,7 @@ function AddMemberDialog({ projectId, staff, existingIds, onAdded }: {
 
 function NewStatusUpdate({ projectId, authorId, onPosted }: { projectId: string; authorId: string; onPosted: () => void }) {
   const [body, setBody] = useState("");
-  const [status, setStatus] = useState<string>("");
+  const [status, setStatus] = useState<string | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
   return (
     <form onSubmit={async (e) => {
@@ -463,11 +463,11 @@ function NewStatusUpdate({ projectId, authorId, onPosted }: { projectId: string;
       if (!body.trim() || !authorId) return;
       setSubmitting(true);
       const { error } = await supabase.from("project_status_updates").insert({
-        project_id: projectId, author_id: authorId, body, status: status || null,
+        project_id: projectId, author_id: authorId, body, status: status ?? null,
       });
       setSubmitting(false);
       if (error) return toast.error(error.message);
-      setBody(""); setStatus("");
+      setBody(""); setStatus(undefined);
       onPosted();
     }} className="space-y-2">
       <Textarea placeholder="Post a status update…" value={body} onChange={(e) => setBody(e.target.value)} rows={2} maxLength={2000} />
