@@ -67,7 +67,7 @@ export function ProjectsIndex() {
               <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All statuses</SelectItem>
-                {Object.entries(STATUS_META).map(([k, m]) => (
+                {metaEntries(STATUS_META).map(([k, m]) => (
                   <SelectItem key={k} value={k}>{m.label}</SelectItem>
                 ))}
               </SelectContent>
@@ -175,7 +175,7 @@ function NewProjectDialog({ ownerId, onCreated }: { ownerId: string; onCreated: 
               <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {Object.entries(STATUS_META).map(([k, m]) => <SelectItem key={k} value={k}>{m.label}</SelectItem>)}
+                  {metaEntries(STATUS_META).map(([k, m]) => <SelectItem key={k} value={k}>{m.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -184,7 +184,7 @@ function NewProjectDialog({ ownerId, onCreated }: { ownerId: string; onCreated: 
               <Select value={priority} onValueChange={setPriority}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {Object.entries(PRIORITY_META).map(([k, m]) => <SelectItem key={k} value={k}>{m.label}</SelectItem>)}
+                  {metaEntries(PRIORITY_META).map(([k, m]) => <SelectItem key={k} value={k}>{m.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

@@ -475,7 +475,7 @@ function NewStatusUpdate({ projectId, authorId, onPosted }: { projectId: string;
         <Select value={status} onValueChange={setStatus}>
           <SelectTrigger className="h-8 text-xs w-40"><SelectValue placeholder="Status (optional)" /></SelectTrigger>
           <SelectContent>
-            {Object.entries(STATUS_META).map(([k, m]) => <SelectItem key={k} value={k}>{m.label}</SelectItem>)}
+            {metaEntries(STATUS_META).map(([k, m]) => <SelectItem key={k} value={k}>{m.label}</SelectItem>)}
           </SelectContent>
         </Select>
         <Button type="submit" size="sm" className="ml-auto" disabled={submitting || !body.trim()}>Post</Button>
@@ -519,7 +519,7 @@ function EditProjectDialog({ project, onSaved }: {
               <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {Object.entries(STATUS_META).map(([k, m]) => <SelectItem key={k} value={k}>{m.label}</SelectItem>)}
+                  {metaEntries(STATUS_META).map(([k, m]) => <SelectItem key={k} value={k}>{m.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -528,7 +528,7 @@ function EditProjectDialog({ project, onSaved }: {
               <Select value={priority} onValueChange={setPriority}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {Object.entries(PRIORITY_META).map(([k, m]) => <SelectItem key={k} value={k}>{m.label}</SelectItem>)}
+                  {metaEntries(PRIORITY_META).map(([k, m]) => <SelectItem key={k} value={k}>{m.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
