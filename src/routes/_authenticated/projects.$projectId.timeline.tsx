@@ -69,6 +69,7 @@ function TimelinePage() {
   const qc = useQueryClient();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [editing, setEditing] = useState<Task | null>(null);
+  const [viewing, setViewing] = useState<Task | null>(null);
   const [search, setSearch] = useState("");
   const [fModule, setFModule] = useState<string>("all");
   const [fSite, setFSite] = useState<string>("all");
@@ -80,6 +81,7 @@ function TimelinePage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("project_tasks").select("*").eq("project_id", projectId)
+        .is("deleted_at", null)
         .order("order_index").order("created_at");
       if (error) throw error;
       return (data ?? []) as Task[];
