@@ -1118,48 +1118,63 @@ export type Database = {
       }
       project_tasks: {
         Row: {
+          actual_completion_date: string | null
           assignee_id: string | null
           created_at: string
           created_by: string
           description: string | null
           due_date: string | null
           id: string
+          man_days: number | null
+          module: string | null
           order_index: number
           parent_task_id: string | null
           priority: string
           project_id: string
+          remark: string | null
+          site: string | null
           start_date: string | null
           status: string
           title: string
           updated_at: string
         }
         Insert: {
+          actual_completion_date?: string | null
           assignee_id?: string | null
           created_at?: string
           created_by: string
           description?: string | null
           due_date?: string | null
           id?: string
+          man_days?: number | null
+          module?: string | null
           order_index?: number
           parent_task_id?: string | null
           priority?: string
           project_id: string
+          remark?: string | null
+          site?: string | null
           start_date?: string | null
           status?: string
           title: string
           updated_at?: string
         }
         Update: {
+          actual_completion_date?: string | null
           assignee_id?: string | null
           created_at?: string
           created_by?: string
           description?: string | null
           due_date?: string | null
           id?: string
+          man_days?: number | null
+          module?: string | null
           order_index?: number
           parent_task_id?: string | null
           priority?: string
           project_id?: string
+          remark?: string | null
+          site?: string | null
           start_date?: string | null
           status?: string
           title?: string

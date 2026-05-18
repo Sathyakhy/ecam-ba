@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { ArrowLeft, LayoutGrid, ListChecks, Target, GanttChartSquare, Users, Activity } from "lucide-react";
+import { ArrowLeft, LayoutGrid, ListChecks, Target, GanttChartSquare, Users, Activity, CalendarRange } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { STATUS_META, PRIORITY_META, formatDate } from "@/lib/project-meta";
@@ -18,6 +18,7 @@ const tabs = [
   { to: "/projects/$projectId" as const, label: "Overview", icon: LayoutGrid, exact: true },
   { to: "/projects/$projectId/tasks" as const, label: "Tasks", icon: ListChecks },
   { to: "/projects/$projectId/milestones" as const, label: "Milestones", icon: Target },
+  { to: "/projects/$projectId/timeline" as const, label: "Timeline", icon: CalendarRange },
   { to: "/projects/$projectId/gantt" as const, label: "Gantt", icon: GanttChartSquare },
   { to: "/projects/$projectId/members" as const, label: "Members", icon: Users },
   { to: "/projects/$projectId/activity" as const, label: "Activity", icon: Activity },
