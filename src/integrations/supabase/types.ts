@@ -925,6 +925,7 @@ export type Database = {
       project_milestones: {
         Row: {
           created_at: string
+          deleted_at: string | null
           description: string | null
           due_date: string | null
           id: string
@@ -939,6 +940,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
@@ -953,6 +955,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
@@ -999,6 +1002,36 @@ export type Database = {
           id?: string
           name?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      project_saved_views: {
+        Row: {
+          created_at: string
+          filters: Json
+          id: string
+          is_shared: boolean
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          filters?: Json
+          id?: string
+          is_shared?: boolean
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          filters?: Json
+          id?: string
+          is_shared?: boolean
+          name?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1119,9 +1152,13 @@ export type Database = {
       project_tasks: {
         Row: {
           actual_completion_date: string | null
+          actual_start: string | null
           assignee_id: string | null
+          baseline_finish: string | null
+          baseline_start: string | null
           created_at: string
           created_by: string
+          deleted_at: string | null
           description: string | null
           due_date: string | null
           id: string
@@ -1139,14 +1176,19 @@ export type Database = {
           site: string | null
           start_date: string | null
           status: string
+          task_mode: string
           title: string
           updated_at: string
         }
         Insert: {
           actual_completion_date?: string | null
+          actual_start?: string | null
           assignee_id?: string | null
+          baseline_finish?: string | null
+          baseline_start?: string | null
           created_at?: string
           created_by: string
+          deleted_at?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
@@ -1164,14 +1206,19 @@ export type Database = {
           site?: string | null
           start_date?: string | null
           status?: string
+          task_mode?: string
           title: string
           updated_at?: string
         }
         Update: {
           actual_completion_date?: string | null
+          actual_start?: string | null
           assignee_id?: string | null
+          baseline_finish?: string | null
+          baseline_start?: string | null
           created_at?: string
           created_by?: string
+          deleted_at?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
@@ -1189,6 +1236,7 @@ export type Database = {
           site?: string | null
           start_date?: string | null
           status?: string
+          task_mode?: string
           title?: string
           updated_at?: string
         }
@@ -1207,6 +1255,7 @@ export type Database = {
           created_at: string
           created_by: string
           customer_id: string | null
+          deleted_at: string | null
           description: string | null
           due_date: string | null
           id: string
@@ -1224,6 +1273,7 @@ export type Database = {
           created_at?: string
           created_by: string
           customer_id?: string | null
+          deleted_at?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
@@ -1241,6 +1291,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           customer_id?: string | null
+          deleted_at?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
@@ -1293,6 +1344,63 @@ export type Database = {
           id?: string
           modules?: string[]
           name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      task_modes: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      task_priorities: {
+        Row: {
+          color: string | null
+          created_at: string
+          id: string
+          key: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          key: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          key?: string
+          label?: string
+          sort_order?: number
           updated_at?: string
         }
         Relationships: []
