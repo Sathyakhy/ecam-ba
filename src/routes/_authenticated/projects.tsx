@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { Plus, FolderKanban, Calendar, Users } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Plus, FolderKanban, Calendar, Users, Search } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -29,13 +29,13 @@ export function ProjectsIndex() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [customerFilter, setCustomerFilter] = useState<string>("all");
+  const [query, setQuery] = useState("");
 
   const projects = useQuery({
-    queryKey: ["projects", statusFilter],
+    queryKey: ["projects"],
     queryFn: async () => {
-      let q = supabase.from("projects").select("*").order("created_at", { ascending: false });
-      if (statusFilter !== "all") q = q.eq("status", statusFilter);
-      const { data, error } = await q;
+      const { data, error } = await supabase.from("projects").select("*").order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
@@ -51,57 +51,112 @@ export function ProjectsIndex() {
     },
   });
 
-  const owners = useQuery({
+  const milestoneProgress = useQuery({
+    queryKey: ["projects-progress"],
+    queryFn: async () => {
+      const { data } = await supabase.from("project_milestones").select("project_id,progress");
+      const buckets: Record<string, number[]> = {};
+      (data ?? []).forEach((m) => { (buckets[m.project_id] ??= []).push(m.progress ?? 0); });
+      const avg: Record<string, number> = {};
+      Object.entries(buckets).forEach(([k, v]) => { avg[k] = Math.round(v.reduce((a,b)=>a+b,0) / v.length); });
+      return avg;
+    },
+  });
+
+  const customers = useQuery({
+    queryKey: ["customers-min"],
+    queryFn: async () => (await supabase.from("customers").select("id,name").order("name")).data ?? [],
+  });
+
+  const staff = useQuery({
     queryKey: ["staff-min"],
     queryFn: async () => (await supabase.from("profiles").select("id,full_name,avatar_url").order("full_name")).data ?? [],
   });
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return (projects.data ?? []).filter((p) => {
+      if (statusFilter !== "all" && p.status !== statusFilter) return false;
+      if (customerFilter !== "all" && p.customer_id !== customerFilter) return false;
+      if (q && !p.name.toLowerCase().includes(q) && !(p.description ?? "").toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [projects.data, statusFilter, customerFilter, query]);
+
+  const stats = useMemo(() => {
+    const all = projects.data ?? [];
+    const today = new Date();
+    return {
+      total: all.length,
+      active: all.filter((p) => p.status === "active").length,
+      completed: all.filter((p) => p.status === "completed").length,
+      overdue: all.filter((p) => p.due_date && p.status !== "completed" && new Date(p.due_date) < today).length,
+    };
+  }, [projects.data]);
 
   return (
     <div>
       <PageHeader
         title="Projects"
-        description="Plan and track department initiatives, milestones and ownership."
+        description="Plan, execute and monitor department initiatives."
         actions={
-          <>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All statuses</SelectItem>
-                {metaEntries(STATUS_META).map(([k, m]) => (
-                  <SelectItem key={k} value={k}>{m.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <NewProjectDialog
-              onCreated={(id) => {
-                qc.invalidateQueries({ queryKey: ["projects"] });
-                if (id) navigate({ to: "/projects/$projectId", params: { projectId: id } });
-              }}
-              ownerId={profile?.id ?? ""}
-            />
-          </>
+          <NewProjectDialog
+            ownerId={profile?.id ?? ""}
+            onCreated={(id) => {
+              qc.invalidateQueries({ queryKey: ["projects"] });
+              if (id) navigate({ to: "/projects/$projectId", params: { projectId: id } });
+            }}
+          />
         }
       />
 
+      <div className="grid gap-3 sm:grid-cols-4 mb-5">
+        <Card className="p-3"><p className="text-xs text-muted-foreground">Total</p><p className="text-xl font-semibold">{stats.total}</p></Card>
+        <Card className="p-3"><p className="text-xs text-muted-foreground">Active</p><p className="text-xl font-semibold">{stats.active}</p></Card>
+        <Card className="p-3"><p className="text-xs text-muted-foreground">Completed</p><p className="text-xl font-semibold">{stats.completed}</p></Card>
+        <Card className="p-3"><p className="text-xs text-muted-foreground">Overdue</p><p className="text-xl font-semibold text-destructive">{stats.overdue}</p></Card>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input placeholder="Search projects…" value={query} onChange={(e) => setQuery(e.target.value)} className="h-9 pl-7" />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-36 h-9"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            {metaEntries(STATUS_META).map(([k, m]) => (
+              <SelectItem key={k} value={k}>{m.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={customerFilter} onValueChange={setCustomerFilter}>
+          <SelectTrigger className="w-44 h-9"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All customers</SelectItem>
+            {(customers.data ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
       {projects.isLoading ? (
         <p className="text-sm text-muted-foreground">Loading projects…</p>
-      ) : projects.error ? (
-        <Card className="p-6 border-destructive/40">
-          <p className="text-sm text-destructive">{(projects.error as Error).message}</p>
-        </Card>
-      ) : (projects.data ?? []).length === 0 ? (
+      ) : filtered.length === 0 ? (
         <Card className="p-10 text-center border-dashed">
           <FolderKanban className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-          <p className="text-sm font-medium">No projects yet</p>
-          <p className="text-xs text-muted-foreground mt-1">Create one to start tracking work.</p>
+          <p className="text-sm font-medium">No projects {(projects.data ?? []).length === 0 ? "yet" : "match"}</p>
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {(projects.data ?? []).map((p) => {
-            const owner = owners.data?.find((o) => o.id === p.owner_id);
+          {filtered.map((p) => {
+            const owner = staff.data?.find((o) => o.id === p.owner_id);
+            const manager = staff.data?.find((o) => o.id === p.manager_id);
+            const customer = customers.data?.find((c) => c.id === p.customer_id);
             const memberCount = members.data?.[p.id] ?? 0;
             const status = STATUS_META[p.status] ?? STATUS_META.planning;
             const priority = PRIORITY_META[p.priority] ?? PRIORITY_META.normal;
+            const progress = milestoneProgress.data?.[p.id] ?? 0;
             return (
               <Card
                 key={p.id}
@@ -112,9 +167,18 @@ export function ProjectsIndex() {
                   <h3 className="font-semibold text-sm line-clamp-2 flex-1">{p.name}</h3>
                   <Badge variant={status.variant}>{status.label}</Badge>
                 </div>
+                {customer && <p className="text-[11px] text-muted-foreground mb-1">For {customer.name}</p>}
                 {p.description && (
-                  <p className="text-xs text-muted-foreground line-clamp-3 mb-4">{p.description}</p>
+                  <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{p.description}</p>
                 )}
+                <div className="space-y-1.5 mb-3">
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>Progress</span><span>{progress}%</span>
+                  </div>
+                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
+                  </div>
+                </div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <div className="flex items-center gap-3">
                     <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {memberCount + 1}</span>
@@ -124,9 +188,9 @@ export function ProjectsIndex() {
                   </div>
                   <Badge variant={priority.variant} className="text-[10px]">{priority.label}</Badge>
                 </div>
-                {owner && (
-                  <p className="text-[11px] text-muted-foreground mt-3 truncate">Owner · {owner.full_name}</p>
-                )}
+                <p className="text-[11px] text-muted-foreground mt-3 truncate">
+                  {manager ? `PM · ${manager.full_name}` : owner ? `Owner · ${owner.full_name}` : ""}
+                </p>
               </Card>
             );
           })}
@@ -144,12 +208,25 @@ function NewProjectDialog({ ownerId, onCreated }: { ownerId: string; onCreated: 
   const [priority, setPriority] = useState("normal");
   const [start, setStart] = useState("");
   const [due, setDue] = useState("");
+  const [customerId, setCustomerId] = useState<string | undefined>();
+  const [managerId, setManagerId] = useState<string | undefined>();
   const [submitting, setSubmitting] = useState(false);
+
+  const customers = useQuery({
+    queryKey: ["customers-min"],
+    queryFn: async () => (await supabase.from("customers").select("id,name").order("name")).data ?? [],
+    enabled: open,
+  });
+  const staff = useQuery({
+    queryKey: ["staff-min"],
+    queryFn: async () => (await supabase.from("profiles").select("id,full_name").order("full_name")).data ?? [],
+    enabled: open,
+  });
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" /> New project</Button></DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-lg">
         <DialogHeader><DialogTitle>Create project</DialogTitle></DialogHeader>
         <form onSubmit={async (e) => {
           e.preventDefault();
@@ -159,12 +236,14 @@ function NewProjectDialog({ ownerId, onCreated }: { ownerId: string; onCreated: 
             name, description: desc || null, status, priority,
             start_date: start || null, due_date: due || null,
             owner_id: ownerId, created_by: ownerId,
+            customer_id: customerId ?? null, manager_id: managerId ?? null,
           }).select("id").single();
           setSubmitting(false);
           if (error) return toast.error(error.message);
           toast.success("Project created");
           setOpen(false); setName(""); setDesc(""); setStart(""); setDue("");
           setStatus("planning"); setPriority("normal");
+          setCustomerId(undefined); setManagerId(undefined);
           onCreated(data?.id);
         }} className="space-y-4">
           <div className="space-y-2"><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} required maxLength={200} /></div>
@@ -190,6 +269,24 @@ function NewProjectDialog({ ownerId, onCreated }: { ownerId: string; onCreated: 
             </div>
             <div className="space-y-2"><Label>Start date</Label><Input type="date" value={start} onChange={(e) => setStart(e.target.value)} /></div>
             <div className="space-y-2"><Label>Due date</Label><Input type="date" value={due} onChange={(e) => setDue(e.target.value)} /></div>
+            <div className="space-y-2">
+              <Label>Customer</Label>
+              <Select value={customerId} onValueChange={(v) => setCustomerId(v || undefined)}>
+                <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                <SelectContent>
+                  {(customers.data ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Project manager</Label>
+              <Select value={managerId} onValueChange={(v) => setManagerId(v || undefined)}>
+                <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                <SelectContent>
+                  {(staff.data ?? []).map((s) => <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter><Button type="submit" disabled={submitting}>{submitting ? "Creating…" : "Create"}</Button></DialogFooter>
         </form>
