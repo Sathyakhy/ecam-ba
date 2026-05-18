@@ -201,7 +201,7 @@ function ProductDialog({ product, ownerId, vendors, onSaved, trigger }: {
         <DialogHeader><DialogTitle>{product ? "Edit product" : "New product"}</DialogTitle></DialogHeader>
         <form onSubmit={async (e) => {
           e.preventDefault();
-          const payload = { name, code: code || null, description: desc || null };
+          const payload = { name, code: code || null, description: desc || null, vendor_id: vendorId || null };
           const { error } = product
             ? await supabase.from("products").update(payload).eq("id", product.id)
             : await supabase.from("products").insert({ ...payload, created_by: ownerId });
@@ -212,6 +212,17 @@ function ProductDialog({ product, ownerId, vendors, onSaved, trigger }: {
         }} className="space-y-4">
           <div className="space-y-2"><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} required maxLength={200} /></div>
           <div className="space-y-2"><Label>Code / SKU</Label><Input value={code} onChange={(e) => setCode(e.target.value)} maxLength={60} /></div>
+          <div className="space-y-2">
+            <Label>Vendor</Label>
+            <select
+              value={vendorId}
+              onChange={(e) => setVendorId(e.target.value)}
+              className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="">— None —</option>
+              {vendors.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
+            </select>
+          </div>
           <div className="space-y-2"><Label>Description</Label><Textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} maxLength={2000} /></div>
           <DialogFooter><Button type="submit">{product ? "Save" : "Create"}</Button></DialogFooter>
         </form>
