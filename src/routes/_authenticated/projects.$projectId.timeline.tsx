@@ -337,8 +337,10 @@ function TimelinePage() {
                     orgs={orgs}
                     roots={roots}
                     statusOptions={statusOptions}
+                    modeOptions={modeOptions}
                     canEdit={canEdit}
                     onEdit={(t) => setEditing(t)}
+                    onView={(t) => setViewing(t)}
                     onDeleted={refresh}
                     projectId={projectId}
                     authorId={profile?.id ?? ""}
