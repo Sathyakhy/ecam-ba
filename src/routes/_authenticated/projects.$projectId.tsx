@@ -410,7 +410,7 @@ function AddMemberDialog({ projectId, staff, existingIds, onAdded }: {
   onAdded: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [pid, setPid] = useState("");
+  const [pid, setPid] = useState<string | undefined>(undefined);
   const [role, setRole] = useState("member");
   const available = staff.filter((s) => !existingIds.includes(s.id));
   return (
