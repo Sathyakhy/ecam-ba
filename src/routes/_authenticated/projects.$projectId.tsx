@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { ArrowLeft, Plus, Trash2, Calendar, MessageSquare, Target, UserPlus, Pencil } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Calendar, MessageSquare, Target, UserPlus, Pencil, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -215,40 +215,13 @@ function ProjectDetailPage() {
                 onPosted={() => qc.invalidateQueries({ queryKey: ["project-updates", projectId] })}
               />
             )}
-            <div className="space-y-2 mt-3">
-              {(updates.data ?? []).length === 0 ? (
-                <p className="text-xs text-muted-foreground py-4 text-center border border-dashed border-border rounded-md">No updates yet</p>
-              ) : (updates.data ?? []).map((u) => {
-                const author = staff.data?.find((s) => s.id === u.author_id);
-                const canDelete = u.author_id === profile?.id || canManage;
-                return (
-                  <Card key={u.id} className="p-3">
-                    <div className="flex items-start gap-3">
-                      <Avatar className="h-7 w-7">
-                        {author?.avatar_url && <AvatarImage src={author.avatar_url} />}
-                        <AvatarFallback className="text-xs">{(author?.full_name ?? "?").slice(0, 2).toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 text-xs">
-                          <span className="font-medium">{author?.full_name ?? "Unknown"}</span>
-                          {u.status && <Badge variant="outline" className="text-[10px]">{STATUS_META[u.status]?.label ?? u.status}</Badge>}
-                          <span className="text-muted-foreground ml-auto">{new Date(u.created_at).toLocaleString()}</span>
-                        </div>
-                        <p className="text-sm mt-1 whitespace-pre-wrap">{u.body}</p>
-                      </div>
-                      {canDelete && (
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={async () => {
-                          await supabase.from("project_status_updates").delete().eq("id", u.id);
-                          qc.invalidateQueries({ queryKey: ["project-updates", projectId] });
-                        }}>
-                          <Trash2 className="h-3 w-3 text-destructive" />
-                        </Button>
-                      )}
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
+            <StatusUpdatesList
+              updates={updates.data ?? []}
+              staff={staff.data ?? []}
+              currentUserId={profile?.id}
+              canManage={canManage}
+              onDeleted={() => qc.invalidateQueries({ queryKey: ["project-updates", projectId] })}
+            />
           </div>
         </div>
 
@@ -539,5 +512,123 @@ function EditProjectDialog({ project, onSaved }: {
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+type StatusUpdate = {
+  id: string;
+  author_id: string;
+  body: string;
+  status: string | null;
+  created_at: string;
+};
+type StaffMin = { id: string; full_name: string; avatar_url: string | null; job_title: string | null };
+
+function StatusUpdatesList({ updates, staff, currentUserId, canManage, onDeleted }: {
+  updates: StatusUpdate[];
+  staff: StaffMin[];
+  currentUserId: string | undefined;
+  canManage: boolean;
+  onDeleted: () => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [authorId, setAuthorId] = useState<string | undefined>(undefined);
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+
+  const authorOptions = useMemo(() => {
+    const ids = Array.from(new Set(updates.map((u) => u.author_id)));
+    return ids.map((id) => ({ id, name: staff.find((s) => s.id === id)?.full_name ?? "Unknown" }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [updates, staff]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const fromTs = fromDate ? new Date(fromDate).getTime() : null;
+    const toTs = toDate ? new Date(toDate).getTime() + 24 * 60 * 60 * 1000 - 1 : null;
+    return updates.filter((u) => {
+      if (authorId && u.author_id !== authorId) return false;
+      const ts = new Date(u.created_at).getTime();
+      if (fromTs !== null && ts < fromTs) return false;
+      if (toTs !== null && ts > toTs) return false;
+      if (q) {
+        const author = staff.find((s) => s.id === u.author_id)?.full_name?.toLowerCase() ?? "";
+        if (!u.body.toLowerCase().includes(q) && !author.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [updates, query, authorId, fromDate, toDate, staff]);
+
+  const hasFilters = !!(query || authorId || fromDate || toDate);
+
+  return (
+    <div className="mt-3 space-y-3">
+      <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto_auto] sm:items-center">
+        <div className="relative">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Search updates…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="h-8 pl-7 text-xs"
+          />
+        </div>
+        <Select value={authorId} onValueChange={(v) => setAuthorId(v || undefined)}>
+          <SelectTrigger className="h-8 text-xs w-full sm:w-44"><SelectValue placeholder="All authors" /></SelectTrigger>
+          <SelectContent>
+            {authorOptions.map((a) => (
+              <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="h-8 text-xs w-full sm:w-36" />
+        <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="h-8 text-xs w-full sm:w-36" />
+      </div>
+      {hasFilters && (
+        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+          <span>{filtered.length} of {updates.length} update{updates.length === 1 ? "" : "s"}</span>
+          <Button variant="ghost" size="sm" className="h-6 px-2 text-[11px]"
+            onClick={() => { setQuery(""); setAuthorId(undefined); setFromDate(""); setToDate(""); }}>
+            <X className="h-3 w-3 mr-1" /> Clear filters
+          </Button>
+        </div>
+      )}
+      <div className="space-y-2">
+        {updates.length === 0 ? (
+          <p className="text-xs text-muted-foreground py-4 text-center border border-dashed border-border rounded-md">No updates yet</p>
+        ) : filtered.length === 0 ? (
+          <p className="text-xs text-muted-foreground py-4 text-center border border-dashed border-border rounded-md">No updates match your filters</p>
+        ) : filtered.map((u) => {
+          const author = staff.find((s) => s.id === u.author_id);
+          const canDelete = u.author_id === currentUserId || canManage;
+          return (
+            <Card key={u.id} className="p-3">
+              <div className="flex items-start gap-3">
+                <Avatar className="h-7 w-7">
+                  {author?.avatar_url && <AvatarImage src={author.avatar_url} />}
+                  <AvatarFallback className="text-xs">{(author?.full_name ?? "?").slice(0, 2).toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="font-medium">{author?.full_name ?? "Unknown"}</span>
+                    {u.status && <Badge variant="outline" className="text-[10px]">{STATUS_META[u.status]?.label ?? u.status}</Badge>}
+                    <span className="text-muted-foreground ml-auto">{new Date(u.created_at).toLocaleString()}</span>
+                  </div>
+                  <p className="text-sm mt-1 whitespace-pre-wrap">{u.body}</p>
+                </div>
+                {canDelete && (
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={async () => {
+                    await supabase.from("project_status_updates").delete().eq("id", u.id);
+                    onDeleted();
+                  }}>
+                    <Trash2 className="h-3 w-3 text-destructive" />
+                  </Button>
+                )}
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
   );
 }
