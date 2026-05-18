@@ -336,7 +336,7 @@ function RowItem({
 }
 
 function TaskDialog({
-  projectId, authorId, staff, onSaved, parentTaskId, trigger, task, open: openProp, onOpenChange,
+  projectId, authorId, staff, onSaved, parentTaskId, trigger, task, open: openProp, onOpenChange, allTasks, taskNo,
 }: {
   projectId: string;
   authorId: string;
@@ -347,6 +347,8 @@ function TaskDialog({
   task?: Task;
   open?: boolean;
   onOpenChange?: (o: boolean) => void;
+  allTasks: Task[];
+  taskNo: Record<string, string>;
 }) {
   const [openInner, setOpenInner] = useState(false);
   const isControlled = openProp !== undefined;
@@ -364,8 +366,33 @@ function TaskDialog({
   const [status, setStatus] = useState(task?.status ?? "todo");
   const [assigneeId, setAssigneeId] = useState<string | undefined>(task?.assignee_id ?? undefined);
   const [remark, setRemark] = useState(task?.remark ?? "");
+  const [predecessors, setPredecessors] = useState<string[]>(task?.predecessor_ids ?? []);
 
   const isEdit = !!task;
+
+  // Build a flat ordered list of candidate predecessor tasks, excluding self and own descendants
+  const descendants = useMemo(() => {
+    const set = new Set<string>();
+    if (!task) return set;
+    const queue = [task.id];
+    while (queue.length) {
+      const cur = queue.shift()!;
+      set.add(cur);
+      allTasks.forEach((t) => { if (t.parent_task_id === cur) queue.push(t.id); });
+    }
+    return set;
+  }, [allTasks, task]);
+
+  const candidates = useMemo(
+    () => allTasks
+      .filter((t) => !descendants.has(t.id))
+      .sort((a, b) => (taskNo[a.id] ?? "").localeCompare(taskNo[b.id] ?? "", undefined, { numeric: true })),
+    [allTasks, descendants, taskNo],
+  );
+
+  const togglePred = (id: string) => {
+    setPredecessors((prev) => prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]);
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -381,6 +408,7 @@ function TaskDialog({
       status,
       assignee_id: assigneeId ?? null,
       remark: remark || null,
+      predecessor_ids: predecessors,
     };
     if (isEdit) {
       const { error } = await supabase.from("project_tasks").update(payload).eq("id", task!.id);
@@ -444,6 +472,28 @@ function TaskDialog({
             </div>
             <div className="space-y-1"><Label>Remark</Label><Input value={remark} onChange={(e) => setRemark(e.target.value)} maxLength={500} /></div>
           </div>
+
+          <div className="space-y-1">
+            <Label>Depends on (predecessors)</Label>
+            {candidates.length === 0 ? (
+              <p className="text-[11px] text-muted-foreground">No other tasks available.</p>
+            ) : (
+              <div className="max-h-40 overflow-y-auto border rounded p-2 space-y-1">
+                {candidates.map((c) => {
+                  const checked = predecessors.includes(c.id);
+                  return (
+                    <label key={c.id} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-muted/40 px-1 py-0.5 rounded">
+                      <input type="checkbox" checked={checked} onChange={() => togglePred(c.id)} className="h-3.5 w-3.5" />
+                      <span className="text-muted-foreground tabular-nums w-10">{taskNo[c.id] ?? "—"}</span>
+                      <span className="truncate flex-1">{c.title}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+            <p className="text-[10px] text-muted-foreground">This task starts after the selected predecessors complete.</p>
+          </div>
+
           <DialogFooter><Button type="submit">{isEdit ? "Save" : "Create"}</Button></DialogFooter>
         </form>
       </DialogContent>
