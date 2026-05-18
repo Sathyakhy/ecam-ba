@@ -13,6 +13,7 @@ import {
   UserCircle,
   Network,
   Briefcase,
+  FolderKanban,
 } from "lucide-react";
 import {
   Sidebar,
