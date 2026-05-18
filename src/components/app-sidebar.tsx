@@ -15,6 +15,7 @@ import {
   Briefcase,
   FolderKanban,
   Building,
+  SlidersHorizontal,
 } from "lucide-react";
 import {
   Sidebar,
@@ -114,6 +115,14 @@ export function AppSidebar() {
                     <Link to="/positions">
                       <Briefcase className="h-4 w-4" />
                       <span>Positions</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={path.startsWith("/project-config")}>
+                    <Link to="/project-config">
+                      <SlidersHorizontal className="h-4 w-4" />
+                      <span>Project Config</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

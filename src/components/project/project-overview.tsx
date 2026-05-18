@@ -8,9 +8,38 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useProject } from "@/hooks/use-project";
 import { STATUS_META, formatDate, TASK_STATUS_META } from "@/lib/project-meta";
+import { ProjectManagers } from "@/components/project/project-managers";
 
 export function ProjectOverview({ projectId }: { projectId: string }) {
-  const { project, members, staff } = useProject(projectId);
+  const { project, members, staff, canManage } = useProject(projectId);
+
+  const customer = useQuery({
+    queryKey: ["project-customer", projectId],
+    queryFn: async () => {
+      const cid = (project.data as { customer_id?: string | null } | undefined)?.customer_id;
+      if (!cid) return null;
+      return (await supabase.from("customers").select("id,name").eq("id", cid).maybeSingle()).data;
+    },
+    enabled: !!project.data,
+  });
+  const vendor = useQuery({
+    queryKey: ["project-vendor", projectId],
+    queryFn: async () => {
+      const vid = (project.data as { vendor_id?: string | null } | undefined)?.vendor_id;
+      if (!vid) return null;
+      return (await supabase.from("vendors").select("id,name").eq("id", vid).maybeSingle()).data;
+    },
+    enabled: !!project.data,
+  });
+  const product = useQuery({
+    queryKey: ["project-product", projectId],
+    queryFn: async () => {
+      const pid = (project.data as { product_id?: string | null } | undefined)?.product_id;
+      if (!pid) return null;
+      return (await supabase.from("products").select("id,name,code").eq("id", pid).maybeSingle()).data;
+    },
+    enabled: !!project.data,
+  });
 
   const milestones = useQuery({
     queryKey: ["project-milestones", projectId],
@@ -78,11 +107,16 @@ export function ProjectOverview({ projectId }: { projectId: string }) {
             </p>
             <dl className="grid grid-cols-2 gap-3 mt-4 text-xs">
               <div><dt className="text-muted-foreground">Owner</dt><dd className="font-medium">{owner?.full_name ?? "—"}</dd></div>
-              <div><dt className="text-muted-foreground">Project manager</dt><dd className="font-medium">{manager?.full_name ?? "—"}</dd></div>
+              <div><dt className="text-muted-foreground">Primary PM</dt><dd className="font-medium">{manager?.full_name ?? "—"}</dd></div>
+              <div><dt className="text-muted-foreground">Customer</dt><dd className="font-medium">{customer.data?.name ?? "—"}</dd></div>
+              <div><dt className="text-muted-foreground">Vendor</dt><dd className="font-medium">{vendor.data?.name ?? "—"}</dd></div>
+              <div><dt className="text-muted-foreground">Product</dt><dd className="font-medium">{product.data ? `${product.data.name}${product.data.code ? ` (${product.data.code})` : ""}` : "—"}</dd></div>
               <div><dt className="text-muted-foreground">Start</dt><dd>{formatDate(p.start_date)}</dd></div>
               <div><dt className="text-muted-foreground">Due</dt><dd>{formatDate(p.due_date)}</dd></div>
             </dl>
           </Card>
+
+          <ProjectManagers projectId={projectId} canManage={canManage} />
 
           <Card className="p-5">
             <div className="flex items-center justify-between mb-3">

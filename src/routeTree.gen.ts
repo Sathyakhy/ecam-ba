@@ -19,6 +19,7 @@ import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedStaffRouteImport } from './routes/_authenticated/staff'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedProjectsRouteImport } from './routes/_authenticated/projects'
+import { Route as AuthenticatedProjectConfigRouteImport } from './routes/_authenticated/project-config'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedPositionsRouteImport } from './routes/_authenticated/positions'
 import { Route as AuthenticatedOrgChartRouteImport } from './routes/_authenticated/org-chart'
@@ -86,6 +87,12 @@ const AuthenticatedProjectsRoute = AuthenticatedProjectsRouteImport.update({
   path: '/projects',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedProjectConfigRoute =
+  AuthenticatedProjectConfigRouteImport.update({
+    id: '/project-config',
+    path: '/project-config',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -196,6 +203,7 @@ export interface FileRoutesByFullPath {
   '/org-chart': typeof AuthenticatedOrgChartRoute
   '/positions': typeof AuthenticatedPositionsRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/project-config': typeof AuthenticatedProjectConfigRoute
   '/projects': typeof AuthenticatedProjectsRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRoute
   '/staff': typeof AuthenticatedStaffRoute
@@ -224,6 +232,7 @@ export interface FileRoutesByTo {
   '/org-chart': typeof AuthenticatedOrgChartRoute
   '/positions': typeof AuthenticatedPositionsRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/project-config': typeof AuthenticatedProjectConfigRoute
   '/projects': typeof AuthenticatedProjectsRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRoute
   '/staff': typeof AuthenticatedStaffRoute
@@ -253,6 +262,7 @@ export interface FileRoutesById {
   '/_authenticated/org-chart': typeof AuthenticatedOrgChartRoute
   '/_authenticated/positions': typeof AuthenticatedPositionsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/_authenticated/project-config': typeof AuthenticatedProjectConfigRoute
   '/_authenticated/projects': typeof AuthenticatedProjectsRouteWithChildren
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/staff': typeof AuthenticatedStaffRoute
@@ -283,6 +293,7 @@ export interface FileRouteTypes {
     | '/org-chart'
     | '/positions'
     | '/profile'
+    | '/project-config'
     | '/projects'
     | '/settings'
     | '/staff'
@@ -311,6 +322,7 @@ export interface FileRouteTypes {
     | '/org-chart'
     | '/positions'
     | '/profile'
+    | '/project-config'
     | '/projects'
     | '/settings'
     | '/staff'
@@ -339,6 +351,7 @@ export interface FileRouteTypes {
     | '/_authenticated/org-chart'
     | '/_authenticated/positions'
     | '/_authenticated/profile'
+    | '/_authenticated/project-config'
     | '/_authenticated/projects'
     | '/_authenticated/settings'
     | '/_authenticated/staff'
@@ -432,6 +445,13 @@ declare module '@tanstack/react-router' {
       path: '/projects'
       fullPath: '/projects'
       preLoaderRoute: typeof AuthenticatedProjectsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/project-config': {
+      id: '/_authenticated/project-config'
+      path: '/project-config'
+      fullPath: '/project-config'
+      preLoaderRoute: typeof AuthenticatedProjectConfigRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/profile': {
@@ -625,6 +645,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedOrgChartRoute: typeof AuthenticatedOrgChartRoute
   AuthenticatedPositionsRoute: typeof AuthenticatedPositionsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
+  AuthenticatedProjectConfigRoute: typeof AuthenticatedProjectConfigRoute
   AuthenticatedProjectsRoute: typeof AuthenticatedProjectsRouteWithChildren
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedStaffRoute: typeof AuthenticatedStaffRoute
@@ -641,6 +662,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedOrgChartRoute: AuthenticatedOrgChartRoute,
   AuthenticatedPositionsRoute: AuthenticatedPositionsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
+  AuthenticatedProjectConfigRoute: AuthenticatedProjectConfigRoute,
   AuthenticatedProjectsRoute: AuthenticatedProjectsRouteWithChildren,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedStaffRoute: AuthenticatedStaffRoute,

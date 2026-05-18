@@ -222,12 +222,24 @@ function NewProjectDialog({ ownerId, onCreated }: { ownerId: string; onCreated: 
   const [start, setStart] = useState("");
   const [due, setDue] = useState("");
   const [customerId, setCustomerId] = useState<string | undefined>();
+  const [vendorId, setVendorId] = useState<string | undefined>();
+  const [productId, setProductId] = useState<string | undefined>();
   const [managerId, setManagerId] = useState<string | undefined>();
   const [submitting, setSubmitting] = useState(false);
 
   const customers = useQuery({
     queryKey: ["customers-min"],
     queryFn: async () => (await supabase.from("customers").select("id,name").order("name")).data ?? [],
+    enabled: open,
+  });
+  const vendors = useQuery({
+    queryKey: ["vendors-min"],
+    queryFn: async () => (await supabase.from("vendors").select("id,name").order("name")).data ?? [],
+    enabled: open,
+  });
+  const products = useQuery({
+    queryKey: ["products-min"],
+    queryFn: async () => (await supabase.from("products").select("id,name").order("name")).data ?? [],
     enabled: open,
   });
   const staff = useQuery({
@@ -250,13 +262,14 @@ function NewProjectDialog({ ownerId, onCreated }: { ownerId: string; onCreated: 
             start_date: start || null, due_date: due || null,
             owner_id: ownerId, created_by: ownerId,
             customer_id: customerId ?? null, manager_id: managerId ?? null,
+            vendor_id: vendorId ?? null, product_id: productId ?? null,
           }).select("id").single();
           setSubmitting(false);
           if (error) return toast.error(error.message);
           toast.success("Project created");
           setOpen(false); setName(""); setDesc(""); setStart(""); setDue("");
           setStatus("planning"); setPriority("normal");
-          setCustomerId(undefined); setManagerId(undefined);
+          setCustomerId(undefined); setManagerId(undefined); setVendorId(undefined); setProductId(undefined);
           onCreated(data?.id);
         }} className="space-y-4">
           <div className="space-y-2"><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} required maxLength={200} /></div>
@@ -292,7 +305,25 @@ function NewProjectDialog({ ownerId, onCreated }: { ownerId: string; onCreated: 
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Project manager</Label>
+              <Label>Vendor</Label>
+              <Select value={vendorId} onValueChange={(v) => setVendorId(v || undefined)}>
+                <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                <SelectContent>
+                  {(vendors.data ?? []).map((v) => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Product</Label>
+              <Select value={productId} onValueChange={(v) => setProductId(v || undefined)}>
+                <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                <SelectContent>
+                  {(products.data ?? []).map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Primary PM</Label>
               <Select value={managerId} onValueChange={(v) => setManagerId(v || undefined)}>
                 <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
                 <SelectContent>

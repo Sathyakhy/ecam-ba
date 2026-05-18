@@ -120,6 +120,7 @@ function EditProjectDialog({ project, onSaved }: {
     id: string; name: string; description: string | null; status: string; priority: string;
     start_date: string | null; due_date: string | null;
     customer_id: string | null; manager_id: string | null; owner_id: string;
+    vendor_id?: string | null; product_id?: string | null;
   };
   onSaved: () => void;
 }) {
@@ -131,11 +132,23 @@ function EditProjectDialog({ project, onSaved }: {
   const [start, setStart] = useState(project.start_date ?? "");
   const [due, setDue] = useState(project.due_date ?? "");
   const [customerId, setCustomerId] = useState<string | undefined>(project.customer_id ?? undefined);
+  const [vendorId, setVendorId] = useState<string | undefined>(project.vendor_id ?? undefined);
+  const [productId, setProductId] = useState<string | undefined>(project.product_id ?? undefined);
   const [managerId, setManagerId] = useState<string | undefined>(project.manager_id ?? undefined);
 
   const customers = useQuery({
     queryKey: ["customers-min"],
     queryFn: async () => (await supabase.from("customers").select("id,name").order("name")).data ?? [],
+    enabled: open,
+  });
+  const vendors = useQuery({
+    queryKey: ["vendors-min"],
+    queryFn: async () => (await supabase.from("vendors").select("id,name").order("name")).data ?? [],
+    enabled: open,
+  });
+  const products = useQuery({
+    queryKey: ["products-min"],
+    queryFn: async () => (await supabase.from("products").select("id,name").order("name")).data ?? [],
     enabled: open,
   });
   const staff = useQuery({
@@ -159,6 +172,8 @@ function EditProjectDialog({ project, onSaved }: {
               start_date: start || null, due_date: due || null,
               customer_id: customerId ?? null,
               manager_id: managerId ?? null,
+              vendor_id: vendorId ?? null,
+              product_id: productId ?? null,
             }).eq("id", project.id);
             if (error) return toast.error(error.message);
             toast.success("Saved");
@@ -200,7 +215,25 @@ function EditProjectDialog({ project, onSaved }: {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Project manager</Label>
+              <Label>Vendor</Label>
+              <Select value={vendorId} onValueChange={(v) => setVendorId(v || undefined)}>
+                <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                <SelectContent>
+                  {(vendors.data ?? []).map((v) => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Product</Label>
+              <Select value={productId} onValueChange={(v) => setProductId(v || undefined)}>
+                <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                <SelectContent>
+                  {(products.data ?? []).map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Primary PM</Label>
               <Select value={managerId} onValueChange={(v) => setManagerId(v || undefined)}>
                 <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
                 <SelectContent>
