@@ -692,6 +692,10 @@ function TaskDialog({
   const [remark, setRemark] = useState(task?.remark ?? "");
   const [progress, setProgress] = useState<string>(task?.progress?.toString() ?? "0");
   const [predecessors, setPredecessors] = useState<string[]>(task?.predecessor_ids ?? []);
+  const [baselineStart, setBaselineStart] = useState(task?.baseline_start ?? "");
+  const [baselineFinish, setBaselineFinish] = useState(task?.baseline_finish ?? "");
+  const [actualStart, setActualStart] = useState(task?.actual_start ?? "");
+  const [taskMode, setTaskMode] = useState(task?.task_mode ?? "auto");
 
   // Parent selection state (only for new sub-task flow)
   const isEdit = !!task;
