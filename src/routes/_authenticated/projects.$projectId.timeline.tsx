@@ -142,6 +142,7 @@ function TimelinePage() {
               <Th>Actual</Th>
               <Th>Responsible</Th>
               <Th>Status</Th>
+              <Th>Progress</Th>
               <Th>Depends</Th>
               <Th>Remark</Th>
               <Th></Th>
