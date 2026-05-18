@@ -17,6 +17,8 @@ interface ProfileRow {
   onboarded: boolean;
 }
 
+type ModuleAccess = "view" | "edit";
+
 interface AuthContextValue {
   session: Session | null;
   user: User | null;
@@ -24,6 +26,9 @@ interface AuthContextValue {
   profile: ProfileRow | null;
   isAdmin: boolean;
   authError: string | null;
+  systemModules: Record<string, ModuleAccess>;
+  canAccess: (moduleKey: string) => boolean;
+  canEdit: (moduleKey: string) => boolean;
   signOut: () => Promise<void>;
   refresh: () => void;
 }
@@ -107,13 +112,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ? profileQuery.error.message
       : null;
 
+  const isAdmin = !!profileQuery.data?.isAdmin;
+  const systemModules = (profileQuery.data as { systemModules?: Record<string, ModuleAccess> } | undefined)?.systemModules ?? {};
+
+  // Profile is always accessible; admins see everything.
+  const canAccess = (key: string) => isAdmin || key === "profile" || key in systemModules;
+  const canEdit = (key: string) => isAdmin || systemModules[key] === "edit";
+
   const value: AuthContextValue = {
     session,
     user: session?.user ?? null,
     loading: loading || (!!session && profileQuery.isLoading && !profileLoadTimedOut),
     profile: (profileQuery.data?.profile as ProfileRow | null) ?? null,
-    isAdmin: !!profileQuery.data?.isAdmin,
+    isAdmin,
     authError,
+    systemModules,
+    canAccess,
+    canEdit,
     signOut: async () => {
       queryClient.clear();
       setSession(null);
