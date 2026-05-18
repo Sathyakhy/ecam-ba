@@ -1,5 +1,1 @@
 project_id = "aavwrymhujfgkyrgwfkj"
-
-[auth.email.template.recovery]
-subject = "Your password reset code"
-content_path = "./supabase/templates/recovery.html"
