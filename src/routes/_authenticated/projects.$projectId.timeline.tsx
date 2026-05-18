@@ -650,7 +650,7 @@ function RowItem({
 }
 
 function TaskDialog({
-  projectId, authorId, staff, orgs, roots, statusOptions, onSaved, parentTaskId, trigger, task, open: openProp, onOpenChange, allTasks, taskNo,
+  projectId, authorId, staff, orgs, roots, statusOptions, modeOptions, onSaved, parentTaskId, trigger, task, open: openProp, onOpenChange, allTasks, taskNo,
 }: {
   projectId: string;
   authorId: string;
@@ -658,6 +658,7 @@ function TaskDialog({
   orgs: string[];
   roots: Task[];
   statusOptions: { key: string; label: string }[];
+  modeOptions: { key: string; label: string }[];
   onSaved: () => void;
   parentTaskId?: string;
   trigger?: React.ReactNode;
