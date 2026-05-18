@@ -182,7 +182,7 @@ function TimelinePage() {
 
       <Card className="p-4 overflow-x-auto">
         <h3 className="text-sm font-semibold mb-3">Gantt Chart</h3>
-        <GanttView tasks={bars} projectStart={project.data.start_date} projectDue={project.data.due_date} />
+        <GanttView tasks={bars} childMap={childMap} projectStart={project.data.start_date} projectDue={project.data.due_date} />
       </Card>
 
       {editing && (
