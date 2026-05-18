@@ -552,8 +552,9 @@ function TaskDialog({
   );
 }
 
-function GanttView({ tasks, projectStart, projectDue }: {
+function GanttView({ tasks, childMap, projectStart, projectDue }: {
   tasks: Task[];
+  childMap: Record<string, Task[]>;
   projectStart: string | null;
   projectDue: string | null;
 }) {
@@ -569,6 +570,7 @@ function GanttView({ tasks, projectStart, projectDue }: {
       id: t.id, title: t.title, status: t.status,
       isParent: !t.parent_task_id,
       predecessors: t.predecessor_ids ?? [],
+      progress: effectiveProgress(t, childMap),
       idx,
       start: new Date(startStr), end: new Date(endStr),
     };
