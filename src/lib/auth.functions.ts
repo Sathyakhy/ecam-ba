@@ -266,7 +266,7 @@ export const updateOwnProfile = createServerFn({ method: "POST" })
 export const getMyProfile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const [{ data: profile }, { data: roles }] = await Promise.all([
+    const [{ data: profile }, { data: roles }, { data: sysAssign }] = await Promise.all([
       context.supabase
         .from("profiles")
         .select("*")
@@ -276,11 +276,33 @@ export const getMyProfile = createServerFn({ method: "GET" })
         .from("user_roles")
         .select("role")
         .eq("user_id", context.userId),
+      context.supabase
+        .from("user_system_roles")
+        .select("role_id")
+        .eq("user_id", context.userId),
     ]);
+
+    const roleIds = (sysAssign ?? []).map((r) => r.role_id);
+    const systemModules: Record<string, "view" | "edit"> = {};
+    if (roleIds.length > 0) {
+      const { data: sr } = await context.supabase
+        .from("system_roles")
+        .select("modules,access_level")
+        .in("id", roleIds);
+      for (const r of sr ?? []) {
+        const modules = (r.modules as string[] | null) ?? [];
+        const level = (r.access_level as "view" | "edit") ?? "edit";
+        for (const m of modules) {
+          if (systemModules[m] !== "edit") systemModules[m] = level;
+        }
+      }
+    }
+
     return {
       profile,
       roles: roles?.map((r) => r.role) ?? [],
       isAdmin: !!roles?.some((r) => r.role === "admin"),
+      systemModules,
     };
   });
 
