@@ -410,6 +410,7 @@ function RowGroup({
             staff={staff}
             orgs={orgs}
             roots={roots}
+            statusOptions={statusOptions}
             onSaved={onSaved}
             parentTaskId={task.id}
             allTasks={allTasks}
