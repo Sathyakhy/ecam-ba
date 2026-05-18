@@ -251,8 +251,8 @@ function TimelinePage() {
             <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All statuses</SelectItem>
-              {statuses.map((s) => (
-                <SelectItem key={s} value={s}>{TASK_STATUS_META[s]?.label ?? s}</SelectItem>
+              {statusOptions.map((s) => (
+                <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
