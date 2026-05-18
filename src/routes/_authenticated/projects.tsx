@@ -18,7 +18,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { PageHeader } from "@/components/page-header";
-import { STATUS_META, PRIORITY_META } from "@/lib/project-meta";
+import { STATUS_META, PRIORITY_META, metaEntries } from "@/lib/project-meta";
 
 export const Route = createFileRoute("/_authenticated/projects")({
   component: ProjectsIndex,
