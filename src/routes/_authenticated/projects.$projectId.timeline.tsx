@@ -17,7 +17,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useProject } from "@/hooks/use-project";
-import { TASK_STATUS_META, metaEntries, formatDate } from "@/lib/project-meta";
+import { TASK_STATUS_META, metaEntries } from "@/lib/project-meta";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/projects/$projectId/timeline")({
