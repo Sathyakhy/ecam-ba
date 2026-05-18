@@ -258,6 +258,7 @@ function TimelinePage() {
               <Th className="w-28">Start</Th>
               <Th className="w-28">Finish</Th>
               <Th className="w-28">Predecessors</Th>
+              <Th className="min-w-[160px] text-left">Remark</Th>
               <Th className="w-20"></Th>
             </tr>
           </thead>
