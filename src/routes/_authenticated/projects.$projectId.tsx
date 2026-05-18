@@ -62,19 +62,23 @@ function ProjectLayout() {
   const navigate = useNavigate();
 
   if (project.isLoading) {
-    return <p className="text-sm text-muted-foreground">Loading project…</p>;
+    return <ProjectPending />;
   }
   if (project.error) {
     return (
-      <Card className="p-6 border-destructive/40">
-        <p className="text-sm text-destructive">{(project.error as Error).message}</p>
-      </Card>
+      <ProjectError
+        error={project.error as Error}
+        reset={() => qc.invalidateQueries({ queryKey: ["project", projectId] })}
+      />
     );
   }
   if (!project.data) {
     return (
-      <Card className="p-10 text-center">
-        <p className="text-sm">Project not found.</p>
+      <Card className="p-10 text-center space-y-3">
+        <p className="text-sm font-medium">Project not found.</p>
+        <Button size="sm" variant="outline" asChild>
+          <Link to="/projects"><ArrowLeft className="h-3.5 w-3.5 mr-1" /> Back to projects</Link>
+        </Button>
       </Card>
     );
   }
