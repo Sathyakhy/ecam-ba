@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { UserPlus, Trash2, Tag, Plus, X } from "lucide-react";
+import { UserPlus, Trash2, Tag, Plus, X, Mail, Phone, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -21,10 +22,35 @@ export const Route = createFileRoute("/_authenticated/projects/$projectId/member
   component: MembersPage,
 });
 
+type MemberKind = "ecam" | "customer" | "vendor" | "manual";
+
+const KIND_LABEL: Record<MemberKind, string> = {
+  ecam: "eCam",
+  customer: "Customer",
+  vendor: "Vendor",
+  manual: "Manual",
+};
+
+type MemberRecord = {
+  id: string;
+  project_id: string;
+  profile_id: string | null;
+  role: string;
+  kind: MemberKind;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  customer_id: string | null;
+  customer_contact_id: string | null;
+  vendor_id: string | null;
+  vendor_contact_id: string | null;
+};
+
 function MembersPage() {
   const { projectId } = Route.useParams();
   const { project, members, staff, canManage } = useProject(projectId);
   const qc = useQueryClient();
+  const [detail, setDetail] = useState<MemberRecord | null>(null);
 
   const rolesCatalog = useQuery({
     queryKey: ["project_roles_catalog"],
@@ -40,9 +66,9 @@ function MembersPage() {
   const owner = staff.data?.find((s) => s.id === p.owner_id);
   const manager = staff.data?.find((s) => s.id === p.manager_id);
 
-  const rows = (members.data ?? []).map((m) => ({
+  const rows = ((members.data ?? []) as MemberRecord[]).map((m) => ({
     ...m,
-    profile: staff.data?.find((s) => s.id === m.profile_id),
+    profile: m.profile_id ? staff.data?.find((s) => s.id === m.profile_id) : undefined,
   }));
 
   return (
@@ -52,7 +78,7 @@ function MembersPage() {
         {canManage && (
           <AddMemberDialog
             projectId={projectId}
-            existingIds={[p.owner_id, p.manager_id, ...(members.data ?? []).map((m) => m.profile_id)].filter(Boolean) as string[]}
+            existingProfileIds={[p.owner_id, p.manager_id, ...(members.data ?? []).map((m) => m.profile_id)].filter(Boolean) as string[]}
             staff={staff.data ?? []}
             onAdded={() => qc.invalidateQueries({ queryKey: ["project-members", projectId] })}
           />
@@ -60,13 +86,17 @@ function MembersPage() {
       </div>
 
       <Card className="divide-y">
-        <MemberRow profile={owner} role="Owner" />
+        {owner && <MemberRow profile={owner} role="Owner" />}
         {manager && manager.id !== owner?.id && <MemberRow profile={manager} role="Primary PM" />}
         {rows.map((m) => (
           <MemberRow
             key={m.id}
             profile={m.profile}
+            fallbackName={m.name ?? undefined}
+            fallbackEmail={m.email ?? undefined}
+            kind={m.kind}
             role={m.role}
+            onClick={() => setDetail(m)}
             roleSlot={
               <ProjectRoleSlot
                 projectId={projectId}
@@ -87,27 +117,42 @@ function MembersPage() {
           <p className="text-xs text-muted-foreground p-4 text-center">No additional members yet.</p>
         )}
       </Card>
+
+      <MemberDetailDialog member={detail} onOpenChange={(o) => !o && setDetail(null)} />
     </div>
   );
 }
 
-function MemberRow({ profile, role, roleSlot, onRemove }: {
+function MemberRow({ profile, fallbackName, fallbackEmail, kind, role, roleSlot, onRemove, onClick }: {
   profile?: { id: string; full_name: string; avatar_url: string | null; job_title: string | null };
+  fallbackName?: string;
+  fallbackEmail?: string;
+  kind?: MemberKind;
   role: string;
   roleSlot?: React.ReactNode;
   onRemove?: () => void | Promise<void>;
+  onClick?: () => void;
 }) {
-  if (!profile) return null;
+  const name = profile?.full_name ?? fallbackName ?? "Unnamed";
+  const subtitle = profile?.job_title ?? fallbackEmail ?? "";
   return (
     <div className="flex items-center gap-3 p-3 flex-wrap">
-      <Avatar className="h-9 w-9">
-        {profile.avatar_url && <AvatarImage src={profile.avatar_url} />}
-        <AvatarFallback>{profile.full_name.slice(0,2).toUpperCase()}</AvatarFallback>
-      </Avatar>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{profile.full_name}</p>
-        <p className="text-xs text-muted-foreground truncate">{profile.job_title ?? ""}</p>
-      </div>
+      <button
+        type="button"
+        className="flex items-center gap-3 flex-1 min-w-0 text-left hover:opacity-80"
+        onClick={onClick}
+        disabled={!onClick}
+      >
+        <Avatar className="h-9 w-9">
+          {profile?.avatar_url && <AvatarImage src={profile.avatar_url} />}
+          <AvatarFallback>{name.slice(0,2).toUpperCase()}</AvatarFallback>
+        </Avatar>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate">{name}</p>
+          <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
+        </div>
+      </button>
+      {kind && <Badge variant={kind === "ecam" ? "default" : kind === "customer" ? "secondary" : "outline"} className="text-[10px]">{KIND_LABEL[kind]}</Badge>}
       <span className="text-xs text-muted-foreground capitalize">{role}</span>
       {roleSlot}
       {onRemove && (
@@ -116,6 +161,68 @@ function MemberRow({ profile, role, roleSlot, onRemove }: {
         </Button>
       )}
     </div>
+  );
+}
+
+function MemberDetailDialog({ member, onOpenChange }: { member: MemberRecord | null; onOpenChange: (o: boolean) => void }) {
+  const profile = useQuery({
+    queryKey: ["profile-detail", member?.profile_id],
+    queryFn: async () => member?.profile_id
+      ? (await supabase.from("profiles").select("*").eq("id", member.profile_id).maybeSingle()).data
+      : null,
+    enabled: !!member?.profile_id,
+  });
+  const customer = useQuery({
+    queryKey: ["customer-detail", member?.customer_id],
+    queryFn: async () => member?.customer_id
+      ? (await supabase.from("customers").select("*").eq("id", member.customer_id).maybeSingle()).data
+      : null,
+    enabled: !!member?.customer_id,
+  });
+  const vendor = useQuery({
+    queryKey: ["vendor-detail", member?.vendor_id],
+    queryFn: async () => member?.vendor_id
+      ? (await supabase.from("vendors").select("*").eq("id", member.vendor_id).maybeSingle()).data
+      : null,
+    enabled: !!member?.vendor_id,
+  });
+
+  if (!member) return null;
+  const displayName = profile.data?.full_name ?? member.name ?? "Unnamed";
+  const email = profile.data?.email ?? member.email;
+  const phone = profile.data?.phone ?? member.phone;
+  const org = customer.data?.name ?? vendor.data?.name;
+
+  return (
+    <Dialog open={!!member} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Member details</DialogTitle></DialogHeader>
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-14 w-14">
+              {profile.data?.avatar_url && <AvatarImage src={profile.data.avatar_url} />}
+              <AvatarFallback>{displayName.slice(0,2).toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <p className="text-base font-semibold truncate">{displayName}</p>
+              <div className="flex gap-2 mt-1">
+                <Badge variant={member.kind === "ecam" ? "default" : member.kind === "customer" ? "secondary" : "outline"} className="text-[10px]">
+                  {KIND_LABEL[member.kind]}
+                </Badge>
+                <Badge variant="outline" className="text-[10px] capitalize">{member.role}</Badge>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-2 text-sm">
+            {profile.data?.job_title && <p className="text-muted-foreground">{profile.data.job_title}</p>}
+            {org && <p className="flex items-center gap-2"><Building2 className="h-3.5 w-3.5 text-muted-foreground" />{org}</p>}
+            {email && <p className="flex items-center gap-2"><Mail className="h-3.5 w-3.5 text-muted-foreground" />{email}</p>}
+            {phone && <p className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-muted-foreground" />{phone}</p>}
+            {profile.data?.department && <p className="text-muted-foreground text-xs">Department · {profile.data.department}</p>}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -177,46 +284,150 @@ function ProjectRoleSlot({ projectId, memberId, catalog, assigned, canManage, on
   );
 }
 
-function AddMemberDialog({ projectId, staff, existingIds, onAdded }: {
+function AddMemberDialog({ projectId, staff, existingProfileIds, onAdded }: {
   projectId: string;
   staff: { id: string; full_name: string }[];
-  existingIds: string[];
+  existingProfileIds: string[];
   onAdded: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [pid, setPid] = useState<string | undefined>(undefined);
-  const [roleName, setRoleName] = useState<string | undefined>(undefined);
-  const available = staff.filter((s) => !existingIds.includes(s.id));
+  const [kind, setKind] = useState<MemberKind>("ecam");
+  const [profileId, setProfileId] = useState<string | undefined>();
+  const [companyId, setCompanyId] = useState<string | undefined>();
+  const [contactId, setContactId] = useState<string | undefined>();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [roleName, setRoleName] = useState<string | undefined>();
 
   const rolesCatalog = useQuery({
     queryKey: ["project_roles_catalog"],
     queryFn: async () =>
       (await supabase.from("project_roles_catalog").select("id,name,access_level").order("name")).data ?? [],
   });
+  const companies = useQuery({
+    queryKey: [kind === "customer" ? "customers" : "vendors", "min"],
+    queryFn: async () => (await supabase.from(kind === "customer" ? "customers" : "vendors").select("id,name").order("name")).data ?? [],
+    enabled: open && (kind === "customer" || kind === "vendor"),
+  });
+  const contacts = useQuery({
+    queryKey: [kind === "customer" ? "customer_contacts" : "vendor_contacts", companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      const fk = kind === "customer" ? "customer_id" : "vendor_id";
+      const table = kind === "customer" ? "customer_contacts" : "vendor_contacts";
+      return (await (supabase.from(table) as never as { select: (s: string) => { eq: (c: string, v: string) => Promise<{ data: unknown[] | null }> } }).select("*").eq(fk, companyId)).data ?? [];
+    },
+    enabled: open && !!companyId && (kind === "customer" || kind === "vendor"),
+  });
+
+  const availableStaff = staff.filter((s) => !existingProfileIds.includes(s.id));
+
+  const reset = () => {
+    setKind("ecam"); setProfileId(undefined); setCompanyId(undefined); setContactId(undefined);
+    setName(""); setEmail(""); setPhone(""); setRoleName(undefined);
+  };
+
+  const canSubmit = !!roleName && (
+    (kind === "ecam" && !!profileId) ||
+    (kind === "manual" && name.trim().length > 0) ||
+    ((kind === "customer" || kind === "vendor") && !!companyId && name.trim().length > 0)
+  );
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
       <DialogTrigger asChild><Button size="sm"><UserPlus className="h-3.5 w-3.5 mr-1" /> Add member</Button></DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Add team member</DialogTitle></DialogHeader>
         <form onSubmit={async (e) => {
           e.preventDefault();
-          if (!pid || !roleName) return;
-          const { error } = await supabase.from("project_members").insert({ project_id: projectId, profile_id: pid, role: roleName });
+          if (!canSubmit) return;
+          const payload: Record<string, unknown> = {
+            project_id: projectId,
+            role: roleName,
+            kind,
+            profile_id: kind === "ecam" ? profileId : null,
+            name: kind === "ecam" ? null : name.trim(),
+            email: kind === "ecam" ? null : (email.trim() || null),
+            phone: kind === "ecam" ? null : (phone.trim() || null),
+            customer_id: kind === "customer" ? companyId ?? null : null,
+            customer_contact_id: kind === "customer" ? contactId ?? null : null,
+            vendor_id: kind === "vendor" ? companyId ?? null : null,
+            vendor_contact_id: kind === "vendor" ? contactId ?? null : null,
+          };
+          const { error } = await supabase.from("project_members").insert(payload as never);
           if (error) return toast.error(error.message);
           toast.success("Member added");
-          setOpen(false); setPid(undefined); setRoleName(undefined);
+          setOpen(false); reset();
           onAdded();
         }} className="space-y-4">
           <div className="space-y-2">
-            <Label>Person</Label>
-            <Select value={pid} onValueChange={setPid}>
-              <SelectTrigger><SelectValue placeholder="Select staff" /></SelectTrigger>
+            <Label>Type</Label>
+            <Select value={kind} onValueChange={(v) => { setKind(v as MemberKind); setProfileId(undefined); setCompanyId(undefined); setContactId(undefined); setName(""); setEmail(""); setPhone(""); }}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {available.map((s) => <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>)}
+                <SelectItem value="ecam">eCam (internal staff)</SelectItem>
+                <SelectItem value="customer">Customer contact</SelectItem>
+                <SelectItem value="vendor">Vendor contact</SelectItem>
+                <SelectItem value="manual">Manual entry</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          {kind === "ecam" && (
+            <div className="space-y-2">
+              <Label>Staff</Label>
+              <Select value={profileId} onValueChange={setProfileId}>
+                <SelectTrigger><SelectValue placeholder="Select staff" /></SelectTrigger>
+                <SelectContent>
+                  {availableStaff.map((s) => <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {(kind === "customer" || kind === "vendor") && (
+            <>
+              <div className="space-y-2">
+                <Label>{kind === "customer" ? "Customer company" : "Vendor company"}</Label>
+                <Select value={companyId} onValueChange={(v) => { setCompanyId(v); setContactId(undefined); setName(""); setEmail(""); setPhone(""); }}>
+                  <SelectTrigger><SelectValue placeholder="Select company" /></SelectTrigger>
+                  <SelectContent>
+                    {(companies.data ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              {companyId && (
+                <div className="space-y-2">
+                  <Label>Contact (optional)</Label>
+                  <Select value={contactId} onValueChange={(v) => {
+                    setContactId(v);
+                    const c = (contacts.data as Array<{ id: string; full_name: string; email: string | null; phone: string | null }> | undefined)?.find((x) => x.id === v);
+                    if (c) { setName(c.full_name ?? ""); setEmail(c.email ?? ""); setPhone(c.phone ?? ""); }
+                  }}>
+                    <SelectTrigger><SelectValue placeholder="Pick a contact or type manually below" /></SelectTrigger>
+                    <SelectContent>
+                      {(contacts.data ?? []).map((c) => {
+                        const x = c as { id: string; full_name: string };
+                        return <SelectItem key={x.id} value={x.id}>{x.full_name}</SelectItem>;
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </>
+          )}
+
+          {kind !== "ecam" && (
+            <div className="space-y-2">
+              <div className="space-y-2"><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} required maxLength={120} /></div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2"><Label>Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={200} /></div>
+                <div className="space-y-2"><Label>Phone</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={50} /></div>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label>Access</Label>
             <Select value={roleName} onValueChange={setRoleName}>
@@ -234,7 +445,8 @@ function AddMemberDialog({ projectId, staff, existingIds, onAdded }: {
               </SelectContent>
             </Select>
           </div>
-          <DialogFooter><Button type="submit" disabled={!pid || !roleName}>Add</Button></DialogFooter>
+
+          <DialogFooter><Button type="submit" disabled={!canSubmit}>Add</Button></DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
