@@ -19,8 +19,10 @@ export const resolveUsernameToEmail = createServerFn({ method: "POST" })
     return { email: row.email };
   });
 
-// Public: send password reset email by username
-export const requestPasswordReset = createServerFn({ method: "POST" })
+// Public: look up the email for a username so the client can call
+// supabase.auth.resetPasswordForEmail with the correct window.location.origin
+// as redirectTo. Returns { email: null } when not found so we don't leak existence.
+export const lookupResetEmail = createServerFn({ method: "POST" })
   .inputValidator((input) =>
     z.object({ username: z.string().trim().min(1).max(64) }).parse(input),
   )
@@ -30,12 +32,7 @@ export const requestPasswordReset = createServerFn({ method: "POST" })
       .select("email")
       .eq("username", data.username.toLowerCase())
       .maybeSingle();
-    if (!row) return { ok: true }; // do not leak existence
-    const siteUrl = process.env.SITE_URL || "";
-    await supabaseAdmin.auth.resetPasswordForEmail(row.email, {
-      redirectTo: `${siteUrl}/reset-password`,
-    });
-    return { ok: true };
+    return { email: row?.email ?? null };
   });
 
 // Admin: create a new staff user
