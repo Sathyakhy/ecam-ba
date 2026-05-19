@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Trash2, ChevronRight, ChevronDown, Pencil, Search, X, ListChecks, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, ChevronRight, ChevronDown, Pencil, Search, X, ListChecks, AlertTriangle, Columns3 } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -26,6 +29,19 @@ export const Route = createFileRoute("/_authenticated/projects/$projectId/timeli
 });
 
 const DAY = 1000 * 60 * 60 * 24;
+
+type ColKey = "mode" | "duration" | "start" | "finish" | "predecessors" | "remark";
+const COL_DEFS: { key: ColKey; label: string }[] = [
+  { key: "mode", label: "Task Mode" },
+  { key: "duration", label: "Duration" },
+  { key: "start", label: "Start" },
+  { key: "finish", label: "Finish" },
+  { key: "predecessors", label: "Predecessors" },
+  { key: "remark", label: "Remark" },
+];
+const DEFAULT_COLS: Record<ColKey, boolean> = {
+  mode: true, duration: true, start: true, finish: true, predecessors: true, remark: true,
+};
 
 type Task = {
   id: string;
@@ -79,6 +95,19 @@ function TimelinePage() {
   const toggleSelect = (id: string) =>
     setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const clearSelection = () => setSelected(new Set());
+
+  const COLS_KEY = `timeline-cols:${projectId}`;
+  const [cols, setCols] = useState<Record<ColKey, boolean>>(() => {
+    if (typeof window === "undefined") return DEFAULT_COLS;
+    try {
+      const raw = localStorage.getItem(COLS_KEY);
+      if (raw) return { ...DEFAULT_COLS, ...JSON.parse(raw) };
+    } catch {/* ignore */}
+    return DEFAULT_COLS;
+  });
+  useEffect(() => {
+    try { localStorage.setItem(COLS_KEY, JSON.stringify(cols)); } catch {/* ignore */}
+  }, [cols, COLS_KEY]);
 
   const tasksQ = useQuery({
     queryKey: ["timeline-tasks", projectId],
@@ -295,6 +324,27 @@ function TimelinePage() {
               <X className="h-3 w-3 mr-1" /> Clear
             </Button>
           )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="outline" className="h-8 text-xs">
+                <Columns3 className="h-3 w-3 mr-1" /> Columns
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Visible columns</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {COL_DEFS.map((c) => (
+                <DropdownMenuCheckboxItem
+                  key={c.key}
+                  checked={cols[c.key]}
+                  onCheckedChange={(v) => setCols((s) => ({ ...s, [c.key]: !!v }))}
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  {c.label}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           {filtersActive && (
             <span className="text-[11px] text-muted-foreground ml-auto">
               Showing {filteredTasks.length} of {tasks.length} task{tasks.length === 1 ? "" : "s"}
@@ -329,19 +379,19 @@ function TimelinePage() {
                 </Th>
               )}
               <Th className="w-10">ID</Th>
-              <Th className="w-14">Task<br/>Mode</Th>
-              <Th className="min-w-[320px] text-left">Task Name</Th>
-              <Th className="w-20">Duration</Th>
-              <Th className="w-28">Start</Th>
-              <Th className="w-28">Finish</Th>
-              <Th className="w-28">Predecessors</Th>
-              <Th className="min-w-[160px] text-left">Remark</Th>
+              {cols.mode && <Th className="w-14">Task<br/>Mode</Th>}
+              <Th className="min-w-[320px] text-left sticky left-0 bg-muted/50 z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]">Task Name</Th>
+              {cols.duration && <Th className="w-20">Duration</Th>}
+              {cols.start && <Th className="w-28">Start</Th>}
+              {cols.finish && <Th className="w-28">Finish</Th>}
+              {cols.predecessors && <Th className="w-28">Predecessors</Th>}
+              {cols.remark && <Th className="min-w-[160px] text-left">Remark</Th>}
               <Th className="w-20"></Th>
             </tr>
           </thead>
           <tbody>
             {visibleRoots.length === 0 && (
-              <tr><td colSpan={canEdit ? 10 : 9} className="text-center text-muted-foreground py-6">
+              <tr><td colSpan={3 + Object.values(cols).filter(Boolean).length + (canEdit ? 1 : 0)} className="text-center text-muted-foreground py-6">
                 {tasks.length === 0 ? "No tasks yet." : "No tasks match the current filters."}
               </td></tr>
             )}
@@ -378,6 +428,7 @@ function TimelinePage() {
                     childMap={childMap}
                     selected={selected}
                     onToggleSelect={toggleSelect}
+                    cols={cols}
                   />
                 );
               });
@@ -429,7 +480,7 @@ function Td({ children, className }: { children?: React.ReactNode; className?: s
 }
 
 function RowGroup({
-  rowId, childRowIds, task, children, isOpen, onToggle, staff, orgs, roots, statusOptions, modeOptions, canEdit, onEdit, onView, onDeleted, projectId, authorId, onSaved, allTasks, taskNo, childMap, selected, onToggleSelect,
+  rowId, childRowIds, task, children, isOpen, onToggle, staff, orgs, roots, statusOptions, modeOptions, canEdit, onEdit, onView, onDeleted, projectId, authorId, onSaved, allTasks, taskNo, childMap, selected, onToggleSelect, cols,
 }: {
   rowId: number;
   childRowIds: number[];
@@ -454,6 +505,7 @@ function RowGroup({
   childMap: Record<string, Task[]>;
   selected: Set<string>;
   onToggleSelect: (id: string) => void;
+  cols: Record<ColKey, boolean>;
 }) {
   void childRowIds;
   return (
@@ -481,12 +533,13 @@ function RowGroup({
       counter={{ n: rowId }}
       selected={selected}
       onToggleSelect={onToggleSelect}
+      cols={cols}
     />
   );
 }
 
 function RowSubtree({
-  task, children, isOpen, onToggle, staff, orgs, roots, statusOptions, modeOptions, canEdit, onEdit, onView, onDeleted, projectId, authorId, onSaved, allTasks, taskNo, childMap, level, counter, selected, onToggleSelect,
+  task, children, isOpen, onToggle, staff, orgs, roots, statusOptions, modeOptions, canEdit, onEdit, onView, onDeleted, projectId, authorId, onSaved, allTasks, taskNo, childMap, level, counter, selected, onToggleSelect, cols,
 }: {
   task: Task;
   children: Task[];
@@ -511,6 +564,7 @@ function RowSubtree({
   counter: { n: number };
   selected: Set<string>;
   onToggleSelect: (id: string) => void;
+  cols: Record<ColKey, boolean>;
 }) {
   const [openLocal, setOpenLocal] = useState(true);
   const grandchildren = childMap[task.id] ?? [];
@@ -535,6 +589,7 @@ function RowSubtree({
         indent={level}
         isSelected={selected.has(task.id)}
         onToggleSelect={onToggleSelect}
+        cols={cols}
         extraActions={canEdit && (
           <TaskDialog
             projectId={projectId}
@@ -578,6 +633,7 @@ function RowSubtree({
           counter={counter}
           selected={selected}
           onToggleSelect={onToggleSelect}
+          cols={cols}
         />
       ))}
     </>
@@ -603,7 +659,7 @@ function formatMsDate(d: string | null): string {
 }
 
 function RowItem({
-  rowId, task, staff, canEdit, onEdit, onView, onDeleted, isParent, hasChildren, isOpen, onToggle, extraActions, taskNo, indent, isSelected, onToggleSelect,
+  rowId, task, staff, canEdit, onEdit, onView, onDeleted, isParent, hasChildren, isOpen, onToggle, extraActions, taskNo, indent, isSelected, onToggleSelect, cols,
 }: {
   rowId: number;
   task: Task;
@@ -621,6 +677,7 @@ function RowItem({
   indent: number;
   isSelected?: boolean;
   onToggleSelect?: (id: string) => void;
+  cols: Record<ColKey, boolean>;
 }) {
   void staff;
 
@@ -657,10 +714,12 @@ function RowItem({
         </Td>
       )}
       <Td className="text-center text-muted-foreground tabular-nums">{rowId}</Td>
-      <Td className="text-center">
-        <ListChecks className="h-3.5 w-3.5 mx-auto text-blue-600" />
-      </Td>
-      <Td>
+      {cols.mode && (
+        <Td className="text-center">
+          <ListChecks className="h-3.5 w-3.5 mx-auto text-blue-600" />
+        </Td>
+      )}
+      <Td className={cn("sticky left-0 bg-background z-[1] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]", isSelected && "bg-primary/5")}>
         <div className="flex items-start gap-1" style={{ paddingLeft: `${indent * 18}px` }}>
           {isParent && hasChildren ? (
             <button onClick={onToggle} className="mt-0.5 shrink-0">
@@ -684,11 +743,11 @@ function RowItem({
           )}
         </div>
       </Td>
-      <Td className="whitespace-nowrap">{duration}</Td>
-      <Td className="whitespace-nowrap">{formatMsDate(task.start_date)}</Td>
-      <Td className={cn("whitespace-nowrap", overdue && "text-destructive font-medium")}>{formatMsDate(task.due_date)}</Td>
-      <Td className="whitespace-nowrap text-center">{depLabels.length ? depLabels.join(";") : ""}</Td>
-      <Td className="text-[11px] whitespace-pre-wrap">{task.remark ?? ""}</Td>
+      {cols.duration && <Td className="whitespace-nowrap">{duration}</Td>}
+      {cols.start && <Td className="whitespace-nowrap">{formatMsDate(task.start_date)}</Td>}
+      {cols.finish && <Td className={cn("whitespace-nowrap", overdue && "text-destructive font-medium")}>{formatMsDate(task.due_date)}</Td>}
+      {cols.predecessors && <Td className="whitespace-nowrap text-center">{depLabels.length ? depLabels.join(";") : ""}</Td>}
+      {cols.remark && <Td className="text-[11px] whitespace-pre-wrap">{task.remark ?? ""}</Td>}
       <Td className="text-center">
         <div className="flex items-center gap-0.5 justify-center opacity-0 group-hover:opacity-100 transition-opacity">
           <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => onView(task)} title="View details">

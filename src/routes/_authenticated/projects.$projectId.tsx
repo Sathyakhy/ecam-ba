@@ -1,7 +1,9 @@
 import { createFileRoute, Outlet, useNavigate, useRouter, Link, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Trash2, Pencil, Loader2, AlertTriangle, ArrowLeft } from "lucide-react";
+import { Trash2, Pencil, Loader2, AlertTriangle, ArrowLeft, BookmarkPlus } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { saveProjectAsTemplate } from "@/lib/project-templates";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -103,6 +105,7 @@ function ProjectLayout() {
               project={project.data}
               onSaved={() => qc.invalidateQueries({ queryKey: ["project", projectId] })}
             />
+            <SaveAsTemplateButton projectId={projectId} projectName={project.data.name} />
             <Button variant="ghost" size="icon" onClick={onDelete} title="Delete project">
               <Trash2 className="h-4 w-4 text-destructive" />
             </Button>
@@ -112,6 +115,42 @@ function ProjectLayout() {
       <Outlet />
       {pathname === `/projects/${projectId}` && <ProjectOverview projectId={projectId} />}
     </div>
+  );
+}
+
+function SaveAsTemplateButton({ projectId, projectName }: { projectId: string; projectName: string }) {
+  const { profile } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(`${projectName} template`);
+  const [desc, setDesc] = useState("");
+  const [saving, setSaving] = useState(false);
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm"><BookmarkPlus className="h-3.5 w-3.5 mr-1" /> Save as template</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Save as template</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-2"><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} required maxLength={200} /></div>
+          <div className="space-y-2"><Label>Description</Label><Textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} maxLength={1000} /></div>
+          <p className="text-[11px] text-muted-foreground">Snapshots all milestones and tasks (with relative dates from the project start). Members and attachments are not included.</p>
+        </div>
+        <DialogFooter>
+          <Button disabled={!name.trim() || saving} onClick={async () => {
+            if (!profile?.id) return;
+            setSaving(true);
+            try {
+              await saveProjectAsTemplate({ projectId, name, description: desc || undefined, createdBy: profile.id });
+              toast.success("Template saved");
+              setOpen(false);
+            } catch (e) {
+              toast.error((e as Error).message);
+            } finally { setSaving(false); }
+          }}>{saving ? "Saving…" : "Save template"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
