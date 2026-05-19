@@ -429,7 +429,7 @@ function Td({ children, className }: { children?: React.ReactNode; className?: s
 }
 
 function RowGroup({
-  rowId, childRowIds, task, children, isOpen, onToggle, staff, orgs, roots, statusOptions, modeOptions, canEdit, onEdit, onView, onDeleted, projectId, authorId, onSaved, allTasks, taskNo, childMap,
+  rowId, childRowIds, task, children, isOpen, onToggle, staff, orgs, roots, statusOptions, modeOptions, canEdit, onEdit, onView, onDeleted, projectId, authorId, onSaved, allTasks, taskNo, childMap, selected, onToggleSelect,
 }: {
   rowId: number;
   childRowIds: number[];
@@ -452,6 +452,8 @@ function RowGroup({
   allTasks: Task[];
   taskNo: Record<string, string>;
   childMap: Record<string, Task[]>;
+  selected: Set<string>;
+  onToggleSelect: (id: string) => void;
 }) {
   void childRowIds;
   return (
@@ -477,6 +479,8 @@ function RowGroup({
       childMap={childMap}
       level={0}
       counter={{ n: rowId }}
+      selected={selected}
+      onToggleSelect={onToggleSelect}
     />
   );
 }
