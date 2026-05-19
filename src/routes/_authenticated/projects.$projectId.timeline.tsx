@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Trash2, ChevronRight, ChevronDown, Pencil, Search, X, ListChecks, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, ChevronRight, ChevronDown, Pencil, Search, X, ListChecks, AlertTriangle, Columns3 } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
