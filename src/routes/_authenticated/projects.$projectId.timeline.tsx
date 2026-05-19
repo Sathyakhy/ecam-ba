@@ -589,6 +589,7 @@ function RowSubtree({
         indent={level}
         isSelected={selected.has(task.id)}
         onToggleSelect={onToggleSelect}
+        cols={cols}
         extraActions={canEdit && (
           <TaskDialog
             projectId={projectId}
