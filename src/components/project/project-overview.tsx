@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useProject } from "@/hooks/use-project";
 import { STATUS_META, formatDate, TASK_STATUS_META } from "@/lib/project-meta";
 import { ProjectManagers } from "@/components/project/project-managers";
+import { ProjectFiles } from "@/components/project/project-files";
 
 export function ProjectOverview({ projectId }: { projectId: string }) {
   const { project, members, staff, canManage } = useProject(projectId);
