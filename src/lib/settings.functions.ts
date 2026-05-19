@@ -32,11 +32,8 @@ export const updateAppSettings = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { data: roles } = await context.supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", context.userId);
-    if (!roles?.some((r) => r.role === "admin")) throw new Error("Forbidden: admin only");
+    const { assertAdmin } = await import("./admin-check");
+    await assertAdmin(context.supabase, context.userId);
 
     const { error } = await supabaseAdmin
       .from("app_settings")
