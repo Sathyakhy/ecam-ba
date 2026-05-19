@@ -16,6 +16,7 @@ import {
   FolderKanban,
   KeyRound,
   SlidersHorizontal,
+  ScrollText,
 } from "lucide-react";
 import {
   Sidebar,
