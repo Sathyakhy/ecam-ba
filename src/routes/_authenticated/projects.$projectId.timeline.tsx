@@ -533,6 +533,7 @@ function RowGroup({
       counter={{ n: rowId }}
       selected={selected}
       onToggleSelect={onToggleSelect}
+      cols={cols}
     />
   );
 }
