@@ -379,13 +379,13 @@ function TimelinePage() {
                 </Th>
               )}
               <Th className="w-10">ID</Th>
-              <Th className="w-14">Task<br/>Mode</Th>
-              <Th className="min-w-[320px] text-left">Task Name</Th>
-              <Th className="w-20">Duration</Th>
-              <Th className="w-28">Start</Th>
-              <Th className="w-28">Finish</Th>
-              <Th className="w-28">Predecessors</Th>
-              <Th className="min-w-[160px] text-left">Remark</Th>
+              {cols.mode && <Th className="w-14">Task<br/>Mode</Th>}
+              <Th className="min-w-[320px] text-left sticky left-0 bg-muted/50 z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]">Task Name</Th>
+              {cols.duration && <Th className="w-20">Duration</Th>}
+              {cols.start && <Th className="w-28">Start</Th>}
+              {cols.finish && <Th className="w-28">Finish</Th>}
+              {cols.predecessors && <Th className="w-28">Predecessors</Th>}
+              {cols.remark && <Th className="min-w-[160px] text-left">Remark</Th>}
               <Th className="w-20"></Th>
             </tr>
           </thead>
