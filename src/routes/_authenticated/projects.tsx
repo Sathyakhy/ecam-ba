@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { PageHeader } from "@/components/page-header";
 import { STATUS_META, PRIORITY_META, metaEntries } from "@/lib/project-meta";
+import { instantiateTemplate } from "@/lib/project-templates";
 
 type Filters = {
   q: string;
