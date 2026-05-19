@@ -122,30 +122,48 @@ function Dashboard() {
       <div className="grid gap-4 lg:grid-cols-3 mt-6">
         <Card className="p-5 lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold">My open tasks</h2>
-            <Link to="/tasks" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
-              View all <ArrowRight className="h-3 w-3" />
+            <h2 className="font-semibold">My project tasks</h2>
+            <Link to="/projects" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
+              All projects <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
-          {myTasks.data?.length ? (
+          {myTasks.isLoading ? (
+            <EmptyHint text="Loading…" />
+          ) : myTasks.data?.length ? (
             <ul className="divide-y divide-border">
-              {myTasks.data.map((t) => (
-                <li key={t.id} className="py-3 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{t.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {t.due_date ? `Due ${new Date(t.due_date).toLocaleDateString()}` : "No due date"}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Badge variant={t.priority === "high" ? "destructive" : "secondary"}>{t.priority}</Badge>
-                    <Badge variant="outline">{t.status.replace("_", " ")}</Badge>
-                  </div>
-                </li>
-              ))}
+              {myTasks.data.map((t) => {
+                const overdue = t.due_date && new Date(t.due_date) < new Date();
+                return (
+                  <li key={t.id} className="py-3 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <Link
+                        to="/projects/$projectId/timeline"
+                        params={{ projectId: t.project_id }}
+                        className="text-sm font-medium truncate hover:underline block"
+                      >
+                        {t.title}
+                      </Link>
+                      <p className="text-xs text-muted-foreground truncate flex items-center gap-1.5">
+                        <span className="truncate">{t.project_name}</span>
+                        <span>·</span>
+                        <span className={overdue ? "text-destructive font-medium inline-flex items-center gap-1" : ""}>
+                          {overdue && <AlertTriangle className="h-3 w-3" />}
+                          {t.due_date ? `Due ${new Date(t.due_date).toLocaleDateString()}` : "No due date"}
+                        </span>
+                        <span>·</span>
+                        <span>{t.progress ?? 0}%</span>
+                      </p>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <Badge variant={t.priority === "high" || t.priority === "urgent" ? "destructive" : "secondary"} className="text-[10px]">{t.priority}</Badge>
+                      <Badge variant="outline" className="text-[10px]">{t.status.replace("_", " ")}</Badge>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           ) : (
-            <EmptyHint text="You have no open tasks. Nice." />
+            <EmptyHint text="No open project tasks assigned to you." />
           )}
         </Card>
 
@@ -180,28 +198,65 @@ function Dashboard() {
         </Card>
       </div>
 
-      <Card className="p-5 mt-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Megaphone className="h-4 w-4 text-primary" />
-          <h2 className="font-semibold">Latest announcements</h2>
-          <Link to="/announcements" className="ml-auto text-xs text-primary hover:underline">View all</Link>
-        </div>
-        {stats.data?.anns.length ? (
-          <ul className="space-y-3">
-            {stats.data.anns.map((a) => (
-              <li key={a.id} className="border border-border rounded-md p-3">
-                <div className="flex items-center justify-between">
-                  <p className="font-medium text-sm">{a.title}</p>
-                  <span className="text-xs text-muted-foreground">{new Date(a.created_at).toLocaleDateString()}</span>
-                </div>
-                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{a.content}</p>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <EmptyHint text="No announcements yet." />
-        )}
-      </Card>
+      <div className="grid gap-4 lg:grid-cols-2 mt-6">
+        <Card className="p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Activity className="h-4 w-4 text-primary" />
+            <h2 className="font-semibold">Recent project activity</h2>
+          </div>
+          {recentActivity.isLoading ? (
+            <EmptyHint text="Loading…" />
+          ) : recentActivity.data?.length ? (
+            <ul className="space-y-2">
+              {recentActivity.data.map((a) => (
+                <li key={a.id} className="text-xs flex items-start gap-2 border-l-2 border-primary/20 pl-2 py-1">
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate">
+                      <span className="font-medium">{a.actor_name}</span>{" "}
+                      <span className="text-muted-foreground">{a.action.replace(/_/g, " ")}</span>
+                    </p>
+                    {a.summary && (
+                      <Link
+                        to="/projects/$projectId"
+                        params={{ projectId: a.project_id }}
+                        className="text-[11px] text-muted-foreground truncate hover:underline block"
+                      >
+                        {a.project_name} — {a.summary}
+                      </Link>
+                    )}
+                    <p className="text-[10px] text-muted-foreground">{new Date(a.created_at).toLocaleString()}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyHint text="No activity yet." />
+          )}
+        </Card>
+
+        <Card className="p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Megaphone className="h-4 w-4 text-primary" />
+            <h2 className="font-semibold">Latest announcements</h2>
+            <Link to="/announcements" className="ml-auto text-xs text-primary hover:underline">View all</Link>
+          </div>
+          {stats.data?.anns.length ? (
+            <ul className="space-y-3">
+              {stats.data.anns.map((a) => (
+                <li key={a.id} className="border border-border rounded-md p-3">
+                  <div className="flex items-center justify-between">
+                    <p className="font-medium text-sm">{a.title}</p>
+                    <span className="text-xs text-muted-foreground">{new Date(a.created_at).toLocaleDateString()}</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{a.content}</p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyHint text="No announcements yet." />
+          )}
+        </Card>
+      </div>
     </div>
   );
 }
