@@ -75,6 +75,10 @@ function TimelinePage() {
   const [fSite, setFSite] = useState<string>("all");
   const [fStatus, setFStatus] = useState<string>("all");
   const [fAssignee, setFAssignee] = useState<string>("all");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const toggleSelect = (id: string) =>
+    setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const clearSelection = () => setSelected(new Set());
 
   const tasksQ = useQuery({
     queryKey: ["timeline-tasks", projectId],
