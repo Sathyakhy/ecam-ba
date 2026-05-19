@@ -12,7 +12,7 @@ import { ProjectManagers } from "@/components/project/project-managers";
 import { ProjectFiles } from "@/components/project/project-files";
 
 export function ProjectOverview({ projectId }: { projectId: string }) {
-  const { project, members, staff, canManage } = useProject(projectId);
+  const { project, members, staff, canManage, isMember } = useProject(projectId);
 
   const customer = useQuery({
     queryKey: ["project-customer", projectId],
