@@ -324,6 +324,27 @@ function TimelinePage() {
               <X className="h-3 w-3 mr-1" /> Clear
             </Button>
           )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="outline" className="h-8 text-xs">
+                <Columns3 className="h-3 w-3 mr-1" /> Columns
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Visible columns</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {COL_DEFS.map((c) => (
+                <DropdownMenuCheckboxItem
+                  key={c.key}
+                  checked={cols[c.key]}
+                  onCheckedChange={(v) => setCols((s) => ({ ...s, [c.key]: !!v }))}
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  {c.label}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           {filtersActive && (
             <span className="text-[11px] text-muted-foreground ml-auto">
               Showing {filteredTasks.length} of {tasks.length} task{tasks.length === 1 ? "" : "s"}
