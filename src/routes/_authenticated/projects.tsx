@@ -433,7 +433,7 @@ function NewProjectDialog({ ownerId, onCreated }: { ownerId: string; onCreated: 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" /> New project</Button></DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Create project</DialogTitle></DialogHeader>
         <form onSubmit={async (e) => {
           e.preventDefault();
@@ -446,14 +446,33 @@ function NewProjectDialog({ ownerId, onCreated }: { ownerId: string; onCreated: 
             customer_id: customerId ?? null, manager_id: managerId ?? null,
             vendor_id: vendorId ?? null, product_id: productId ?? null,
           }).select("id").single();
+          if (error) { setSubmitting(false); return toast.error(error.message); }
+          if (templateId && data?.id) {
+            try {
+              await instantiateTemplate({ templateId, newProjectId: data.id, createdBy: ownerId, startDate: start || null });
+            } catch (err) {
+              toast.error("Project created, but template failed: " + (err as Error).message);
+            }
+          }
           setSubmitting(false);
-          if (error) return toast.error(error.message);
           toast.success("Project created");
           setOpen(false); setName(""); setDesc(""); setStart(""); setDue("");
-          setStatus("planning"); setPriority("normal");
+          setStatus("planning"); setPriority("normal"); setTemplateId(undefined);
           setCustomerId(undefined); setManagerId(undefined); setVendorId(undefined); setProductId(undefined);
           onCreated(data?.id);
         }} className="space-y-4">
+          {(templates.data ?? []).length > 0 && (
+            <div className="space-y-2">
+              <Label>From template (optional)</Label>
+              <Select value={templateId} onValueChange={(v) => setTemplateId(v || undefined)}>
+                <SelectTrigger><SelectValue placeholder="Start blank" /></SelectTrigger>
+                <SelectContent>
+                  {(templates.data ?? []).map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground">Milestones &amp; tasks will be copied with dates relative to the start date below.</p>
+            </div>
+          )}
           <div className="space-y-2"><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} required maxLength={200} /></div>
           <div className="space-y-2"><Label>Description</Label><Textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} maxLength={2000} /></div>
           <div className="grid grid-cols-2 gap-3">
