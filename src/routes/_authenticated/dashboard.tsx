@@ -42,16 +42,52 @@ function Dashboard() {
   });
 
   const myTasks = useQuery({
-    queryKey: ["my-tasks", profile?.id],
+    queryKey: ["my-project-tasks", profile?.id],
     enabled: !!profile?.id,
     queryFn: async () => {
-      const { data } = await supabase.from("tasks")
-        .select("id,title,status,priority,due_date")
-        .eq("assignee_id", profile!.id)
+      const orFilter = `assignee_id.eq.${profile!.id},pic_orgs.cs.{${profile!.full_name}}`;
+      const { data } = await supabase
+        .from("project_tasks")
+        .select("id,title,status,priority,due_date,project_id,progress")
+        .or(orFilter)
         .neq("status", "done")
+        .neq("status", "completed")
+        .is("deleted_at", null)
         .order("due_date", { ascending: true, nullsFirst: false })
-        .limit(5);
-      return data ?? [];
+        .limit(8);
+      const ids = Array.from(new Set((data ?? []).map((t) => t.project_id)));
+      const names: Record<string, string> = {};
+      if (ids.length) {
+        const { data: ps } = await supabase.from("projects").select("id,name").in("id", ids);
+        (ps ?? []).forEach((p) => { names[p.id] = p.name; });
+      }
+      return (data ?? []).map((t) => ({ ...t, project_name: names[t.project_id] ?? "Project" }));
+    },
+  });
+
+  const recentActivity = useQuery({
+    queryKey: ["dashboard-activity"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("project_activity")
+        .select("id,action,summary,created_at,entity_type,project_id,actor_id")
+        .order("created_at", { ascending: false })
+        .limit(8);
+      const ids = Array.from(new Set((data ?? []).map((a) => a.project_id)));
+      const aids = Array.from(new Set((data ?? []).map((a) => a.actor_id).filter(Boolean))) as string[];
+      const [{ data: ps }, { data: actors }] = await Promise.all([
+        ids.length
+          ? supabase.from("projects").select("id,name").in("id", ids)
+          : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+        aids.length
+          ? supabase.from("profiles").select("id,full_name").in("id", aids)
+          : Promise.resolve({ data: [] as { id: string; full_name: string }[] }),
+      ]);
+      return (data ?? []).map((a) => ({
+        ...a,
+        project_name: ps?.find((p) => p.id === a.project_id)?.name ?? "Project",
+        actor_name: actors?.find((x) => x.id === a.actor_id)?.full_name ?? "System",
+      }));
     },
   });
 
