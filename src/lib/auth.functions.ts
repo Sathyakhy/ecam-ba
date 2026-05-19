@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { assertAdmin, isUserAdmin } from "./admin-check";
 
 // Public: resolve username -> email so the user can sign in with username
 export const resolveUsernameToEmail = createServerFn({ method: "POST" })
@@ -59,13 +60,7 @@ export const adminCreateUser = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    // Verify caller is admin
-    const { data: roles } = await context.supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", context.userId);
-    const isAdmin = roles?.some((r) => r.role === "admin");
-    if (!isAdmin) throw new Error("Forbidden: admin only");
+    await assertAdmin(context.supabase, context.userId);
 
     const username = data.username.toLowerCase();
 
@@ -120,12 +115,7 @@ export const adminDeleteUser = createServerFn({ method: "POST" })
     z.object({ user_id: z.string().uuid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { data: roles } = await context.supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", context.userId);
-    if (!roles?.some((r) => r.role === "admin"))
-      throw new Error("Forbidden: admin only");
+    await assertAdmin(context.supabase, context.userId);
     if (data.user_id === context.userId)
       throw new Error("Cannot delete yourself");
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.user_id);
@@ -164,9 +154,7 @@ export const adminUpdateUser = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { data: roles } = await context.supabase
-      .from("user_roles").select("role").eq("user_id", context.userId);
-    if (!roles?.some((r) => r.role === "admin")) throw new Error("Forbidden: admin only");
+    await assertAdmin(context.supabase, context.userId);
 
     let username: string | undefined;
     if (data.username) {
@@ -330,9 +318,7 @@ export const adminBulkImportStaff = createServerFn({ method: "POST" })
     }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { data: roles } = await context.supabase
-      .from("user_roles").select("role").eq("user_id", context.userId);
-    if (!roles?.some((r) => r.role === "admin")) throw new Error("Forbidden: admin only");
+    await assertAdmin(context.supabase, context.userId);
 
     const { data: existing } = await supabaseAdmin.from("profiles").select("id,email");
     const byEmail = new Map((existing ?? []).map((p) => [p.email.toLowerCase(), p.id]));
