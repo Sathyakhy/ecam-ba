@@ -259,13 +259,17 @@ function NewTaskDialog({ projectId, authorId, staff, onCreated, parentTaskId, tr
   );
 }
 
-function TaskDialog({ taskId, projectId, open, onOpenChange, onStatusChange }: {
+function TaskDialog({ taskId: initialTaskId, projectId, open, onOpenChange, onStatusChange }: {
   taskId: string;
   projectId: string;
   open: boolean;
   onOpenChange: (o: boolean) => void;
   onStatusChange: (id: string, s: string) => void;
 }) {
+  const [stack, setStack] = useState<string[]>([initialTaskId]);
+  const taskId = stack[stack.length - 1];
+  const openSubtask = (id: string) => setStack((s) => [...s, id]);
+  const goBack = () => setStack((s) => s.length > 1 ? s.slice(0, -1) : s);
   const qc = useQueryClient();
   const { staff, canManage, profile } = useProject(projectId);
 
