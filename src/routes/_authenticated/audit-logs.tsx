@@ -82,7 +82,6 @@ function Inner() {
   return (
     <div className="space-y-6 p-6">
       <PageHeader
-        icon={ScrollText}
         title="Audit logs"
         description="Track who created, updated, or deleted records across modules."
       />
