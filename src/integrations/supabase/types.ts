@@ -714,6 +714,39 @@ export type Database = {
         }
         Relationships: []
       }
+      project_attachments: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          project_id: string
+          uploader_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          project_id: string
+          uploader_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          project_id?: string
+          uploader_id?: string
+        }
+        Relationships: []
+      }
       project_managers: {
         Row: {
           created_at: string
@@ -1249,6 +1282,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      project_templates: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          name: string
+          payload: Json
+          source_project_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          name: string
+          payload?: Json
+          source_project_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          name?: string
+          payload?: Json
+          source_project_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       projects: {
         Row: {
