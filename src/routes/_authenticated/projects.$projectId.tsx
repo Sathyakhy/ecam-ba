@@ -118,6 +118,42 @@ function ProjectLayout() {
   );
 }
 
+function SaveAsTemplateButton({ projectId, projectName }: { projectId: string; projectName: string }) {
+  const { profile } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(`${projectName} template`);
+  const [desc, setDesc] = useState("");
+  const [saving, setSaving] = useState(false);
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm"><BookmarkPlus className="h-3.5 w-3.5 mr-1" /> Save as template</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Save as template</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-2"><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} required maxLength={200} /></div>
+          <div className="space-y-2"><Label>Description</Label><Textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} maxLength={1000} /></div>
+          <p className="text-[11px] text-muted-foreground">Snapshots all milestones and tasks (with relative dates from the project start). Members and attachments are not included.</p>
+        </div>
+        <DialogFooter>
+          <Button disabled={!name.trim() || saving} onClick={async () => {
+            if (!profile?.id) return;
+            setSaving(true);
+            try {
+              await saveProjectAsTemplate({ projectId, name, description: desc || undefined, createdBy: profile.id });
+              toast.success("Template saved");
+              setOpen(false);
+            } catch (e) {
+              toast.error((e as Error).message);
+            } finally { setSaving(false); }
+          }}>{saving ? "Saving…" : "Save template"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function EditProjectDialog({ project, onSaved }: {
   project: {
     id: string; name: string; description: string | null; status: string; priority: string;
