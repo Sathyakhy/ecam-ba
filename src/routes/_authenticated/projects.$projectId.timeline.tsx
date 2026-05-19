@@ -539,7 +539,7 @@ function RowGroup({
 }
 
 function RowSubtree({
-  task, children, isOpen, onToggle, staff, orgs, roots, statusOptions, modeOptions, canEdit, onEdit, onView, onDeleted, projectId, authorId, onSaved, allTasks, taskNo, childMap, level, counter, selected, onToggleSelect,
+  task, children, isOpen, onToggle, staff, orgs, roots, statusOptions, modeOptions, canEdit, onEdit, onView, onDeleted, projectId, authorId, onSaved, allTasks, taskNo, childMap, level, counter, selected, onToggleSelect, cols,
 }: {
   task: Task;
   children: Task[];
@@ -564,6 +564,7 @@ function RowSubtree({
   counter: { n: number };
   selected: Set<string>;
   onToggleSelect: (id: string) => void;
+  cols: Record<ColKey, boolean>;
 }) {
   const [openLocal, setOpenLocal] = useState(true);
   const grandchildren = childMap[task.id] ?? [];
