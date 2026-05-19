@@ -376,6 +376,8 @@ function TimelinePage() {
                     allTasks={tasks}
                     taskNo={taskNo}
                     childMap={childMap}
+                    selected={selected}
+                    onToggleSelect={toggleSelect}
                   />
                 );
               });
