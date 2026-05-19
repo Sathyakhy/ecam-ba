@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { assertAdmin, isUserAdmin } from "./admin-check";
+import { assertAdmin } from "./admin-check";
 
 // Public: resolve username -> email so the user can sign in with username
 export const resolveUsernameToEmail = createServerFn({ method: "POST" })
