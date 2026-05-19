@@ -448,9 +448,11 @@ function TaskDialog({ taskId: initialTaskId, projectId, open, onOpenChange, onSt
               {(subtasks.data ?? []).map((st) => {
                 const stMeta = TASK_STATUS_META[st.status] ?? TASK_STATUS_META.todo;
                 return (
-                  <div key={st.id} className="flex items-center gap-2 text-xs border rounded px-2 py-1.5">
+                  <div key={st.id} className="flex items-center gap-2 text-xs border rounded px-2 py-1.5 hover:border-primary/40 transition">
                     <Badge variant={stMeta.variant} className="text-[9px]">{stMeta.label}</Badge>
-                    <span className="flex-1 truncate">{st.title}</span>
+                    <button className="flex-1 truncate text-left hover:underline" onClick={() => openSubtask(st.id)}>
+                      {st.title}
+                    </button>
                     <Select value={st.status} onValueChange={async (v) => {
                       await supabase.from("project_tasks").update({ status: v }).eq("id", st.id);
                       qc.invalidateQueries({ queryKey: ["task-subtasks", taskId] });
