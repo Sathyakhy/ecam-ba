@@ -380,7 +380,27 @@ function TaskDialog({ taskId, projectId, open, onOpenChange, onStatusChange }: {
               <p className="text-muted-foreground mb-1">Created</p>
               <p>{formatDate(t.created_at)}</p>
             </div>
-            <div className="flex items-end justify-end">
+            <div className="flex items-end justify-end gap-1">
+              {(canManage || isMemberOrCreator(t, profile?.id)) && (
+                <Button size="sm" variant="ghost" className="h-7"
+                  onClick={async () => {
+                    const { id, created_at, updated_at, ...rest } = t as any;
+                    void id; void created_at; void updated_at;
+                    const { error } = await supabase.from("project_tasks").insert({
+                      ...rest,
+                      title: `${t.title} (copy)`,
+                      status: "todo",
+                      created_by: profile?.id,
+                      parent_task_id: t.parent_task_id,
+                    });
+                    if (error) return toast.error(error.message);
+                    toast.success("Duplicated");
+                    onOpenChange(false);
+                    qc.invalidateQueries({ queryKey: ["project-tasks-full", projectId] });
+                  }}>
+                  <Copy className="h-3 w-3 mr-1" /> Duplicate
+                </Button>
+              )}
               {(canManage || t.created_by === profile?.id) && (
                 <Button size="sm" variant="ghost" className="text-destructive h-7"
                   onClick={async () => {
