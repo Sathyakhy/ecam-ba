@@ -30,6 +30,19 @@ export const Route = createFileRoute("/_authenticated/projects/$projectId/timeli
 
 const DAY = 1000 * 60 * 60 * 24;
 
+type ColKey = "mode" | "duration" | "start" | "finish" | "predecessors" | "remark";
+const COL_DEFS: { key: ColKey; label: string }[] = [
+  { key: "mode", label: "Task Mode" },
+  { key: "duration", label: "Duration" },
+  { key: "start", label: "Start" },
+  { key: "finish", label: "Finish" },
+  { key: "predecessors", label: "Predecessors" },
+  { key: "remark", label: "Remark" },
+];
+const DEFAULT_COLS: Record<ColKey, boolean> = {
+  mode: true, duration: true, start: true, finish: true, predecessors: true, remark: true,
+};
+
 type Task = {
   id: string;
   project_id: string;
