@@ -16,6 +16,7 @@ import {
   FolderKanban,
   KeyRound,
   SlidersHorizontal,
+  ScrollText,
 } from "lucide-react";
 import {
   Sidebar,
@@ -52,6 +53,7 @@ const adminItems = [
   { title: "Positions", url: "/positions", icon: Briefcase, moduleKey: "positions" },
   { title: "Project Config", url: "/project-config", icon: SlidersHorizontal, moduleKey: "project-config" },
   { title: "System Roles", url: "/system-roles", icon: KeyRound, moduleKey: "admin" },
+  { title: "Audit logs", url: "/audit-logs", icon: ScrollText, moduleKey: "admin" },
   { title: "Settings", url: "/settings", icon: Settings, moduleKey: "settings" },
 ] as const;
 
