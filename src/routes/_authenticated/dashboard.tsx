@@ -137,51 +137,93 @@ function Dashboard() {
       <div className="grid gap-4 lg:grid-cols-3 mt-6">
         <Card className="p-5 lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold">My project tasks</h2>
+            <h2 className="font-semibold">My work</h2>
             <Link to="/projects" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
               All projects <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
-          {myTasks.isLoading ? (
-            <EmptyHint text="Loading…" />
-          ) : myTasks.data?.length ? (
-            <ul className="divide-y divide-border">
-              {myTasks.data.map((t) => {
-                const overdue = t.due_date && new Date(t.due_date) < new Date();
-                return (
-                  <li key={t.id} className="py-3 flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <Link
-                        to="/projects/$projectId/timeline"
-                        params={{ projectId: t.project_id }}
-                        className="text-sm font-medium truncate hover:underline block"
-                      >
-                        {t.title}
-                      </Link>
-                      <p className="text-xs text-muted-foreground truncate flex items-center gap-1.5">
-                        <span className="truncate">{t.project_name}</span>
-                        <span>·</span>
-                        <span className={overdue ? "text-destructive font-medium inline-flex items-center gap-1" : ""}>
-                          {overdue && <AlertTriangle className="h-3 w-3" />}
-                          {t.due_date ? `Due ${new Date(t.due_date).toLocaleDateString()}` : "No due date"}
-                        </span>
-                        <span>·</span>
-                        <span>{t.progress ?? 0}%</span>
-                      </p>
-                    </div>
-                    <div className="flex gap-2 shrink-0">
-                      <Badge variant={t.priority === "high" || t.priority === "urgent" ? "destructive" : "secondary"} className="text-[10px]">{t.priority}</Badge>
-                      <Badge variant="outline" className="text-[10px]">{t.status.replace("_", " ")}</Badge>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <EmptyHint text="No open project tasks assigned to you." />
-          )}
+          {(() => {
+            const all = myTasks.data ?? [];
+            const now = new Date();
+            const weekEnd = new Date(); weekEnd.setDate(now.getDate() + 7);
+            const overdue = all.filter((t) => t.due_date && new Date(t.due_date) < now);
+            const thisWeek = all.filter((t) => t.due_date && new Date(t.due_date) >= now && new Date(t.due_date) <= weekEnd);
+            const later = all.filter((t) => !t.due_date || new Date(t.due_date) > weekEnd);
+            const Section = ({ label, items, tone }: { label: string; items: typeof all; tone?: "danger" | "warn" }) => (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className={`text-xs font-semibold uppercase tracking-wide ${tone === "danger" ? "text-destructive" : tone === "warn" ? "text-warning" : "text-muted-foreground"}`}>{label}</h3>
+                  <Badge variant="outline" className="text-[10px]">{items.length}</Badge>
+                </div>
+                {items.length === 0 ? (
+                  <p className="text-[11px] text-muted-foreground pl-1 pb-1">Nothing here.</p>
+                ) : (
+                  <ul className="divide-y divide-border">
+                    {items.slice(0, 6).map((t) => {
+                      const od = t.due_date && new Date(t.due_date) < now;
+                      return (
+                        <li key={t.id} className="py-2 flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <Link to="/projects/$projectId/timeline" params={{ projectId: t.project_id }}
+                              className="text-sm font-medium truncate hover:underline block">{t.title}</Link>
+                            <p className="text-[11px] text-muted-foreground truncate">
+                              <span>{t.project_name}</span>
+                              <span> · </span>
+                              <span className={od ? "text-destructive font-medium inline-flex items-center gap-1" : ""}>
+                                {od && <AlertTriangle className="h-3 w-3" />}
+                                {t.due_date ? new Date(t.due_date).toLocaleDateString() : "No due date"}
+                              </span>
+                              <span> · {t.progress ?? 0}%</span>
+                            </p>
+                          </div>
+                          <Badge variant="outline" className="text-[10px] shrink-0">{t.status.replace("_", " ")}</Badge>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            );
+            return myTasks.isLoading ? (
+              <EmptyHint text="Loading…" />
+            ) : all.length === 0 ? (
+              <EmptyHint text="No open project tasks assigned to you." />
+            ) : (
+              <div className="space-y-4">
+                <Section label="Overdue" items={overdue} tone="danger" />
+                <Section label="Due this week" items={thisWeek} tone="warn" />
+                <Section label="Later" items={later} />
+              </div>
+            );
+          })()}
         </Card>
 
+        <Card className="p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold">Projects I manage</h2>
+          </div>
+          {(myProjects.data ?? []).length === 0 ? (
+            <EmptyHint text="You don't manage any projects." />
+          ) : (
+            <ul className="space-y-2">
+              {(myProjects.data ?? []).map((p) => (
+                <li key={p.id}>
+                  <Link to="/projects/$projectId" params={{ projectId: p.id }}
+                    className="block rounded-md border p-2 hover:border-primary/40 transition">
+                    <p className="text-sm font-medium truncate">{p.name}</p>
+                    <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                      <Badge variant="outline" className="text-[9px]">{p.status}</Badge>
+                      {p.due_date && <span>· Due {new Date(p.due_date).toLocaleDateString()}</span>}
+                    </p>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3 mt-6">
         <Card className="p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold">My onboarding</h2>
