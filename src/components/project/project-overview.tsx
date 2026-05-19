@@ -119,6 +119,8 @@ export function ProjectOverview({ projectId }: { projectId: string }) {
 
           <ProjectManagers projectId={projectId} canManage={canManage} />
 
+          <ProjectFiles projectId={projectId} canUpload={canManage || isMember} />
+
           <Card className="p-5">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold flex items-center gap-2"><MessageSquare className="h-4 w-4" /> Latest status updates</h2>
