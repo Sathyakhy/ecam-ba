@@ -96,6 +96,19 @@ function TimelinePage() {
     setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const clearSelection = () => setSelected(new Set());
 
+  const COLS_KEY = `timeline-cols:${projectId}`;
+  const [cols, setCols] = useState<Record<ColKey, boolean>>(() => {
+    if (typeof window === "undefined") return DEFAULT_COLS;
+    try {
+      const raw = localStorage.getItem(COLS_KEY);
+      if (raw) return { ...DEFAULT_COLS, ...JSON.parse(raw) };
+    } catch {/* ignore */}
+    return DEFAULT_COLS;
+  });
+  useEffect(() => {
+    try { localStorage.setItem(COLS_KEY, JSON.stringify(cols)); } catch {/* ignore */}
+  }, [cols, COLS_KEY]);
+
   const tasksQ = useQuery({
     queryKey: ["timeline-tasks", projectId],
     queryFn: async () => {
