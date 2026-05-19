@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { PageHeader } from "@/components/page-header";
 import {
   Users, UserPlus, GraduationCap, CheckSquare, ArrowRight, Megaphone,
+  Activity, AlertTriangle,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
