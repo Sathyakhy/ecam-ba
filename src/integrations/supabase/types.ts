@@ -79,6 +79,51 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          changed_fields: string[]
+          id: string
+          module: string
+          new_data: Json | null
+          occurred_at: string
+          old_data: Json | null
+          record_id: string | null
+          summary: string | null
+          table_name: string
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          changed_fields?: string[]
+          id?: string
+          module: string
+          new_data?: Json | null
+          occurred_at?: string
+          old_data?: Json | null
+          record_id?: string | null
+          summary?: string | null
+          table_name: string
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          changed_fields?: string[]
+          id?: string
+          module?: string
+          new_data?: Json | null
+          occurred_at?: string
+          old_data?: Json | null
+          record_id?: string | null
+          summary?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
       customer_contacts: {
         Row: {
           created_at: string
