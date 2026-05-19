@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
-import { Plus, FolderKanban, Calendar, Users, Search } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { Plus, FolderKanban, Calendar, Users, Search, Bookmark, Save, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -11,14 +11,33 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { PageHeader } from "@/components/page-header";
 import { STATUS_META, PRIORITY_META, metaEntries } from "@/lib/project-meta";
+
+type Filters = {
+  q: string;
+  status: string;
+  priority: string;
+  customer: string;
+  manager: string;
+  overdue: boolean;
+  archived: boolean;
+};
+const DEFAULT_FILTERS: Filters = {
+  q: "", status: "all", priority: "all", customer: "all", manager: "all",
+  overdue: false, archived: false,
+};
 
 export const Route = createFileRoute("/_authenticated/projects")({
   component: ProjectsIndex,
