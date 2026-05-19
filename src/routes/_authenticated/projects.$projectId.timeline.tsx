@@ -659,7 +659,7 @@ function formatMsDate(d: string | null): string {
 }
 
 function RowItem({
-  rowId, task, staff, canEdit, onEdit, onView, onDeleted, isParent, hasChildren, isOpen, onToggle, extraActions, taskNo, indent, isSelected, onToggleSelect,
+  rowId, task, staff, canEdit, onEdit, onView, onDeleted, isParent, hasChildren, isOpen, onToggle, extraActions, taskNo, indent, isSelected, onToggleSelect, cols,
 }: {
   rowId: number;
   task: Task;
@@ -677,6 +677,7 @@ function RowItem({
   indent: number;
   isSelected?: boolean;
   onToggleSelect?: (id: string) => void;
+  cols: Record<ColKey, boolean>;
 }) {
   void staff;
 
