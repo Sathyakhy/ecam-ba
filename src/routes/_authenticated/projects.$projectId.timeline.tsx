@@ -714,10 +714,12 @@ function RowItem({
         </Td>
       )}
       <Td className="text-center text-muted-foreground tabular-nums">{rowId}</Td>
-      <Td className="text-center">
-        <ListChecks className="h-3.5 w-3.5 mx-auto text-blue-600" />
-      </Td>
-      <Td>
+      {cols.mode && (
+        <Td className="text-center">
+          <ListChecks className="h-3.5 w-3.5 mx-auto text-blue-600" />
+        </Td>
+      )}
+      <Td className={cn("sticky left-0 bg-background z-[1] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]", isSelected && "bg-primary/5")}>
         <div className="flex items-start gap-1" style={{ paddingLeft: `${indent * 18}px` }}>
           {isParent && hasChildren ? (
             <button onClick={onToggle} className="mt-0.5 shrink-0">
@@ -741,11 +743,11 @@ function RowItem({
           )}
         </div>
       </Td>
-      <Td className="whitespace-nowrap">{duration}</Td>
-      <Td className="whitespace-nowrap">{formatMsDate(task.start_date)}</Td>
-      <Td className={cn("whitespace-nowrap", overdue && "text-destructive font-medium")}>{formatMsDate(task.due_date)}</Td>
-      <Td className="whitespace-nowrap text-center">{depLabels.length ? depLabels.join(";") : ""}</Td>
-      <Td className="text-[11px] whitespace-pre-wrap">{task.remark ?? ""}</Td>
+      {cols.duration && <Td className="whitespace-nowrap">{duration}</Td>}
+      {cols.start && <Td className="whitespace-nowrap">{formatMsDate(task.start_date)}</Td>}
+      {cols.finish && <Td className={cn("whitespace-nowrap", overdue && "text-destructive font-medium")}>{formatMsDate(task.due_date)}</Td>}
+      {cols.predecessors && <Td className="whitespace-nowrap text-center">{depLabels.length ? depLabels.join(";") : ""}</Td>}
+      {cols.remark && <Td className="text-[11px] whitespace-pre-wrap">{task.remark ?? ""}</Td>}
       <Td className="text-center">
         <div className="flex items-center gap-0.5 justify-center opacity-0 group-hover:opacity-100 transition-opacity">
           <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => onView(task)} title="View details">
