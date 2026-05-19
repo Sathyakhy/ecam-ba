@@ -400,7 +400,14 @@ function NewProjectDialog({ ownerId, onCreated }: { ownerId: string; onCreated: 
   const [vendorId, setVendorId] = useState<string | undefined>();
   const [productId, setProductId] = useState<string | undefined>();
   const [managerId, setManagerId] = useState<string | undefined>();
+  const [templateId, setTemplateId] = useState<string | undefined>();
   const [submitting, setSubmitting] = useState(false);
+
+  const templates = useQuery({
+    queryKey: ["project-templates-min"],
+    queryFn: async () => (await supabase.from("project_templates").select("id,name").order("created_at", { ascending: false })).data ?? [],
+    enabled: open,
+  });
 
   const customers = useQuery({
     queryKey: ["customers-min"],
