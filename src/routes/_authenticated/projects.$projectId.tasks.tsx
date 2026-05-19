@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
-import { Plus, Trash2, MessageSquare, Paperclip, Search, X, Copy } from "lucide-react";
+import { Plus, Trash2, MessageSquare, Paperclip, Search, X, Copy, Download, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -20,6 +20,10 @@ import {
 import { useProject } from "@/hooks/use-project";
 import { TASK_STATUS_META, TASK_COLUMNS, PRIORITY_META, metaEntries, formatDate } from "@/lib/project-meta";
 import { cn } from "@/lib/utils";
+import { downloadCSV, printAsPDF, escapeHTML } from "@/lib/project-exports";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export const Route = createFileRoute("/_authenticated/projects/$projectId/tasks")({
   component: TasksPage,
@@ -34,6 +38,7 @@ type Task = {
   status: string;
   priority: string;
   due_date: string | null;
+  start_date: string | null;
   assignee_id: string | null;
   created_by: string;
   created_at: string;
@@ -82,6 +87,42 @@ function TasksPage() {
     qc.invalidateQueries({ queryKey: ["project-tasks-full", projectId] });
   };
 
+  const exportTasksCSV = () => {
+    const rows = (tasks.data ?? []).map((t) => ({
+      title: t.title,
+      status: TASK_STATUS_META[t.status]?.label ?? t.status,
+      priority: PRIORITY_META[t.priority]?.label ?? t.priority,
+      assignee: staff.data?.find((s) => s.id === t.assignee_id)?.full_name ?? "",
+      start_date: t.start_date ?? "",
+      due_date: t.due_date ?? "",
+      parent: (tasks.data ?? []).find((p) => p.id === t.parent_task_id)?.title ?? "",
+      description: t.description ?? "",
+    }));
+    const name = (project.data?.name ?? "project").replace(/[^a-z0-9-_]+/gi, "_");
+    downloadCSV(`${name}-tasks.csv`, rows);
+  };
+
+  const exportTasksPDF = () => {
+    const list = (tasks.data ?? []);
+    const rowsHTML = list.map((t) => {
+      const assignee = staff.data?.find((s) => s.id === t.assignee_id)?.full_name ?? "—";
+      return `<tr>
+        <td>${escapeHTML(t.title)}</td>
+        <td><span class="badge">${escapeHTML(TASK_STATUS_META[t.status]?.label ?? t.status)}</span></td>
+        <td>${escapeHTML(PRIORITY_META[t.priority]?.label ?? t.priority)}</td>
+        <td>${escapeHTML(assignee)}</td>
+        <td>${escapeHTML(t.due_date ?? "—")}</td>
+      </tr>`;
+    }).join("");
+    const body = `
+      <h1>${escapeHTML(project.data?.name ?? "Project")} — Tasks</h1>
+      <div class="meta">${list.length} tasks · exported ${new Date().toLocaleString()}</div>
+      <table><thead><tr><th>Title</th><th>Status</th><th>Priority</th><th>Assignee</th><th>Due</th></tr></thead>
+      <tbody>${rowsHTML}</tbody></table>`;
+    printAsPDF(`${project.data?.name ?? "Project"} — Tasks`, body);
+  };
+
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -114,6 +155,19 @@ function TasksPage() {
             onCreated={() => qc.invalidateQueries({ queryKey: ["project-tasks-full", projectId] })}
           />
         )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="h-9"><Download className="h-3.5 w-3.5 mr-1" /> Export</Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => exportTasksCSV()}>
+              <FileText className="h-3.5 w-3.5 mr-2" /> Excel-compatible (.csv)
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => exportTasksPDF()}>
+              <FileText className="h-3.5 w-3.5 mr-2" /> PDF (print)
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
