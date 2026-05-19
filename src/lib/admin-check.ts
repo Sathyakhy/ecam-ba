@@ -36,3 +36,40 @@ export async function assertAdmin(
     throw new Error("Forbidden: admin only");
   }
 }
+
+/**
+ * Returns true if the user is admin OR has a system role with
+ * access_level='edit' that includes the given module.
+ */
+export async function canEditModule(
+  supabase: SupabaseClient<any, any, any>,
+  userId: string,
+  module: string,
+): Promise<boolean> {
+  if (await isUserAdmin(supabase, userId)) return true;
+  const { data: sysAssign } = await supabase
+    .from("user_system_roles")
+    .select("role_id")
+    .eq("user_id", userId);
+  const roleIds = (sysAssign ?? []).map((r: { role_id: string }) => r.role_id);
+  if (roleIds.length === 0) return false;
+  const { data: sr } = await supabase
+    .from("system_roles")
+    .select("modules,access_level")
+    .in("id", roleIds);
+  return (sr ?? []).some(
+    (r: { modules: string[] | null; access_level: string }) =>
+      r.access_level === "edit" && (r.modules ?? []).includes(module),
+  );
+}
+
+export async function assertCanEditModule(
+  supabase: SupabaseClient<any, any, any>,
+  userId: string,
+  module: string,
+): Promise<void> {
+  if (!(await canEditModule(supabase, userId, module))) {
+    throw new Error(`Forbidden: ${module} edit access required`);
+  }
+}
+

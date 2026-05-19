@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { assertAdmin } from "./admin-check";
+import { assertAdmin, canEditModule, isUserAdmin } from "./admin-check";
 
 // Public: resolve username -> email so the user can sign in with username
 export const resolveUsernameToEmail = createServerFn({ method: "POST" })
@@ -154,7 +154,11 @@ export const adminUpdateUser = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    await assertAdmin(context.supabase, context.userId);
+    const admin = await isUserAdmin(context.supabase, context.userId);
+    if (!admin) {
+      const allowed = await canEditModule(context.supabase, context.userId, "staff");
+      if (!allowed) throw new Error("Forbidden: staff edit access required");
+    }
 
     let username: string | undefined;
     if (data.username) {
@@ -196,18 +200,19 @@ export const adminUpdateUser = createServerFn({ method: "POST" })
       email: data.email,
       email_confirm: true,
     };
-    if (data.password) authPatch.password = data.password;
+    if (admin && data.password) authPatch.password = data.password;
     const { error: authErr } = await supabaseAdmin.auth.admin.updateUserById(
       data.user_id,
       authPatch,
     );
     if (authErr) throw new Error(authErr.message);
 
-    if (data.role) {
+    if (admin && data.role) {
       await supabaseAdmin.from("user_roles").delete().eq("user_id", data.user_id);
       await supabaseAdmin.from("user_roles").insert({ user_id: data.user_id, role: data.role });
     }
     return { ok: true };
+
   });
 
 // Self: update own profile
