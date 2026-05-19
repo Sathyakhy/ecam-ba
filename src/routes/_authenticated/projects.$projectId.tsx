@@ -105,6 +105,7 @@ function ProjectLayout() {
               project={project.data}
               onSaved={() => qc.invalidateQueries({ queryKey: ["project", projectId] })}
             />
+            <SaveAsTemplateButton projectId={projectId} projectName={project.data.name} />
             <Button variant="ghost" size="icon" onClick={onDelete} title="Delete project">
               <Trash2 className="h-4 w-4 text-destructive" />
             </Button>
