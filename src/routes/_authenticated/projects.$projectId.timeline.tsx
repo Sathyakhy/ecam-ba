@@ -302,9 +302,32 @@ function TimelinePage() {
           )}
         </div>
 
+        {canEdit && selected.size > 0 && (
+          <BulkActionsBar
+            count={selected.size}
+            ids={Array.from(selected)}
+            orgs={orgs}
+            statusOptions={statusOptions}
+            onClear={clearSelection}
+            onDone={() => { clearSelection(); refresh(); }}
+          />
+        )}
+
         <table className="w-full text-xs border-collapse">
           <thead>
             <tr className="bg-muted/50 text-muted-foreground">
+              {canEdit && (
+                <Th className="w-8">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all visible"
+                    checked={filteredTasks.length > 0 && filteredTasks.every((t) => selected.has(t.id))}
+                    onChange={(e) =>
+                      setSelected(e.target.checked ? new Set(filteredTasks.map((t) => t.id)) : new Set())
+                    }
+                  />
+                </Th>
+              )}
               <Th className="w-10">ID</Th>
               <Th className="w-14">Task<br/>Mode</Th>
               <Th className="min-w-[320px] text-left">Task Name</Th>
@@ -318,7 +341,7 @@ function TimelinePage() {
           </thead>
           <tbody>
             {visibleRoots.length === 0 && (
-              <tr><td colSpan={9} className="text-center text-muted-foreground py-6">
+              <tr><td colSpan={canEdit ? 10 : 9} className="text-center text-muted-foreground py-6">
                 {tasks.length === 0 ? "No tasks yet." : "No tasks match the current filters."}
               </td></tr>
             )}
