@@ -20,6 +20,10 @@ import {
 import { useProject } from "@/hooks/use-project";
 import { TASK_STATUS_META, TASK_COLUMNS, PRIORITY_META, metaEntries, formatDate } from "@/lib/project-meta";
 import { cn } from "@/lib/utils";
+import { downloadCSV, printAsPDF, escapeHTML } from "@/lib/project-exports";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export const Route = createFileRoute("/_authenticated/projects/$projectId/tasks")({
   component: TasksPage,
