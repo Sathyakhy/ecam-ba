@@ -603,7 +603,7 @@ function formatMsDate(d: string | null): string {
 }
 
 function RowItem({
-  rowId, task, staff, canEdit, onEdit, onView, onDeleted, isParent, hasChildren, isOpen, onToggle, extraActions, taskNo, indent,
+  rowId, task, staff, canEdit, onEdit, onView, onDeleted, isParent, hasChildren, isOpen, onToggle, extraActions, taskNo, indent, isSelected, onToggleSelect,
 }: {
   rowId: number;
   task: Task;
@@ -619,6 +619,8 @@ function RowItem({
   extraActions?: React.ReactNode;
   taskNo: Record<string, string>;
   indent: number;
+  isSelected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }) {
   void staff;
 
@@ -635,9 +637,25 @@ function RowItem({
 
   const depLabels = (task.predecessor_ids ?? []).map((id) => taskNo[id]).filter(Boolean);
   const duration = computeDuration(task.start_date, task.due_date);
+  const isDone = task.status === "done" || task.status === "completed";
+  const overdue = !!(task.due_date && !isDone && new Date(task.due_date) < new Date());
 
   return (
-    <tr className={cn("hover:bg-muted/30 group", isParent && "font-semibold")}>
+    <tr className={cn(
+      "hover:bg-muted/30 group",
+      isParent && "font-semibold",
+      isSelected && "bg-primary/5",
+    )}>
+      {canEdit && (
+        <Td className="text-center">
+          <input
+            type="checkbox"
+            aria-label="Select row"
+            checked={!!isSelected}
+            onChange={() => onToggleSelect?.(task.id)}
+          />
+        </Td>
+      )}
       <Td className="text-center text-muted-foreground tabular-nums">{rowId}</Td>
       <Td className="text-center">
         <ListChecks className="h-3.5 w-3.5 mx-auto text-blue-600" />
@@ -659,11 +677,16 @@ function RowItem({
           >
             {task.title}
           </button>
+          {overdue && (
+            <span className="ml-1 inline-flex items-center text-destructive shrink-0" title="Overdue">
+              <AlertTriangle className="h-3 w-3" />
+            </span>
+          )}
         </div>
       </Td>
       <Td className="whitespace-nowrap">{duration}</Td>
       <Td className="whitespace-nowrap">{formatMsDate(task.start_date)}</Td>
-      <Td className="whitespace-nowrap">{formatMsDate(task.due_date)}</Td>
+      <Td className={cn("whitespace-nowrap", overdue && "text-destructive font-medium")}>{formatMsDate(task.due_date)}</Td>
       <Td className="whitespace-nowrap text-center">{depLabels.length ? depLabels.join(";") : ""}</Td>
       <Td className="text-[11px] whitespace-pre-wrap">{task.remark ?? ""}</Td>
       <Td className="text-center">
@@ -687,6 +710,60 @@ function RowItem({
     </tr>
   );
 }
+
+function BulkActionsBar({
+  count, ids, orgs, statusOptions, onClear, onDone,
+}: {
+  count: number;
+  ids: string[];
+  orgs: string[];
+  statusOptions: { key: string; label: string }[];
+  onClear: () => void;
+  onDone: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const run = async (label: string, fn: () => Promise<{ error: unknown } | { error: null }>) => {
+    setBusy(true);
+    const { error } = await fn();
+    setBusy(false);
+    if (error) return toast.error((error as { message?: string }).message ?? "Failed");
+    toast.success(`${label} (${count})`);
+    onDone();
+  };
+  const setStatus = (key: string) =>
+    run("Status updated", () => supabase.from("project_tasks").update({ status: key }).in("id", ids));
+  const setPic = (org: string) =>
+    run("PIC updated", () => supabase.from("project_tasks").update({ pic_orgs: [org] }).in("id", ids));
+  const archive = () => {
+    if (!confirm(`Archive ${count} task(s)?`)) return Promise.resolve();
+    return run("Archived", () => supabase.from("project_tasks").update({ deleted_at: new Date().toISOString() }).in("id", ids));
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 mb-3 px-2 py-2 rounded border bg-primary/5">
+      <span className="text-xs font-medium">{count} selected</span>
+      <Select onValueChange={setStatus} disabled={busy}>
+        <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue placeholder="Set status…" /></SelectTrigger>
+        <SelectContent>
+          {statusOptions.map((s) => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}
+        </SelectContent>
+      </Select>
+      <Select onValueChange={setPic} disabled={busy}>
+        <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue placeholder="Set PIC…" /></SelectTrigger>
+        <SelectContent>
+          {orgs.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+        </SelectContent>
+      </Select>
+      <Button size="sm" variant="destructive" className="h-8" disabled={busy} onClick={archive}>
+        <Trash2 className="h-3 w-3 mr-1" /> Archive
+      </Button>
+      <Button size="sm" variant="ghost" className="h-8 text-xs ml-auto" onClick={onClear}>
+        <X className="h-3 w-3 mr-1" /> Clear selection
+      </Button>
+    </div>
+  );
+}
+
 
 function TaskDialog({
   projectId, authorId, staff, orgs, roots, statusOptions, modeOptions, onSaved, parentTaskId, trigger, task, open: openProp, onOpenChange, allTasks, taskNo,
