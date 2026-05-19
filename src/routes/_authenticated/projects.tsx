@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
-import { Plus, FolderKanban, Calendar, Users, Search } from "lucide-react";
+import { Plus, FolderKanban, Calendar, Users, Search, Bookmark, Save, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -11,14 +11,33 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { PageHeader } from "@/components/page-header";
 import { STATUS_META, PRIORITY_META, metaEntries } from "@/lib/project-meta";
+
+type Filters = {
+  q: string;
+  status: string;
+  priority: string;
+  customer: string;
+  manager: string;
+  overdue: boolean;
+  archived: boolean;
+};
+const DEFAULT_FILTERS: Filters = {
+  q: "", status: "all", priority: "all", customer: "all", manager: "all",
+  overdue: false, archived: false,
+};
 
 export const Route = createFileRoute("/_authenticated/projects")({
   component: ProjectsIndex,
@@ -38,14 +57,20 @@ function ProjectsList() {
   const { profile } = useAuth();
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [customerFilter, setCustomerFilter] = useState<string>("all");
-  const [query, setQuery] = useState("");
+  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+  const [activeViewId, setActiveViewId] = useState<string | null>(null);
+  const setF = <K extends keyof Filters>(k: K, v: Filters[K]) => {
+    setFilters((f) => ({ ...f, [k]: v }));
+    setActiveViewId(null);
+  };
 
   const projects = useQuery({
-    queryKey: ["projects"],
+    queryKey: ["projects", filters.archived],
     queryFn: async () => {
-      const { data, error } = await supabase.from("projects").select("*").order("created_at", { ascending: false });
+      const q = supabase.from("projects").select("*").order("created_at", { ascending: false });
+      const { data, error } = filters.archived
+        ? await q.not("deleted_at", "is", null)
+        : await q.is("deleted_at", null);
       if (error) throw error;
       return data ?? [];
     },
@@ -64,7 +89,7 @@ function ProjectsList() {
   const milestoneProgress = useQuery({
     queryKey: ["projects-progress"],
     queryFn: async () => {
-      const { data } = await supabase.from("project_milestones").select("project_id,progress");
+      const { data } = await supabase.from("project_milestones").select("project_id,progress").is("deleted_at", null);
       const buckets: Record<string, number[]> = {};
       (data ?? []).forEach((m) => { (buckets[m.project_id] ??= []).push(m.progress ?? 0); });
       const avg: Record<string, number> = {};
@@ -83,15 +108,57 @@ function ProjectsList() {
     queryFn: async () => (await supabase.from("profiles").select("id,full_name,avatar_url").order("full_name")).data ?? [],
   });
 
+  const savedViews = useQuery({
+    queryKey: ["project-saved-views", profile?.id],
+    enabled: !!profile?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("project_saved_views")
+        .select("id,name,filters,is_shared,user_id")
+        .order("created_at", { ascending: true });
+      return data ?? [];
+    },
+  });
+
+  const applyView = (id: string) => {
+    const v = savedViews.data?.find((x) => x.id === id);
+    if (!v) return;
+    setFilters({ ...DEFAULT_FILTERS, ...(v.filters as Partial<Filters>) });
+    setActiveViewId(id);
+  };
+
+  const saveView = async (name: string, shared: boolean) => {
+    if (!profile?.id || !name.trim()) return;
+    const { data, error } = await supabase.from("project_saved_views").insert({
+      user_id: profile.id, name: name.trim(), filters, is_shared: shared,
+    }).select("id").single();
+    if (error) return toast.error(error.message);
+    toast.success("View saved");
+    setActiveViewId(data?.id ?? null);
+    qc.invalidateQueries({ queryKey: ["project-saved-views"] });
+  };
+
+  const deleteView = async (id: string) => {
+    if (!confirm("Delete this saved view?")) return;
+    const { error } = await supabase.from("project_saved_views").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    if (activeViewId === id) setActiveViewId(null);
+    qc.invalidateQueries({ queryKey: ["project-saved-views"] });
+  };
+
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = filters.q.trim().toLowerCase();
+    const today = new Date();
     return (projects.data ?? []).filter((p) => {
-      if (statusFilter !== "all" && p.status !== statusFilter) return false;
-      if (customerFilter !== "all" && p.customer_id !== customerFilter) return false;
+      if (filters.status !== "all" && p.status !== filters.status) return false;
+      if (filters.priority !== "all" && p.priority !== filters.priority) return false;
+      if (filters.customer !== "all" && p.customer_id !== filters.customer) return false;
+      if (filters.manager !== "all" && p.manager_id !== filters.manager) return false;
+      if (filters.overdue && !(p.due_date && p.status !== "completed" && new Date(p.due_date) < today)) return false;
       if (q && !p.name.toLowerCase().includes(q) && !(p.description ?? "").toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [projects.data, statusFilter, customerFilter, query]);
+  }, [projects.data, filters]);
 
   const stats = useMemo(() => {
     const all = projects.data ?? [];
@@ -103,6 +170,15 @@ function ProjectsList() {
       overdue: all.filter((p) => p.due_date && p.status !== "completed" && new Date(p.due_date) < today).length,
     };
   }, [projects.data]);
+
+  const activeFilterCount =
+    (filters.status !== "all" ? 1 : 0) +
+    (filters.priority !== "all" ? 1 : 0) +
+    (filters.customer !== "all" ? 1 : 0) +
+    (filters.manager !== "all" ? 1 : 0) +
+    (filters.overdue ? 1 : 0) +
+    (filters.archived ? 1 : 0) +
+    (filters.q ? 1 : 0);
 
   return (
     <div>
@@ -127,12 +203,12 @@ function ProjectsList() {
         <Card className="p-3"><p className="text-xs text-muted-foreground">Overdue</p><p className="text-xl font-semibold text-destructive">{stats.overdue}</p></Card>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 mb-4">
+      <div className="flex flex-wrap items-center gap-2 mb-3">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input placeholder="Search projects…" value={query} onChange={(e) => setQuery(e.target.value)} className="h-9 pl-7" />
+          <Input placeholder="Search projects…" value={filters.q} onChange={(e) => setF("q", e.target.value)} className="h-9 pl-7" />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select value={filters.status} onValueChange={(v) => setF("status", v)}>
           <SelectTrigger className="w-36 h-9"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All statuses</SelectItem>
@@ -141,13 +217,80 @@ function ProjectsList() {
             ))}
           </SelectContent>
         </Select>
-        <Select value={customerFilter} onValueChange={setCustomerFilter}>
+        <Select value={filters.priority} onValueChange={(v) => setF("priority", v)}>
+          <SelectTrigger className="w-36 h-9"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All priorities</SelectItem>
+            {metaEntries(PRIORITY_META).map(([k, m]) => (
+              <SelectItem key={k} value={k}>{m.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={filters.customer} onValueChange={(v) => setF("customer", v)}>
           <SelectTrigger className="w-44 h-9"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All customers</SelectItem>
             {(customers.data ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select value={filters.manager} onValueChange={(v) => setF("manager", v)}>
+          <SelectTrigger className="w-44 h-9"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All PMs</SelectItem>
+            {(staff.data ?? []).map((s) => <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <label className="flex items-center gap-1.5 text-xs px-2 h-9 rounded-md border cursor-pointer">
+          <Switch checked={filters.overdue} onCheckedChange={(v) => setF("overdue", v)} />
+          Overdue
+        </label>
+        <label className="flex items-center gap-1.5 text-xs px-2 h-9 rounded-md border cursor-pointer">
+          <Switch checked={filters.archived} onCheckedChange={(v) => setF("archived", v)} />
+          Archived
+        </label>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="h-9">
+              <Bookmark className="h-3.5 w-3.5 mr-1" />
+              {activeViewId ? (savedViews.data?.find((v) => v.id === activeViewId)?.name ?? "Views") : "Views"}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuLabel className="text-xs">Saved views</DropdownMenuLabel>
+            {(savedViews.data ?? []).length === 0 ? (
+              <p className="px-2 py-2 text-xs text-muted-foreground">No saved views yet.</p>
+            ) : (
+              (savedViews.data ?? []).map((v) => (
+                <DropdownMenuItem
+                  key={v.id}
+                  className="text-xs flex items-center justify-between gap-2"
+                  onSelect={(e) => { e.preventDefault(); applyView(v.id); }}
+                >
+                  <span className="truncate">
+                    {v.name}{v.is_shared && <span className="ml-1 text-muted-foreground">· shared</span>}
+                  </span>
+                  {v.user_id === profile?.id && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); deleteView(v.id); }}
+                      className="text-destructive opacity-70 hover:opacity-100"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  )}
+                </DropdownMenuItem>
+              ))
+            )}
+            <DropdownMenuSeparator />
+            <SaveViewMenuItem onSave={saveView} disabled={activeFilterCount === 0} />
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {activeFilterCount > 0 && (
+          <Button variant="ghost" size="sm" className="h-9" onClick={() => { setFilters(DEFAULT_FILTERS); setActiveViewId(null); }}>
+            <X className="h-3.5 w-3.5 mr-1" /> Clear
+          </Button>
+        )}
       </div>
 
       {projects.isLoading ? (
@@ -212,6 +355,37 @@ function ProjectsList() {
     </div>
   );
 }
+
+function SaveViewMenuItem({ onSave, disabled }: { onSave: (name: string, shared: boolean) => void; disabled?: boolean }) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState("");
+  const [shared, setShared] = useState(false);
+  if (!editing) {
+    return (
+      <DropdownMenuItem
+        disabled={disabled}
+        className="text-xs"
+        onSelect={(e) => { e.preventDefault(); setEditing(true); }}
+      >
+        <Save className="h-3 w-3 mr-1.5" /> Save current filters as view
+      </DropdownMenuItem>
+    );
+  }
+  return (
+    <div className="p-2 space-y-2" onClick={(e) => e.stopPropagation()}>
+      <Input autoFocus placeholder="View name" value={name} onChange={(e) => setName(e.target.value)} className="h-8 text-xs" maxLength={60} />
+      <label className="flex items-center gap-2 text-[11px]">
+        <Switch checked={shared} onCheckedChange={setShared} /> Share with team
+      </label>
+      <div className="flex justify-end gap-1">
+        <Button type="button" size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setEditing(false); setName(""); }}>Cancel</Button>
+        <Button type="button" size="sm" className="h-7 text-xs" disabled={!name.trim()} onClick={() => { onSave(name, shared); setEditing(false); setName(""); setShared(false); }}>Save</Button>
+      </div>
+    </div>
+  );
+}
+
+
 
 function NewProjectDialog({ ownerId, onCreated }: { ownerId: string; onCreated: (id?: string) => void }) {
   const [open, setOpen] = useState(false);
