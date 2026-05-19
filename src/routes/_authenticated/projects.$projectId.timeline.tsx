@@ -731,12 +731,12 @@ function BulkActionsBar({
     onDone();
   };
   const setStatus = (key: string) =>
-    run("Status updated", () => supabase.from("project_tasks").update({ status: key }).in("id", ids));
+    run("Status updated", async () => await supabase.from("project_tasks").update({ status: key }).in("id", ids));
   const setPic = (org: string) =>
-    run("PIC updated", () => supabase.from("project_tasks").update({ pic_orgs: [org] }).in("id", ids));
+    run("PIC updated", async () => await supabase.from("project_tasks").update({ pic_orgs: [org] }).in("id", ids));
   const archive = () => {
     if (!confirm(`Archive ${count} task(s)?`)) return Promise.resolve();
-    return run("Archived", () => supabase.from("project_tasks").update({ deleted_at: new Date().toISOString() }).in("id", ids));
+    return run("Archived", async () => await supabase.from("project_tasks").update({ deleted_at: new Date().toISOString() }).in("id", ids));
   };
 
   return (
