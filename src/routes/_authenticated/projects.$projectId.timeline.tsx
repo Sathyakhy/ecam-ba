@@ -633,6 +633,7 @@ function RowSubtree({
           counter={counter}
           selected={selected}
           onToggleSelect={onToggleSelect}
+          cols={cols}
         />
       ))}
     </>
