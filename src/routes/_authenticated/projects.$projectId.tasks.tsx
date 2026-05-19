@@ -352,6 +352,9 @@ function TaskDialog({ taskId: initialTaskId, projectId, open, onOpenChange, onSt
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
+          {stack.length > 1 && (
+            <button onClick={goBack} className="text-[11px] text-muted-foreground hover:text-foreground text-left mb-1">← Back to parent</button>
+          )}
           <DialogTitle>{t.title}</DialogTitle>
         </DialogHeader>
 
