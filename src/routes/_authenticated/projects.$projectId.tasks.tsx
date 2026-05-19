@@ -118,6 +118,19 @@ function TasksPage() {
             onCreated={() => qc.invalidateQueries({ queryKey: ["project-tasks-full", projectId] })}
           />
         )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="h-9"><Download className="h-3.5 w-3.5 mr-1" /> Export</Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => exportTasksCSV()}>
+              <FileText className="h-3.5 w-3.5 mr-2" /> Excel-compatible (.csv)
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => exportTasksPDF()}>
+              <FileText className="h-3.5 w-3.5 mr-2" /> PDF (print)
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
