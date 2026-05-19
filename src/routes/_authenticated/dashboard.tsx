@@ -54,7 +54,7 @@ function Dashboard() {
         .neq("status", "completed")
         .is("deleted_at", null)
         .order("due_date", { ascending: true, nullsFirst: false })
-        .limit(8);
+        .limit(40);
       const ids = Array.from(new Set((data ?? []).map((t) => t.project_id)));
       const names: Record<string, string> = {};
       if (ids.length) {
@@ -62,6 +62,21 @@ function Dashboard() {
         (ps ?? []).forEach((p) => { names[p.id] = p.name; });
       }
       return (data ?? []).map((t) => ({ ...t, project_name: names[t.project_id] ?? "Project" }));
+    },
+  });
+
+  const myProjects = useQuery({
+    queryKey: ["my-managed-projects", profile?.id],
+    enabled: !!profile?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("projects")
+        .select("id,name,status,priority,due_date")
+        .or(`owner_id.eq.${profile!.id},manager_id.eq.${profile!.id}`)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .limit(8);
+      return data ?? [];
     },
   });
 
