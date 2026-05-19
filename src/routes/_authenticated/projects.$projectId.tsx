@@ -1,7 +1,9 @@
 import { createFileRoute, Outlet, useNavigate, useRouter, Link, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Trash2, Pencil, Loader2, AlertTriangle, ArrowLeft } from "lucide-react";
+import { Trash2, Pencil, Loader2, AlertTriangle, ArrowLeft, BookmarkPlus } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { saveProjectAsTemplate } from "@/lib/project-templates";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
