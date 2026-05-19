@@ -428,6 +428,7 @@ function TimelinePage() {
                     childMap={childMap}
                     selected={selected}
                     onToggleSelect={toggleSelect}
+                    cols={cols}
                   />
                 );
               });
