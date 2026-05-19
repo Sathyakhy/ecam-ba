@@ -158,14 +158,12 @@ export async function instantiateTemplate(opts: {
     };
 
     await insertBatch(roots, false);
-    // Children may nest several levels deep; iterate until all placed
     let remaining = [...children];
     let guard = 0;
     while (remaining.length && guard < 20) {
       const ready = remaining.filter((t) => idMap.has(t.parentTempId!));
       if (!ready.length) break;
       await insertBatch(ready, true);
-      remaining = remaining.filter((t) => !idMap.has(t.parentTempId!) || !idMap.has(t.tempId));
       remaining = remaining.filter((t) => !idMap.has(t.tempId));
       guard++;
     }
