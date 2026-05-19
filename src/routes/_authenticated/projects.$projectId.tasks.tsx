@@ -381,7 +381,7 @@ function TaskDialog({ taskId, projectId, open, onOpenChange, onStatusChange }: {
               <p>{formatDate(t.created_at)}</p>
             </div>
             <div className="flex items-end justify-end gap-1">
-              {(canManage || isMemberOrCreator(t, profile?.id)) && (
+              {(canManage || t.created_by === profile?.id) && (
                 <Button size="sm" variant="ghost" className="h-7"
                   onClick={async () => {
                     const { id, created_at, updated_at, ...rest } = t as any;
