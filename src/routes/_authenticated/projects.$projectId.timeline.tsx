@@ -486,7 +486,7 @@ function RowGroup({
 }
 
 function RowSubtree({
-  task, children, isOpen, onToggle, staff, orgs, roots, statusOptions, modeOptions, canEdit, onEdit, onView, onDeleted, projectId, authorId, onSaved, allTasks, taskNo, childMap, level, counter,
+  task, children, isOpen, onToggle, staff, orgs, roots, statusOptions, modeOptions, canEdit, onEdit, onView, onDeleted, projectId, authorId, onSaved, allTasks, taskNo, childMap, level, counter, selected, onToggleSelect,
 }: {
   task: Task;
   children: Task[];
@@ -509,6 +509,8 @@ function RowSubtree({
   childMap: Record<string, Task[]>;
   level: number;
   counter: { n: number };
+  selected: Set<string>;
+  onToggleSelect: (id: string) => void;
 }) {
   const [openLocal, setOpenLocal] = useState(true);
   const grandchildren = childMap[task.id] ?? [];
@@ -531,6 +533,8 @@ function RowSubtree({
         onToggle={level === 0 ? onToggle : () => setOpenLocal((v) => !v)}
         taskNo={taskNo}
         indent={level}
+        isSelected={selected.has(task.id)}
+        onToggleSelect={onToggleSelect}
         extraActions={canEdit && (
           <TaskDialog
             projectId={projectId}
@@ -572,6 +576,8 @@ function RowSubtree({
           childMap={childMap}
           level={level + 1}
           counter={counter}
+          selected={selected}
+          onToggleSelect={onToggleSelect}
         />
       ))}
     </>
