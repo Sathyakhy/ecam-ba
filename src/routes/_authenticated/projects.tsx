@@ -356,6 +356,37 @@ function ProjectsList() {
   );
 }
 
+function SaveViewMenuItem({ onSave, disabled }: { onSave: (name: string, shared: boolean) => void; disabled?: boolean }) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState("");
+  const [shared, setShared] = useState(false);
+  if (!editing) {
+    return (
+      <DropdownMenuItem
+        disabled={disabled}
+        className="text-xs"
+        onSelect={(e) => { e.preventDefault(); setEditing(true); }}
+      >
+        <Save className="h-3 w-3 mr-1.5" /> Save current filters as view
+      </DropdownMenuItem>
+    );
+  }
+  return (
+    <div className="p-2 space-y-2" onClick={(e) => e.stopPropagation()}>
+      <Input autoFocus placeholder="View name" value={name} onChange={(e) => setName(e.target.value)} className="h-8 text-xs" maxLength={60} />
+      <label className="flex items-center gap-2 text-[11px]">
+        <Switch checked={shared} onCheckedChange={setShared} /> Share with team
+      </label>
+      <div className="flex justify-end gap-1">
+        <Button type="button" size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setEditing(false); setName(""); }}>Cancel</Button>
+        <Button type="button" size="sm" className="h-7 text-xs" disabled={!name.trim()} onClick={() => { onSave(name, shared); setEditing(false); setName(""); setShared(false); }}>Save</Button>
+      </div>
+    </div>
+  );
+}
+
+
+
 function NewProjectDialog({ ownerId, onCreated }: { ownerId: string; onCreated: (id?: string) => void }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
