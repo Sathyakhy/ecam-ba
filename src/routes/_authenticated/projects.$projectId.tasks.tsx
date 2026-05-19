@@ -259,13 +259,17 @@ function NewTaskDialog({ projectId, authorId, staff, onCreated, parentTaskId, tr
   );
 }
 
-function TaskDialog({ taskId, projectId, open, onOpenChange, onStatusChange }: {
+function TaskDialog({ taskId: initialTaskId, projectId, open, onOpenChange, onStatusChange }: {
   taskId: string;
   projectId: string;
   open: boolean;
   onOpenChange: (o: boolean) => void;
   onStatusChange: (id: string, s: string) => void;
 }) {
+  const [stack, setStack] = useState<string[]>([initialTaskId]);
+  const taskId = stack[stack.length - 1];
+  const openSubtask = (id: string) => setStack((s) => [...s, id]);
+  const goBack = () => setStack((s) => s.length > 1 ? s.slice(0, -1) : s);
   const qc = useQueryClient();
   const { staff, canManage, profile } = useProject(projectId);
 
@@ -348,6 +352,9 @@ function TaskDialog({ taskId, projectId, open, onOpenChange, onStatusChange }: {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
+          {stack.length > 1 && (
+            <button onClick={goBack} className="text-[11px] text-muted-foreground hover:text-foreground text-left mb-1">← Back to parent</button>
+          )}
           <DialogTitle>{t.title}</DialogTitle>
         </DialogHeader>
 
@@ -441,9 +448,11 @@ function TaskDialog({ taskId, projectId, open, onOpenChange, onStatusChange }: {
               {(subtasks.data ?? []).map((st) => {
                 const stMeta = TASK_STATUS_META[st.status] ?? TASK_STATUS_META.todo;
                 return (
-                  <div key={st.id} className="flex items-center gap-2 text-xs border rounded px-2 py-1.5">
+                  <div key={st.id} className="flex items-center gap-2 text-xs border rounded px-2 py-1.5 hover:border-primary/40 transition">
                     <Badge variant={stMeta.variant} className="text-[9px]">{stMeta.label}</Badge>
-                    <span className="flex-1 truncate">{st.title}</span>
+                    <button className="flex-1 truncate text-left hover:underline" onClick={() => openSubtask(st.id)}>
+                      {st.title}
+                    </button>
                     <Select value={st.status} onValueChange={async (v) => {
                       await supabase.from("project_tasks").update({ status: v }).eq("id", st.id);
                       qc.invalidateQueries({ queryKey: ["task-subtasks", taskId] });
