@@ -86,6 +86,42 @@ function TasksPage() {
     qc.invalidateQueries({ queryKey: ["project-tasks-full", projectId] });
   };
 
+  const exportTasksCSV = () => {
+    const rows = (tasks.data ?? []).map((t) => ({
+      title: t.title,
+      status: TASK_STATUS_META[t.status]?.label ?? t.status,
+      priority: PRIORITY_META[t.priority]?.label ?? t.priority,
+      assignee: staff.data?.find((s) => s.id === t.assignee_id)?.full_name ?? "",
+      start_date: t.start_date ?? "",
+      due_date: t.due_date ?? "",
+      parent: (tasks.data ?? []).find((p) => p.id === t.parent_task_id)?.title ?? "",
+      description: t.description ?? "",
+    }));
+    const name = (project.data?.name ?? "project").replace(/[^a-z0-9-_]+/gi, "_");
+    downloadCSV(`${name}-tasks.csv`, rows);
+  };
+
+  const exportTasksPDF = () => {
+    const list = (tasks.data ?? []);
+    const rowsHTML = list.map((t) => {
+      const assignee = staff.data?.find((s) => s.id === t.assignee_id)?.full_name ?? "—";
+      return `<tr>
+        <td>${escapeHTML(t.title)}</td>
+        <td><span class="badge">${escapeHTML(TASK_STATUS_META[t.status]?.label ?? t.status)}</span></td>
+        <td>${escapeHTML(PRIORITY_META[t.priority]?.label ?? t.priority)}</td>
+        <td>${escapeHTML(assignee)}</td>
+        <td>${escapeHTML(t.due_date ?? "—")}</td>
+      </tr>`;
+    }).join("");
+    const body = `
+      <h1>${escapeHTML(project.data?.name ?? "Project")} — Tasks</h1>
+      <div class="meta">${list.length} tasks · exported ${new Date().toLocaleString()}</div>
+      <table><thead><tr><th>Title</th><th>Status</th><th>Priority</th><th>Assignee</th><th>Due</th></tr></thead>
+      <tbody>${rowsHTML}</tbody></table>`;
+    printAsPDF(`${project.data?.name ?? "Project"} — Tasks`, body);
+  };
+
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
