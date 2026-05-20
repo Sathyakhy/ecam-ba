@@ -442,16 +442,21 @@ function ContentEditor({ courseId }: { courseId: string }) {
   const addModule = async () => {
     if (!moduleTitle.trim()) return;
     const order = (modules.data?.length ?? 0);
-    await supabase.from("course_modules").insert({ course_id: courseId, title: moduleTitle.trim(), order_index: order });
+    const { error } = await supabase.from("course_modules").insert({ course_id: courseId, title: moduleTitle.trim(), order_index: order });
+    if (error) return toast.error(error.message);
+    toast.success("Module added");
     setModuleTitle("");
     qc.invalidateQueries({ queryKey: ["modules-edit"] });
+    qc.invalidateQueries({ queryKey: ["course-content"] });
   };
 
   const removeModule = async (id: string) => {
     if (!confirm("Delete module and its lessons?")) return;
-    await supabase.from("course_modules").delete().eq("id", id);
+    const { error } = await supabase.from("course_modules").delete().eq("id", id);
+    if (error) return toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["modules-edit"] });
     qc.invalidateQueries({ queryKey: ["lessons-edit"] });
+    qc.invalidateQueries({ queryKey: ["course-content"] });
   };
 
   return (
