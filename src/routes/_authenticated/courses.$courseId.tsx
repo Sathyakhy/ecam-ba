@@ -586,7 +586,10 @@ function LessonDialog({ open, onOpenChange, courseId, moduleId, lesson, nextOrde
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>{lesson ? "Edit lesson" : "New lesson"}</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>{lesson ? "Edit lesson" : "New lesson"}</DialogTitle>
+          <DialogDescription>Upload a file or paste a URL for the learning material.</DialogDescription>
+        </DialogHeader>
         <div className="space-y-3">
           <div><Label>Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
           <div>
