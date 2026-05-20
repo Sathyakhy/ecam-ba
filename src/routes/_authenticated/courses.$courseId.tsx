@@ -50,6 +50,43 @@ function youtubeEmbed(url: string): string | null {
   return null;
 }
 
+function uploadCourseMaterialWithProgress(
+  path: string,
+  file: File,
+  token: string,
+  onProgress: (value: number) => void,
+) {
+  const baseUrl = import.meta.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+  const apiKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
+  if (!baseUrl || !apiKey) throw new Error("Storage is not configured.");
+
+  const encodedPath = path.split("/").map(encodeURIComponent).join("/");
+  const uploadUrl = `${baseUrl}/storage/v1/object/course-materials/${encodedPath}`;
+
+  return new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", uploadUrl);
+    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    xhr.setRequestHeader("apikey", apiKey);
+    xhr.setRequestHeader("x-upsert", "true");
+    xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress(Math.max(1, Math.round((event.loaded / event.total) * 100)));
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) return resolve();
+      try {
+        const body = JSON.parse(xhr.responseText);
+        reject(new Error(body.message || body.error || "Upload failed"));
+      } catch {
+        reject(new Error(xhr.responseText || "Upload failed"));
+      }
+    };
+    xhr.onerror = () => reject(new Error("Upload failed. Please check your connection and try again."));
+    xhr.send(file);
+  });
+}
+
 function CourseDetailPage() {
   const { courseId } = Route.useParams();
   const { tab } = Route.useSearch();
