@@ -52,8 +52,10 @@ function youtubeEmbed(url: string): string | null {
 
 function CourseDetailPage() {
   const { courseId } = Route.useParams();
+  const { tab } = Route.useSearch();
   const { isAdmin, canEdit } = useAuth();
   const canManage = isAdmin || canEdit("learning");
+  const defaultTab = tab || (canManage ? "content" : "learn");
 
   const course = useQuery({
     queryKey: ["course", courseId],
