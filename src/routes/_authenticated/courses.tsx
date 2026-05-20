@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import {
@@ -163,6 +163,7 @@ function Catalog() {
   const { profile, isAdmin, canEdit } = useAuth();
   const canManage = isAdmin || canEdit("learning");
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
 
@@ -252,10 +253,13 @@ function Catalog() {
                   <Button size="sm" className="flex-1" onClick={() => enroll(c.id)}>Enroll</Button>
                 )}
                 {canManage && (
-                  <Button asChild size="sm" variant="outline">
-                    <Link to="/courses/$courseId" params={{ courseId: c.id }}>
-                      <Pencil className="h-3 w-3" />
-                    </Link>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => navigate({ to: "/courses/$courseId", params: { courseId: c.id }, search: { tab: "content" } })}
+                    aria-label={`Edit ${c.title}`}
+                  >
+                    <Pencil className="h-3 w-3" />
                   </Button>
                 )}
               </div>
@@ -292,6 +296,7 @@ function ManagePanel() {
 function ManageCourses() {
   const qc = useQueryClient();
   const settings = useAppSettings();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -389,7 +394,13 @@ function ManageCourses() {
                   <Switch checked={c.published} onCheckedChange={(v) => togglePublish(c.id, v)} />
                   <span className="text-muted-foreground">{c.published ? "Published" : "Draft"}</span>
                 </div>
-                <Button asChild size="sm" variant="outline"><Link to="/courses/$courseId" params={{ courseId: c.id }} search={{ tab: "content" }}>Edit</Link></Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => navigate({ to: "/courses/$courseId", params: { courseId: c.id }, search: { tab: "content" } })}
+                >
+                  Edit
+                </Button>
                 <Button size="sm" variant="ghost" onClick={() => remove(c.id)}><Trash2 className="h-4 w-4" /></Button>
               </div>
             </div>
