@@ -8,10 +8,14 @@ export function openCertificate(opts: {
   organization?: string;
   signatoryName?: string;
   signatoryTitle?: string;
+  backgroundUrl?: string | null;
 }) {
   const date = new Date(opts.issuedAt).toLocaleDateString(undefined, {
     year: "numeric", month: "long", day: "numeric",
   });
+  const bg = opts.backgroundUrl
+    ? `background-image:url('${opts.backgroundUrl.replace(/'/g, "%27")}');background-size:cover;background-position:center;background-repeat:no-repeat;`
+    : "";
   const html = `<!doctype html><html><head><meta charset="utf-8"/>
 <title>Certificate - ${escapeHTML(opts.recipientName)}</title>
 <style>
