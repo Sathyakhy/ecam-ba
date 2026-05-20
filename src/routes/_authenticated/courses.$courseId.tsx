@@ -391,9 +391,6 @@ function LessonMaterial({ lesson }: { lesson: any }) {
   return null;
 }
 
-/* helper icon */
-import { Download } from "lucide-react";
-
 /* ============================================================
  * QUIZ RUNNER (learner)
  * ============================================================ */
