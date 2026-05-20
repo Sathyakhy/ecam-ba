@@ -29,6 +29,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/_authenticated/courses/$courseId")({
+  validateSearch: (s: Record<string, unknown>) => ({ tab: (s.tab as string) || undefined }),
   component: CourseDetailPage,
 });
 
