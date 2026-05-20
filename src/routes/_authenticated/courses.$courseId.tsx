@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import {
   ArrowLeft, Plus, Trash2, CheckCircle2, Circle, ExternalLink, Award,
   FileText, Video, Link as LinkIcon, Image as ImageIcon, NotebookText, File,
@@ -442,16 +442,21 @@ function ContentEditor({ courseId }: { courseId: string }) {
   const addModule = async () => {
     if (!moduleTitle.trim()) return;
     const order = (modules.data?.length ?? 0);
-    await supabase.from("course_modules").insert({ course_id: courseId, title: moduleTitle.trim(), order_index: order });
+    const { error } = await supabase.from("course_modules").insert({ course_id: courseId, title: moduleTitle.trim(), order_index: order });
+    if (error) return toast.error(error.message);
+    toast.success("Module added");
     setModuleTitle("");
     qc.invalidateQueries({ queryKey: ["modules-edit"] });
+    qc.invalidateQueries({ queryKey: ["course-content"] });
   };
 
   const removeModule = async (id: string) => {
     if (!confirm("Delete module and its lessons?")) return;
-    await supabase.from("course_modules").delete().eq("id", id);
+    const { error } = await supabase.from("course_modules").delete().eq("id", id);
+    if (error) return toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["modules-edit"] });
     qc.invalidateQueries({ queryKey: ["lessons-edit"] });
+    qc.invalidateQueries({ queryKey: ["course-content"] });
   };
 
   return (
@@ -534,7 +539,7 @@ function LessonDialog({ open, onOpenChange, courseId, moduleId, lesson, nextOrde
   const [uploading, setUploading] = useState(false);
 
   // reset when opened
-  useMemo(() => {
+  useEffect(() => {
     if (open) {
       setTitle(lesson?.title ?? "");
       setType(lesson?.material_type ?? "video");
@@ -549,35 +554,42 @@ function LessonDialog({ open, onOpenChange, courseId, moduleId, lesson, nextOrde
   const handleUpload = async (file: File) => {
     setUploading(true);
     try {
-      const path = `${courseId}/${Date.now()}-${file.name}`;
-      const { error } = await supabase.storage.from("course-materials").upload(path, file, { upsert: true });
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `${courseId}/${Date.now()}-${safeName}`;
+      const { error } = await supabase.storage.from("course-materials").upload(path, file, { upsert: true, contentType: file.type || undefined });
       if (error) throw error;
       const { data } = supabase.storage.from("course-materials").getPublicUrl(path);
       setUrl(data.publicUrl);
       toast.success("Uploaded");
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e: any) { toast.error(e.message ?? "Upload failed"); }
     finally { setUploading(false); }
   };
 
   const save = async () => {
     if (!title.trim()) return toast.error("Title required");
+    if (type === "text" && !content.trim()) return toast.error("Content required for text lesson");
+    if (type !== "text" && !url.trim()) return toast.error("URL or upload required");
     const payload = {
       course_id: courseId, module_id: moduleId, title: title.trim(),
       material_type: type, url: url || null, content: content || null, downloadable,
     };
-    if (lesson) {
-      await supabase.from("course_lessons").update(payload).eq("id", lesson.id);
-    } else {
-      await supabase.from("course_lessons").insert({ ...payload, order_index: nextOrder });
-    }
+    const { error } = lesson
+      ? await supabase.from("course_lessons").update(payload).eq("id", lesson.id)
+      : await supabase.from("course_lessons").insert({ ...payload, order_index: nextOrder });
+    if (error) return toast.error(error.message);
+    toast.success(lesson ? "Lesson updated" : "Lesson added");
     qc.invalidateQueries({ queryKey: ["lessons-edit"] });
+    qc.invalidateQueries({ queryKey: ["course-content"] });
     onOpenChange(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>{lesson ? "Edit lesson" : "New lesson"}</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>{lesson ? "Edit lesson" : "New lesson"}</DialogTitle>
+          <DialogDescription>Upload a file or paste a URL for the learning material.</DialogDescription>
+        </DialogHeader>
         <div className="space-y-3">
           <div><Label>Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
           <div>
