@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   ArrowLeft, Plus, Trash2, CheckCircle2, Circle, ExternalLink, Award,
-  FileText, Video, Link as LinkIcon, GripVertical, Pencil,
+  FileText, Video, Link as LinkIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
