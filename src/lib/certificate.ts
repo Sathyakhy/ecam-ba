@@ -28,18 +28,16 @@ export function openCertificate(opts: {
   html,body{background:#f1f5f9}
   body{font-family:Georgia,'Times New Roman',serif;padding:24px;display:flex;justify-content:center;min-height:100vh}
   .cert{position:relative;width:1123px;height:794px;max-width:100%;background:#fff url('${bgUrl}') center/cover no-repeat;box-shadow:0 12px 48px rgba(0,0,0,.12)}
-  /* Recipient name — centered vertically between the two printed lines */
-  .name{position:absolute;left:8%;right:8%;top:46%;transform:translateY(-50%);text-align:center;
+  /* Recipient name — exact center of the A4 landscape canvas */
+  .name{position:absolute;left:8%;right:8%;top:50%;transform:translateY(-50%);text-align:center;
         font-family:'Brush Script MT','Lucida Handwriting','Segoe Script',cursive;
         font-size:64px;color:#1a2a4a;letter-spacing:.02em;line-height:1}
-  /* Course title — sits below "FOR SUCCESSFULLY COMPLETING THE COURSE" */
-  .course{position:absolute;left:10%;right:10%;top:70%;text-align:center;
+  /* Course title — closer to the "FOR SUCCESSFULLY COMPLETING THE COURSE" text */
+  .course{position:absolute;left:10%;right:10%;top:64%;text-align:center;
           font-size:30px;font-weight:700;color:#1a2a4a;letter-spacing:.01em}
-  /* Date — below the course title */
-  .date{position:absolute;left:10%;right:10%;top:77%;text-align:center;
+  /* Date — just below the course title */
+  .date{position:absolute;left:10%;right:10%;top:70%;text-align:center;
         font-size:18px;color:#334155;letter-spacing:.05em;font-style:italic}
-  .cert-no{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);
-           font-size:10px;color:#94a3b8;letter-spacing:.15em}
   .no-print{margin-top:18px;text-align:center}
   @media print{
     .no-print{display:none}
@@ -51,7 +49,6 @@ export function openCertificate(opts: {
   <div class="name">${escapeHTML(opts.recipientName)}</div>
   <div class="course">${escapeHTML(opts.courseTitle)}</div>
   <div class="date">on ${escapeHTML(date)}</div>
-  <div class="cert-no">Certificate No. ${escapeHTML(opts.certificateNo)}</div>
 </div>
 <div class="no-print">
   <button onclick="window.print()" style="padding:10px 18px;background:#0f172a;color:#fff;border:0;border-radius:6px;cursor:pointer;font-family:inherit">Print / Save as PDF</button>
