@@ -1037,7 +1037,25 @@ function CourseSettings({ course }: { course: any }) {
       </Card>
 
       <Card className="p-4 space-y-3">
-        <div className="font-semibold">Certificate background</div>
+        <div className="flex items-center justify-between">
+          <div className="font-semibold">Certificate background</div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              openCertificate({
+                recipientName: "Sample Recipient",
+                courseTitle: title || course.title,
+                issuedAt: new Date(),
+                certificateNo: "PREVIEW-0000",
+                organization: settings.organization_name ?? undefined,
+                backgroundUrl: bgUrl ?? settings.default_certificate_bg_url,
+              })
+            }
+          >
+            <Award className="h-4 w-4 mr-2" /> Preview certificate
+          </Button>
+        </div>
         <p className="text-xs text-muted-foreground">
           Defaults to the system-wide image. Upload a course-specific one to override.
         </p>
