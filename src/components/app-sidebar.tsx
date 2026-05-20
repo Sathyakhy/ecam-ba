@@ -40,7 +40,6 @@ const main = [
   { title: "Onboarding", url: "/onboarding", icon: UserPlus, moduleKey: "onboarding" },
   { title: "New joiners", url: "/new-joiners", icon: UserPlus, moduleKey: "onboarding" },
   { title: "Projects", url: "/projects", icon: FolderKanban, moduleKey: "projects" },
-  { title: "Learning", url: "/learning", icon: GraduationCap, moduleKey: "learning" },
   { title: "Courses", url: "/courses", icon: GraduationCap, moduleKey: "learning" },
   { title: "Tasks", url: "/tasks", icon: CheckSquare, moduleKey: "tasks" },
   { title: "Staff", url: "/staff", icon: Users, moduleKey: "staff" },

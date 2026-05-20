@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "auth read course-materials" ON storage.objects;

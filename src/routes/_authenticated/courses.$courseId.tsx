@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
   ArrowLeft, Plus, Trash2, CheckCircle2, Circle, ExternalLink, Award,
-  FileText, Video, Link as LinkIcon,
+  FileText, Video, Link as LinkIcon, Image as ImageIcon, NotebookText,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,7 +31,58 @@ export const Route = createFileRoute("/_authenticated/courses/$courseId")({
   component: CourseDetailPage,
 });
 
-const ICON: Record<string, typeof FileText> = { document: FileText, video: Video, link: LinkIcon };
+const ICON: Record<string, typeof FileText> = {
+  document: FileText, pdf: FileText, video: Video, link: LinkIcon, image: ImageIcon, manual: NotebookText,
+};
+
+function youtubeEmbed(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes("youtube.com")) {
+      const v = u.searchParams.get("v");
+      if (v) return `https://www.youtube.com/embed/${v}`;
+    }
+    if (u.hostname === "youtu.be") return `https://www.youtube.com/embed/${u.pathname.slice(1)}`;
+    if (u.hostname.includes("vimeo.com")) return `https://player.vimeo.com/video/${u.pathname.split("/").filter(Boolean).pop()}`;
+  } catch {}
+  return null;
+}
+
+function LessonMaterial({ lesson }: { lesson: any }) {
+  const url: string | null = lesson.url ?? null;
+  const type: string = lesson.material_type ?? "document";
+  if (type === "manual") return null;
+  if (!url) return null;
+  if (type === "image") {
+    return <img src={url} alt={lesson.title} className="mt-3 rounded-md border max-h-[480px] w-auto" />;
+  }
+  if (type === "video") {
+    const embed = youtubeEmbed(url);
+    if (embed) {
+      return (
+        <div className="mt-3 aspect-video rounded-md overflow-hidden border">
+          <iframe src={embed} className="w-full h-full" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen />
+        </div>
+      );
+    }
+    return <video src={url} controls className="mt-3 rounded-md border w-full max-h-[480px] bg-black" />;
+  }
+  if (type === "pdf" || type === "document") {
+    const isPdf = type === "pdf" || /\.pdf(\?|$)/i.test(url);
+    if (isPdf) {
+      return (
+        <div className="mt-3 rounded-md overflow-hidden border">
+          <iframe src={url} className="w-full h-[600px]" title={lesson.title} />
+        </div>
+      );
+    }
+  }
+  return (
+    <a href={url} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1 mt-2">
+      <ExternalLink className="h-3 w-3" /> Open material
+    </a>
+  );
+}
 
 function CourseDetailPage() {
   const { courseId } = Route.useParams();
@@ -224,11 +275,7 @@ function CourseDetailPage() {
                             <p className="font-medium text-sm">{l.title}</p>
                           </div>
                           {l.content && <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">{l.content}</p>}
-                          {l.url && (
-                            <a href={l.url} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1 mt-1">
-                              <ExternalLink className="h-3 w-3" /> Open material
-                            </a>
-                          )}
+                          <LessonMaterial lesson={l} />
                         </div>
                       </li>
                     );
@@ -344,40 +391,100 @@ function LessonEditor({ courseId, onChanged }: { courseId: string; onChanged: ()
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [type, setType] = useState("document");
+  const [type, setType] = useState("pdf");
   const [url, setUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
+
+  const reset = () => {
+    setTitle(""); setContent(""); setUrl(""); setType("pdf");
+  };
+
+  const acceptFor = (t: string) =>
+    t === "pdf" ? "application/pdf"
+    : t === "image" ? "image/png,image/jpeg,image/webp,image/gif"
+    : t === "video" ? "video/mp4,video/webm,video/quicktime"
+    : "";
+
+  const handleUpload = async (file: File) => {
+    if (file.size > 100 * 1024 * 1024) { toast.error("File must be under 100MB"); return; }
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "bin";
+      const path = `${courseId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("course-materials").upload(path, file, { contentType: file.type, upsert: false });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("course-materials").getPublicUrl(path);
+      setUrl(pub.publicUrl);
+      toast.success("File uploaded");
+    } catch (err: any) {
+      toast.error(err.message ?? "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const needsUpload = type === "pdf" || type === "image" || type === "video";
+  const needsLink = type === "link" || type === "video";
+  const isManual = type === "manual";
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
       <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> Add lesson</Button></DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-lg">
         <DialogHeader><DialogTitle>New lesson</DialogTitle></DialogHeader>
         <form onSubmit={async (e) => {
           e.preventDefault();
+          if (!isManual && !url) return toast.error("Upload a file or provide a link");
           const { count } = await supabase.from("course_lessons").select("*", { count: "exact", head: true }).eq("course_id", courseId);
           const { error } = await supabase.from("course_lessons").insert({
             course_id: courseId, title, content: content || null, material_type: type, url: url || null, order_index: count ?? 0,
           });
           if (error) return toast.error(error.message);
-          toast.success("Lesson added"); setOpen(false); setTitle(""); setContent(""); setUrl(""); setType("document");
+          toast.success("Lesson added"); setOpen(false); reset();
           onChanged();
         }} className="space-y-3">
           <div className="space-y-2"><Label>Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={200} /></div>
-          <div className="space-y-2"><Label>Content / instructions</Label><Textarea value={content} onChange={(e) => setContent(e.target.value)} rows={4} maxLength={5000} /></div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>Type</Label>
-              <Select value={type} onValueChange={setType}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="document">Document</SelectItem>
-                  <SelectItem value="video">Video</SelectItem>
-                  <SelectItem value="link">Link</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2"><Label>URL</Label><Input type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://" maxLength={500} /></div>
+          <div className="space-y-2">
+            <Label>Material type</Label>
+            <Select value={type} onValueChange={(v) => { setType(v); setUrl(""); }}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pdf">PDF (upload)</SelectItem>
+                <SelectItem value="image">Image (upload)</SelectItem>
+                <SelectItem value="video">Video (upload or link)</SelectItem>
+                <SelectItem value="link">Link (web page)</SelectItem>
+                <SelectItem value="manual">Manual (text only)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <DialogFooter><Button type="submit">Add</Button></DialogFooter>
+
+          {needsUpload && (
+            <div className="space-y-2">
+              <Label>Upload file</Label>
+              <Input
+                type="file"
+                accept={acceptFor(type)}
+                disabled={uploading}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ""; }}
+              />
+              {uploading && <p className="text-xs text-muted-foreground">Uploading…</p>}
+              {url && !uploading && <p className="text-xs text-muted-foreground break-all">Uploaded: {url}</p>}
+            </div>
+          )}
+
+          {needsLink && (
+            <div className="space-y-2">
+              <Label>{type === "video" ? "…or paste a video URL (YouTube / Vimeo / direct)" : "URL"}</Label>
+              <Input type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://" maxLength={1000} />
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label>{isManual ? "Lesson text" : "Notes / instructions (optional)"}</Label>
+            <Textarea value={content} onChange={(e) => setContent(e.target.value)} rows={isManual ? 8 : 3} maxLength={10000} required={isManual} />
+          </div>
+
+          <DialogFooter><Button type="submit" disabled={uploading}>Add</Button></DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
