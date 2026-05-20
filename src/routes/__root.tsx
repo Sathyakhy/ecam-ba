@@ -37,21 +37,28 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
 
-  // Stale-chunk recovery: after a new deploy, the cached HTML references
-  // old asset hashes. Force a one-time hard reload so the browser fetches
-  // the new index.html + chunks.
   if (
     typeof window !== "undefined" &&
     /Importing a module script failed|Failed to fetch dynamically imported module|error loading dynamically imported module/i.test(
       error.message,
     )
   ) {
-    const KEY = "__stale_chunk_reloaded__";
-    if (!sessionStorage.getItem(KEY)) {
-      sessionStorage.setItem(KEY, "1");
-      window.location.reload();
-      return null as never;
-    }
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="max-w-md text-center">
+          <h1 className="text-xl font-semibold">App update needed</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            The app loaded an outdated module. Refresh once to load the latest version.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-6 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Refresh
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (

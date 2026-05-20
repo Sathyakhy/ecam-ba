@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import {
   ArrowLeft, Plus, Trash2, CheckCircle2, Circle, ExternalLink, Award,
   FileText, Video, Link as LinkIcon, Image as ImageIcon, NotebookText, File,
-  Users, BookOpen, ClipboardList, Settings as SettingsIcon, ListChecks, GripVertical,
+  Users, BookOpen, ClipboardList, Settings as SettingsIcon, ListChecks, GripVertical, Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -390,9 +390,6 @@ function LessonMaterial({ lesson }: { lesson: any }) {
   if (t === "text" && content) return <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{content}</p>;
   return null;
 }
-
-/* helper icon */
-import { Download } from "lucide-react";
 
 /* ============================================================
  * QUIZ RUNNER (learner)
