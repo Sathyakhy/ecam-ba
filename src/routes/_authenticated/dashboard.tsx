@@ -81,13 +81,37 @@ function Dashboard() {
   });
 
   const recentActivity = useQuery({
-    queryKey: ["dashboard-activity"],
+    queryKey: ["dashboard-activity", profile?.id],
+    enabled: !!profile?.id,
     queryFn: async () => {
+      const uid = profile!.id;
+      // Find projects the user is involved with (owner, manager, or member)
+      const [{ data: ownedProjects }, { data: memberships }] = await Promise.all([
+        supabase
+          .from("projects")
+          .select("id")
+          .or(`owner_id.eq.${uid},manager_id.eq.${uid}`)
+          .is("deleted_at", null),
+        supabase.from("project_members").select("project_id").eq("profile_id", uid),
+      ]);
+      const projectIds = Array.from(
+        new Set([
+          ...((ownedProjects ?? []).map((p) => p.id)),
+          ...((memberships ?? []).map((m) => m.project_id)),
+        ])
+      );
+
+      // Activity in user's projects OR actions performed by the user
+      const orFilter = projectIds.length
+        ? `actor_id.eq.${uid},project_id.in.(${projectIds.join(",")})`
+        : `actor_id.eq.${uid}`;
       const { data } = await supabase
         .from("project_activity")
         .select("id,action,summary,created_at,entity_type,project_id,actor_id")
+        .or(orFilter)
         .order("created_at", { ascending: false })
         .limit(8);
+
       const ids = Array.from(new Set((data ?? []).map((a) => a.project_id)));
       const aids = Array.from(new Set((data ?? []).map((a) => a.actor_id).filter(Boolean))) as string[];
       const [{ data: ps }, { data: actors }] = await Promise.all([
