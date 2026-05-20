@@ -365,9 +365,14 @@ function LearnerView({ course }: { course: any }) {
 function LessonMaterial({ lesson }: { lesson: any }) {
   const { material_type: t, url, content, downloadable } = lesson;
   if (t === "pdf" && url) return (
-    <div className="mt-2">
-      <iframe src={url} className="w-full h-96 border rounded" />
-      {downloadable && <a href={url} target="_blank" rel="noopener" className="text-xs underline mt-1 inline-block">Download PDF</a>}
+    <div className="mt-2 space-y-1">
+      <object data={`${url}#toolbar=1&view=FitH`} type="application/pdf" className="w-full h-[600px] border rounded">
+        <iframe src={`https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(url)}`} className="w-full h-[600px] border rounded" title={lesson.title} />
+      </object>
+      <div className="flex gap-3 text-xs">
+        <a href={url} target="_blank" rel="noopener" className="underline">Open in new tab</a>
+        {downloadable && <a href={url} download className="underline">Download PDF</a>}
+      </div>
     </div>
   );
   if (t === "image" && url) return <img src={url} alt={lesson.title} className="mt-2 max-w-full rounded border" />;
