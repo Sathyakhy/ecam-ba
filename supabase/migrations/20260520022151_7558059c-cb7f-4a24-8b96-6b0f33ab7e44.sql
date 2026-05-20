@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.tg_auto_assign_courses() FROM PUBLIC, anon, authenticated;
