@@ -670,6 +670,12 @@ function LessonDialog({ open, onOpenChange, courseId, moduleId, lesson, nextOrde
                   <Input type="file" accept={acceptFor} disabled={uploading} onChange={(e) => {
                     const f = e.target.files?.[0]; if (f) handleUpload(f);
                   }} />
+                  {uploading && (
+                    <div className="mt-2 space-y-1">
+                      <Progress value={uploadProgress} />
+                      <div className="text-xs text-muted-foreground">Uploading {uploadProgress}%</div>
+                    </div>
+                  )}
                 </div>
               )}
               {(type === "pdf" || type === "file" || type === "video") && (
