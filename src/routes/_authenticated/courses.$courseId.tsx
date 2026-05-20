@@ -530,16 +530,7 @@ function AssignmentsPanel({ courseId }: { courseId: string }) {
     queryFn: async () => (await supabase.from("profiles").select("id,full_name").order("full_name")).data ?? [],
   });
 
-  const assignments = useQuery({
-    queryKey: ["course-assignments", courseId],
-    queryFn: async () =>
-      (await supabase
-        .from("course_assignments")
-        .select("*, profile:profiles!course_assignments_profile_id_fkey(id,full_name,email), certificate:course_certificates(certificate_no,issued_at)")
-        .eq("course_id", courseId)
-        .order("assigned_at", { ascending: false })).data ?? [],
-  });
-  // Note: no FK defined — fall back to manual join
+  // No FK defined between course_assignments.profile_id and profiles — manual join below.
   const assignmentsFallback = useQuery({
     queryKey: ["course-assignments-fallback", courseId, staff.data?.length],
     enabled: !!staff.data,
