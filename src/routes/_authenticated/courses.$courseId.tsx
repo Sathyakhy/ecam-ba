@@ -1048,7 +1048,7 @@ function CourseSettings({ course }: { course: any }) {
                 courseTitle: title || course.title,
                 issuedAt: new Date(),
                 certificateNo: "PREVIEW-0000",
-                organization: settings.organization_name ?? undefined,
+                organization: settings.app_name,
                 backgroundUrl: bgUrl ?? settings.default_certificate_bg_url,
               })
             }
