@@ -381,6 +381,7 @@ export type Database = {
       }
       courses: {
         Row: {
+          auto_assign_new_joiners: boolean
           cover_url: string | null
           created_at: string
           created_by: string | null
@@ -392,6 +393,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          auto_assign_new_joiners?: boolean
           cover_url?: string | null
           created_at?: string
           created_by?: string | null
@@ -403,6 +405,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          auto_assign_new_joiners?: boolean
           cover_url?: string | null
           created_at?: string
           created_by?: string | null

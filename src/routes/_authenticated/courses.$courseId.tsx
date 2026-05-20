@@ -619,6 +619,7 @@ function CourseSettings({ course, onSaved }: { course: any; onSaved: () => void 
   const [description, setDescription] = useState(course.description ?? "");
   const [passing, setPassing] = useState<number>(course.passing_score);
   const [published, setPublished] = useState<boolean>(course.published);
+  const [autoAssign, setAutoAssign] = useState<boolean>(!!course.auto_assign_new_joiners);
   return (
     <Card className="p-4 space-y-3 max-w-xl">
       <div className="space-y-2"><Label>Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} /></div>
@@ -633,10 +634,20 @@ function CourseSettings({ course, onSaved }: { course: any; onSaved: () => void 
           <div className="flex items-center gap-2 h-9"><Switch checked={published} onCheckedChange={setPublished} /></div>
         </div>
       </div>
+      <div className="space-y-1 rounded-md border p-3">
+        <div className="flex items-center justify-between gap-3">
+          <Label className="cursor-pointer">Auto-assign to new joiners</Label>
+          <Switch checked={autoAssign} onCheckedChange={setAutoAssign} />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          When enabled, any newly created staff profile will be automatically assigned this course (only if published).
+        </p>
+      </div>
       <div className="flex justify-end">
         <Button onClick={async () => {
           const { error } = await supabase.from("courses").update({
             title, description: description || null, passing_score: passing, published,
+            auto_assign_new_joiners: autoAssign,
           }).eq("id", course.id);
           if (error) return toast.error(error.message);
           toast.success("Saved"); onSaved();
