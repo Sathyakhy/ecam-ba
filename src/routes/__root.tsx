@@ -43,6 +43,14 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
       error.message,
     )
   ) {
+    const RELOAD_KEY = "__stale_chunk_reloaded_at__";
+    const last = Number(sessionStorage.getItem(RELOAD_KEY) || "0");
+    const now = Date.now();
+    if (now - last > 30_000) {
+      sessionStorage.setItem(RELOAD_KEY, String(now));
+      window.location.reload();
+      return null;
+    }
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <div className="max-w-md text-center">
@@ -51,7 +59,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
             The app loaded an outdated module. Refresh once to load the latest version.
           </p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => {
+              sessionStorage.removeItem(RELOAD_KEY);
+              window.location.reload();
+            }}
             className="mt-6 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
             Refresh
