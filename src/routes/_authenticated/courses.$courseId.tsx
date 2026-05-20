@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
   ArrowLeft, Plus, Trash2, CheckCircle2, Circle, ExternalLink, Award,
-  FileText, Video, Link as LinkIcon,
+  FileText, Video, Link as LinkIcon, Image as ImageIcon, NotebookText,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
