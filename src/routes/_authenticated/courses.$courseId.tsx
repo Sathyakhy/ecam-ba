@@ -1,13 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   ArrowLeft, Plus, Trash2, CheckCircle2, Circle, ExternalLink, Award,
-  FileText, Video, Link as LinkIcon, Image as ImageIcon, NotebookText,
+  FileText, Video, Link as LinkIcon, Image as ImageIcon, NotebookText, File,
+  Users, BookOpen, ClipboardList, Settings as SettingsIcon, ListChecks, GripVertical,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { useAppSettings } from "@/hooks/use-app-settings";
+import { openCertificate } from "@/lib/certificate";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,18 +24,16 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { openCertificate } from "@/lib/certificate";
-import { useAppSettings } from "@/hooks/use-app-settings";
 
 export const Route = createFileRoute("/_authenticated/courses/$courseId")({
   component: CourseDetailPage,
 });
 
-const ICON: Record<string, typeof FileText> = {
-  document: FileText, pdf: FileText, video: Video, link: LinkIcon, image: ImageIcon, manual: NotebookText,
+const TYPE_ICON: Record<string, any> = {
+  video: Video, pdf: FileText, image: ImageIcon, link: LinkIcon, text: NotebookText, file: File,
 };
 
 function youtubeEmbed(url: string): string | null {
@@ -48,774 +49,943 @@ function youtubeEmbed(url: string): string | null {
   return null;
 }
 
-function LessonMaterial({ lesson }: { lesson: any }) {
-  const url: string | null = lesson.url ?? null;
-  const type: string = lesson.material_type ?? "document";
-  if (type === "manual") return null;
-  if (!url) return null;
-  if (type === "image") {
-    return <img src={url} alt={lesson.title} className="mt-3 rounded-md border max-h-[480px] w-auto" />;
-  }
-  if (type === "video") {
-    const embed = youtubeEmbed(url);
-    if (embed) {
-      return (
-        <div className="mt-3 aspect-video rounded-md overflow-hidden border">
-          <iframe src={embed} className="w-full h-full" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen />
-        </div>
-      );
-    }
-    return <video src={url} controls className="mt-3 rounded-md border w-full max-h-[480px] bg-black" />;
-  }
-  if (type === "pdf" || type === "document") {
-    const isPdf = type === "pdf" || /\.pdf(\?|$)/i.test(url);
-    if (isPdf) {
-      return (
-        <div className="mt-3 rounded-md overflow-hidden border">
-          <iframe src={url} className="w-full h-[600px]" title={lesson.title} />
-        </div>
-      );
-    }
-  }
-  return (
-    <a href={url} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1 mt-2">
-      <ExternalLink className="h-3 w-3" /> Open material
-    </a>
-  );
-}
-
 function CourseDetailPage() {
   const { courseId } = Route.useParams();
-  const { profile, isAdmin, canEdit } = useAuth();
-  const settings = useAppSettings();
+  const { isAdmin, canEdit } = useAuth();
   const canManage = isAdmin || canEdit("learning");
-  const qc = useQueryClient();
 
   const course = useQuery({
     queryKey: ["course", courseId],
-    queryFn: async () => (await supabase.from("courses").select("*").eq("id", courseId).maybeSingle()).data,
-  });
-
-  const lessons = useQuery({
-    queryKey: ["course-lessons", courseId],
     queryFn: async () =>
-      (await supabase.from("course_lessons").select("*").eq("course_id", courseId).order("order_index")).data ?? [],
+      (await supabase.from("courses").select("*, category:course_categories(id, name)").eq("id", courseId).maybeSingle()).data,
   });
 
-  const questions = useQuery({
-    queryKey: ["course-questions", courseId],
-    queryFn: async () =>
-      (await supabase
-        .from("course_quiz_questions")
-        .select("*, options:course_quiz_options(*)")
-        .eq("course_id", courseId)
-        .order("order_index")).data ?? [],
-  });
-
-  const assignment = useQuery({
-    queryKey: ["my-assignment", courseId, profile?.id],
-    enabled: !!profile?.id,
-    queryFn: async () =>
-      (await supabase
-        .from("course_assignments")
-        .select("*")
-        .eq("course_id", courseId)
-        .eq("profile_id", profile!.id)
-        .maybeSingle()).data,
-  });
-
-  const progress = useQuery({
-    queryKey: ["lesson-progress", assignment.data?.id],
-    enabled: !!assignment.data?.id,
-    queryFn: async () =>
-      (await supabase.from("course_lesson_progress").select("*").eq("assignment_id", assignment.data!.id)).data ?? [],
-  });
-
-  const attempts = useQuery({
-    queryKey: ["quiz-attempts", assignment.data?.id],
-    enabled: !!assignment.data?.id,
-    queryFn: async () =>
-      (await supabase
-        .from("course_quiz_attempts")
-        .select("*")
-        .eq("assignment_id", assignment.data!.id)
-        .order("attempted_at", { ascending: false })).data ?? [],
-  });
-
-  const certificate = useQuery({
-    queryKey: ["certificate", assignment.data?.id],
-    enabled: !!assignment.data?.id,
-    queryFn: async () =>
-      (await supabase.from("course_certificates").select("*").eq("assignment_id", assignment.data!.id).maybeSingle()).data,
-  });
-
-  const completedCount = progress.data?.length ?? 0;
-  const totalLessons = lessons.data?.length ?? 0;
-  const lessonPct = totalLessons ? Math.round((completedCount / totalLessons) * 100) : 0;
-  const bestScore = attempts.data?.length
-    ? Math.max(...attempts.data.map((a) => Math.round((a.score / Math.max(a.total, 1)) * 100)))
-    : 0;
-  const passed = attempts.data?.some((a) => a.passed) ?? false;
-
-  if (course.isLoading) return <div className="p-10 text-center text-muted-foreground">Loading…</div>;
-  if (!course.data) return <div className="p-10 text-center text-muted-foreground">Course not found.</div>;
+  if (course.isLoading) return <div className="p-8 text-sm text-muted-foreground">Loading…</div>;
+  if (!course.data) return <div className="p-8">Course not found. <Link to="/courses" className="underline">Back</Link></div>;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <Button asChild variant="ghost" size="sm"><Link to="/courses"><ArrowLeft className="h-4 w-4 mr-1" />Back</Link></Button>
+      </div>
       <div>
-        <Button asChild variant="ghost" size="sm" className="mb-2 -ml-2">
-          <Link to="/courses"><ArrowLeft className="h-4 w-4 mr-1" /> Back to courses</Link>
-        </Button>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold">{course.data.title}</h1>
-            {course.data.description && <p className="text-muted-foreground mt-1 max-w-2xl">{course.data.description}</p>}
-            <div className="flex gap-2 mt-2">
-              <Badge variant={course.data.published ? "default" : "secondary"}>{course.data.published ? "Published" : "Draft"}</Badge>
-              <Badge variant="outline">Pass {course.data.passing_score}%</Badge>
-              {assignment.data && <Badge variant="outline">Assigned to you</Badge>}
-            </div>
-          </div>
+        <div className="flex items-center gap-2 mb-1">
+          <h1 className="text-2xl font-bold">{course.data.title}</h1>
+          {!course.data.published && <Badge variant="outline">Draft</Badge>}
+          {course.data.category?.name && <Badge variant="secondary">{course.data.category.name}</Badge>}
         </div>
+        {course.data.description && <p className="text-muted-foreground">{course.data.description}</p>}
       </div>
 
-      <Tabs defaultValue={assignment.data ? "learn" : "lessons"}>
+      <Tabs defaultValue="learn">
         <TabsList>
-          <TabsTrigger value="learn" disabled={!assignment.data && !canManage}>Learn</TabsTrigger>
-          <TabsTrigger value="lessons">Lessons</TabsTrigger>
-          <TabsTrigger value="quiz">Quiz</TabsTrigger>
-          {canManage && <TabsTrigger value="assign">Assignments</TabsTrigger>}
-          {canManage && <TabsTrigger value="settings">Settings</TabsTrigger>}
+          <TabsTrigger value="learn"><BookOpen className="h-3 w-3 mr-1" />Learn</TabsTrigger>
+          {canManage && <TabsTrigger value="content"><ListChecks className="h-3 w-3 mr-1" />Content</TabsTrigger>}
+          {canManage && <TabsTrigger value="quiz"><ClipboardList className="h-3 w-3 mr-1" />Quiz</TabsTrigger>}
+          {canManage && <TabsTrigger value="enrollments"><Users className="h-3 w-3 mr-1" />Enrollments</TabsTrigger>}
+          {canManage && <TabsTrigger value="settings"><SettingsIcon className="h-3 w-3 mr-1" />Settings</TabsTrigger>}
         </TabsList>
 
-        <TabsContent value="learn" className="mt-4">
-          {!assignment.data ? (
-            <Card className="p-10 text-center text-sm text-muted-foreground">
-              You are not assigned to this course yet.
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              <Card className="p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium">Your progress</p>
-                    <p className="text-xs text-muted-foreground">{completedCount} of {totalLessons} lessons • Best quiz: {bestScore}%</p>
-                  </div>
-                  {certificate.data ? (
-                    <Button
-                      onClick={() => openCertificate({
-                        recipientName: profile?.full_name ?? "Learner",
-                        courseTitle: course.data!.title,
-                        issuedAt: certificate.data!.issued_at,
-                        certificateNo: certificate.data!.certificate_no,
-                        organization: settings.app_name,
-                        backgroundUrl: course.data!.certificate_bg_url ?? settings.default_certificate_bg_url ?? null,
-                      })}
-                    >
-                      <Award className="h-4 w-4 mr-1" /> View certificate
-                    </Button>
-                  ) : passed ? (
-                    <Button
-                      onClick={async () => {
-                        const certNo = `CERT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-                        const { data, error } = await supabase
-                          .from("course_certificates")
-                          .insert({ assignment_id: assignment.data!.id, certificate_no: certNo })
-                          .select()
-                          .single();
-                        if (error) return toast.error(error.message);
-                        await supabase.from("course_assignments").update({ status: "completed", completed_at: new Date().toISOString() }).eq("id", assignment.data!.id);
-                        toast.success("Certificate issued");
-                        qc.invalidateQueries({ queryKey: ["certificate", assignment.data!.id] });
-                        qc.invalidateQueries({ queryKey: ["my-assignment", courseId, profile?.id] });
-                        openCertificate({
-                          recipientName: profile?.full_name ?? "Learner",
-                          courseTitle: course.data!.title,
-                          issuedAt: data.issued_at,
-                          certificateNo: data.certificate_no,
-                          organization: settings.app_name,
-                          backgroundUrl: course.data!.certificate_bg_url ?? settings.default_certificate_bg_url ?? null,
-                        });
-                      }}
-                    >
-                      <Award className="h-4 w-4 mr-1" /> Generate certificate
-                    </Button>
-                  ) : null}
-                </div>
-                <Progress className="mt-3" value={lessonPct} />
-              </Card>
-
-              <Card>
-                <ul className="divide-y divide-border">
-                  {lessons.data?.map((l) => {
-                    const done = progress.data?.some((p) => p.lesson_id === l.id);
-                    const Icon = ICON[l.material_type] ?? FileText;
-                    return (
-                      <li key={l.id} className="p-4 flex items-start gap-3">
-                        <button
-                          className="mt-0.5"
-                          onClick={async () => {
-                            if (done) {
-                              await supabase.from("course_lesson_progress").delete().eq("assignment_id", assignment.data!.id).eq("lesson_id", l.id);
-                            } else {
-                              await supabase.from("course_lesson_progress").insert({ assignment_id: assignment.data!.id, lesson_id: l.id });
-                              if (assignment.data!.status === "assigned") {
-                                await supabase.from("course_assignments").update({ status: "in_progress", started_at: new Date().toISOString() }).eq("id", assignment.data!.id);
-                                qc.invalidateQueries({ queryKey: ["my-assignment", courseId, profile?.id] });
-                              }
-                            }
-                            qc.invalidateQueries({ queryKey: ["lesson-progress", assignment.data!.id] });
-                          }}
-                        >
-                          {done ? <CheckCircle2 className="h-5 w-5 text-primary" /> : <Circle className="h-5 w-5 text-muted-foreground" />}
-                        </button>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
-                            <p className="font-medium text-sm">{l.title}</p>
-                          </div>
-                          {l.content && <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">{l.content}</p>}
-                          <LessonMaterial lesson={l} />
-                        </div>
-                      </li>
-                    );
-                  })}
-                  {lessons.data?.length === 0 && <li className="p-6 text-center text-sm text-muted-foreground">No lessons yet.</li>}
-                </ul>
-              </Card>
-
-              {lessonPct === 100 && questions.data && questions.data.length > 0 && (
-                <QuizCard
-                  questions={questions.data}
-                  assignmentId={assignment.data.id}
-                  passingScore={course.data.passing_score}
-                  onSubmitted={() => {
-                    qc.invalidateQueries({ queryKey: ["quiz-attempts", assignment.data!.id] });
-                  }}
-                />
-              )}
-
-              {attempts.data && attempts.data.length > 0 && (
-                <Card className="p-4">
-                  <h3 className="font-medium text-sm mb-2">Quiz attempts</h3>
-                  <ul className="text-sm divide-y divide-border">
-                    {attempts.data.map((a) => (
-                      <li key={a.id} className="py-2 flex items-center justify-between">
-                        <span>{new Date(a.attempted_at).toLocaleString()}</span>
-                        <Badge variant={a.passed ? "default" : "destructive"}>
-                          {Math.round((a.score / Math.max(a.total, 1)) * 100)}% • {a.passed ? "Passed" : "Failed"}
-                        </Badge>
-                      </li>
-                    ))}
-                  </ul>
-                </Card>
-              )}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="lessons" className="mt-4 space-y-4">
-          {canManage && <LessonEditor courseId={courseId} onChanged={() => qc.invalidateQueries({ queryKey: ["course-lessons", courseId] })} />}
-          <Card>
-            <ul className="divide-y divide-border">
-              {lessons.data?.map((l, i) => {
-                const Icon = ICON[l.material_type] ?? FileText;
-                return (
-                  <li key={l.id} className="p-4 flex items-start gap-3">
-                    <span className="text-xs text-muted-foreground mt-1 w-6">{i + 1}.</span>
-                    <Icon className="h-4 w-4 text-muted-foreground mt-1 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm">{l.title}</p>
-                      {l.content && <p className="text-xs text-muted-foreground mt-1 line-clamp-3 whitespace-pre-wrap">{l.content}</p>}
-                      {l.url && <a href={l.url} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">{l.url}</a>}
-                    </div>
-                    {canManage && (
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={async () => {
-                        await supabase.from("course_lessons").delete().eq("id", l.id);
-                        qc.invalidateQueries({ queryKey: ["course-lessons", courseId] });
-                      }}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
-                    )}
-                  </li>
-                );
-              })}
-              {lessons.data?.length === 0 && <li className="p-6 text-center text-sm text-muted-foreground">No lessons.</li>}
-            </ul>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="quiz" className="mt-4 space-y-4">
-          {canManage && <QuestionEditor courseId={courseId} onChanged={() => qc.invalidateQueries({ queryKey: ["course-questions", courseId] })} />}
-          <div className="space-y-3">
-            {questions.data?.map((q: any, i: number) => (
-              <Card key={q.id} className="p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="font-medium text-sm">{i + 1}. {q.question}</p>
-                  {canManage && (
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={async () => {
-                      await supabase.from("course_quiz_questions").delete().eq("id", q.id);
-                      qc.invalidateQueries({ queryKey: ["course-questions", courseId] });
-                    }}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
-                  )}
-                </div>
-                <ul className="mt-2 space-y-1 text-sm">
-                  {(q.options ?? []).sort((a: any, b: any) => a.order_index - b.order_index).map((o: any) => (
-                    <li key={o.id} className={`flex items-center gap-2 ${o.is_correct && canManage ? "text-primary font-medium" : ""}`}>
-                      <span className="h-1.5 w-1.5 rounded-full bg-current" /> {o.label}
-                      {canManage && o.is_correct && <Badge variant="outline" className="text-xs">correct</Badge>}
-                    </li>
-                  ))}
-                </ul>
-              </Card>
-            ))}
-            {questions.data?.length === 0 && <Card className="p-6 text-center text-sm text-muted-foreground">No quiz questions yet.</Card>}
-          </div>
-        </TabsContent>
-
-        {canManage && (
-          <TabsContent value="assign" className="mt-4">
-            <AssignmentsPanel courseId={courseId} />
-          </TabsContent>
-        )}
-
-        {canManage && (
-          <TabsContent value="settings" className="mt-4">
-            <CourseSettings course={course.data} onSaved={() => qc.invalidateQueries({ queryKey: ["course", courseId] })} />
-          </TabsContent>
-        )}
+        <TabsContent value="learn"><LearnerView course={course.data} /></TabsContent>
+        {canManage && <TabsContent value="content"><ContentEditor courseId={courseId} /></TabsContent>}
+        {canManage && <TabsContent value="quiz"><QuizEditor courseId={courseId} /></TabsContent>}
+        {canManage && <TabsContent value="enrollments"><EnrollmentsTab courseId={courseId} /></TabsContent>}
+        {canManage && <TabsContent value="settings"><CourseSettings course={course.data} /></TabsContent>}
       </Tabs>
     </div>
   );
 }
 
-function LessonEditor({ courseId, onChanged }: { courseId: string; onChanged: () => void }) {
-  const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [type, setType] = useState("pdf");
-  const [url, setUrl] = useState("");
-  const [uploading, setUploading] = useState(false);
+/* ============================================================
+ * LEARNER VIEW
+ * ============================================================ */
+function LearnerView({ course }: { course: any }) {
+  const { profile } = useAuth();
+  const qc = useQueryClient();
 
-  const reset = () => {
-    setTitle(""); setContent(""); setUrl(""); setType("pdf");
+  const enrollment = useQuery({
+    queryKey: ["enrollment", course.id, profile?.id],
+    enabled: !!profile?.id,
+    queryFn: async () =>
+      (await supabase.from("course_enrollments").select("*").eq("course_id", course.id).eq("profile_id", profile!.id).maybeSingle()).data,
+  });
+
+  const modules = useQuery({
+    queryKey: ["course-content", course.id],
+    queryFn: async () => {
+      const { data: mods } = await supabase.from("course_modules").select("*").eq("course_id", course.id).order("order_index");
+      if (!mods?.length) return [];
+      const { data: lessons } = await supabase.from("course_lessons").select("*").eq("course_id", course.id).order("order_index");
+      return mods.map((m) => ({ ...m, lessons: (lessons ?? []).filter((l) => l.module_id === m.id) }));
+    },
+  });
+
+  const progress = useQuery({
+    queryKey: ["lesson-progress", enrollment.data?.id],
+    enabled: !!enrollment.data?.id,
+    queryFn: async () =>
+      (await supabase.from("course_lesson_progress").select("*").eq("enrollment_id", enrollment.data!.id)).data ?? [],
+  });
+
+  const attempts = useQuery({
+    queryKey: ["quiz-attempts", enrollment.data?.id],
+    enabled: !!enrollment.data?.id,
+    queryFn: async () =>
+      (await supabase.from("course_quiz_attempts").select("*").eq("enrollment_id", enrollment.data!.id).order("attempted_at", { ascending: false })).data ?? [],
+  });
+
+  const certificate = useQuery({
+    queryKey: ["certificate", enrollment.data?.id],
+    enabled: !!enrollment.data?.id,
+    queryFn: async () =>
+      (await supabase.from("course_certificates").select("*").eq("enrollment_id", enrollment.data!.id).maybeSingle()).data,
+  });
+
+  const prereqs = useQuery({
+    queryKey: ["prereqs", course.id],
+    queryFn: async () => (await supabase
+      .from("course_prerequisites")
+      .select("prerequisite_course_id, prerequisite:courses!course_prerequisites_prerequisite_course_id_fkey(id, title)")
+      .eq("course_id", course.id)).data ?? [],
+  });
+
+  const prereqEnrollments = useQuery({
+    queryKey: ["prereq-enrollments", profile?.id, course.id],
+    enabled: !!profile?.id && (prereqs.data?.length ?? 0) > 0,
+    queryFn: async () => {
+      const ids = (prereqs.data ?? []).map((p) => p.prerequisite_course_id);
+      const { data } = await supabase.from("course_enrollments").select("course_id, status").eq("profile_id", profile!.id).in("course_id", ids);
+      return data ?? [];
+    },
+  });
+
+  const enroll = async () => {
+    if (!profile?.id) return;
+    const { error } = await supabase.from("course_enrollments").insert({
+      course_id: course.id, profile_id: profile.id, source: "manual", status: "enrolled",
+    });
+    if (error) return toast.error(error.message);
+    qc.invalidateQueries({ queryKey: ["enrollment"] });
   };
 
-  const acceptFor = (t: string) =>
-    t === "pdf" ? "application/pdf"
-    : t === "image" ? "image/png,image/jpeg,image/webp,image/gif"
-    : t === "video" ? "video/mp4,video/webm,video/quicktime"
-    : "";
+  if (!enrollment.data) {
+    return (
+      <Card className="p-6 text-center">
+        <p className="mb-3 text-sm text-muted-foreground">You're not enrolled in this course yet.</p>
+        <Button onClick={enroll}>Enroll now</Button>
+      </Card>
+    );
+  }
 
-  const handleUpload = async (file: File) => {
-    if (file.size > 100 * 1024 * 1024) { toast.error("File must be under 100MB"); return; }
-    setUploading(true);
-    try {
-      const ext = file.name.split(".").pop() || "bin";
-      const path = `${courseId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("course-materials").upload(path, file, { contentType: file.type, upsert: false });
-      if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from("course-materials").getPublicUrl(path);
-      setUrl(pub.publicUrl);
-      toast.success("File uploaded");
-    } catch (err: any) {
-      toast.error(err.message ?? "Upload failed");
-    } finally {
-      setUploading(false);
+  // Check prerequisites
+  const unmetPrereqs = (prereqs.data ?? []).filter((p) =>
+    !(prereqEnrollments.data ?? []).some((e) => e.course_id === p.prerequisite_course_id && e.status === "completed")
+  );
+
+  if (unmetPrereqs.length > 0) {
+    return (
+      <Card className="p-6">
+        <div className="font-semibold mb-2">Complete prerequisites first</div>
+        <ul className="space-y-1">
+          {unmetPrereqs.map((p: any) => (
+            <li key={p.prerequisite_course_id} className="text-sm">
+              <Link to="/courses/$courseId" params={{ courseId: p.prerequisite_course_id }} className="underline">
+                {p.prerequisite?.title}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </Card>
+    );
+  }
+
+  const completedLessonIds = new Set((progress.data ?? []).map((p) => p.lesson_id));
+  const allLessons = (modules.data ?? []).flatMap((m) => m.lessons);
+  const lessonsDone = allLessons.length > 0 && allLessons.every((l) => completedLessonIds.has(l.id));
+  const bestAttempt = (attempts.data ?? []).reduce<any>((b, a) => (!b || a.score / a.total > b.score / b.total ? a : b), null);
+  const passed = bestAttempt?.passed;
+
+  const completionMet =
+    course.completion_criteria === "all_lessons" ? lessonsDone :
+    course.completion_criteria === "both" ? lessonsDone && passed :
+    passed;
+
+  const toggleLesson = async (lessonId: string) => {
+    if (completedLessonIds.has(lessonId)) {
+      await supabase.from("course_lesson_progress").delete().eq("enrollment_id", enrollment.data!.id).eq("lesson_id", lessonId);
+    } else {
+      await supabase.from("course_lesson_progress").insert({ enrollment_id: enrollment.data!.id, lesson_id: lessonId });
     }
+    if (enrollment.data!.status === "enrolled") {
+      await supabase.from("course_enrollments").update({ status: "in_progress", started_at: new Date().toISOString() }).eq("id", enrollment.data!.id);
+    }
+    qc.invalidateQueries({ queryKey: ["lesson-progress"] });
+    qc.invalidateQueries({ queryKey: ["enrollment"] });
   };
 
-  const needsUpload = type === "pdf" || type === "image" || type === "video";
-  const needsLink = type === "link" || type === "video";
-  const isManual = type === "manual";
-
-  return (
-    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
-      <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> Add lesson</Button></DialogTrigger>
-      <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>New lesson</DialogTitle></DialogHeader>
-        <form onSubmit={async (e) => {
-          e.preventDefault();
-          if (!isManual && !url) return toast.error("Upload a file or provide a link");
-          const { count } = await supabase.from("course_lessons").select("*", { count: "exact", head: true }).eq("course_id", courseId);
-          const { error } = await supabase.from("course_lessons").insert({
-            course_id: courseId, title, content: content || null, material_type: type, url: url || null, order_index: count ?? 0,
-          });
-          if (error) return toast.error(error.message);
-          toast.success("Lesson added"); setOpen(false); reset();
-          onChanged();
-        }} className="space-y-3">
-          <div className="space-y-2"><Label>Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={200} /></div>
-          <div className="space-y-2">
-            <Label>Material type</Label>
-            <Select value={type} onValueChange={(v) => { setType(v); setUrl(""); }}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pdf">PDF (upload)</SelectItem>
-                <SelectItem value="image">Image (upload)</SelectItem>
-                <SelectItem value="video">Video (upload or link)</SelectItem>
-                <SelectItem value="link">Link (web page)</SelectItem>
-                <SelectItem value="manual">Manual (text only)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {needsUpload && (
-            <div className="space-y-2">
-              <Label>Upload file</Label>
-              <Input
-                type="file"
-                accept={acceptFor(type)}
-                disabled={uploading}
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ""; }}
-              />
-              {uploading && <p className="text-xs text-muted-foreground">Uploading…</p>}
-              {url && !uploading && <p className="text-xs text-muted-foreground break-all">Uploaded: {url}</p>}
-            </div>
-          )}
-
-          {needsLink && (
-            <div className="space-y-2">
-              <Label>{type === "video" ? "…or paste a video URL (YouTube / Vimeo / direct)" : "URL"}</Label>
-              <Input type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://" maxLength={1000} />
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <Label>{isManual ? "Lesson text" : "Notes / instructions (optional)"}</Label>
-            <Textarea value={content} onChange={(e) => setContent(e.target.value)} rows={isManual ? 8 : 3} maxLength={10000} required={isManual} />
-          </div>
-
-          <DialogFooter><Button type="submit" disabled={uploading}>Add</Button></DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function QuestionEditor({ courseId, onChanged }: { courseId: string; onChanged: () => void }) {
-  const [open, setOpen] = useState(false);
-  const [question, setQuestion] = useState("");
-  const [options, setOptions] = useState<{ label: string; is_correct: boolean }[]>([
-    { label: "", is_correct: true }, { label: "", is_correct: false }, { label: "", is_correct: false }, { label: "", is_correct: false },
-  ]);
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> Add question</Button></DialogTrigger>
-      <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>New quiz question</DialogTitle></DialogHeader>
-        <form onSubmit={async (e) => {
-          e.preventDefault();
-          const cleaned = options.filter((o) => o.label.trim().length > 0);
-          if (cleaned.length < 2) return toast.error("At least 2 options required");
-          if (!cleaned.some((o) => o.is_correct)) return toast.error("Mark at least one correct answer");
-          const { count } = await supabase.from("course_quiz_questions").select("*", { count: "exact", head: true }).eq("course_id", courseId);
-          const { data: q, error } = await supabase
-            .from("course_quiz_questions")
-            .insert({ course_id: courseId, question, order_index: count ?? 0 })
-            .select().single();
-          if (error || !q) return toast.error(error?.message ?? "Failed");
-          const { error: oErr } = await supabase.from("course_quiz_options").insert(
-            cleaned.map((o, i) => ({ question_id: q.id, label: o.label, is_correct: o.is_correct, order_index: i })),
-          );
-          if (oErr) return toast.error(oErr.message);
-          toast.success("Question added");
-          setOpen(false); setQuestion("");
-          setOptions([{ label: "", is_correct: true }, { label: "", is_correct: false }, { label: "", is_correct: false }, { label: "", is_correct: false }]);
-          onChanged();
-        }} className="space-y-3">
-          <div className="space-y-2"><Label>Question</Label><Textarea value={question} onChange={(e) => setQuestion(e.target.value)} required rows={2} maxLength={500} /></div>
-          <div className="space-y-2">
-            <Label>Options (check correct answers)</Label>
-            {options.map((o, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <Checkbox checked={o.is_correct} onCheckedChange={(v) => {
-                  const next = [...options]; next[i].is_correct = !!v; setOptions(next);
-                }} />
-                <Input
-                  value={o.label}
-                  onChange={(e) => { const next = [...options]; next[i].label = e.target.value; setOptions(next); }}
-                  placeholder={`Option ${i + 1}`}
-                  maxLength={300}
-                />
-              </div>
-            ))}
-            <Button type="button" size="sm" variant="ghost" onClick={() => setOptions([...options, { label: "", is_correct: false }])}>
-              <Plus className="h-3 w-3 mr-1" /> Add option
-            </Button>
-          </div>
-          <DialogFooter><Button type="submit">Add</Button></DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function QuizCard({
-  questions, assignmentId, passingScore, onSubmitted,
-}: { questions: any[]; assignmentId: string; passingScore: number; onSubmitted: () => void }) {
-  const [answers, setAnswers] = useState<Record<string, string[]>>({});
-  const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState<{ score: number; total: number; passed: boolean } | null>(null);
-
-  const toggle = (qid: string, oid: string, multi: boolean) => {
-    setAnswers((prev) => {
-      const cur = prev[qid] ?? [];
-      if (!multi) return { ...prev, [qid]: [oid] };
-      return { ...prev, [qid]: cur.includes(oid) ? cur.filter((x) => x !== oid) : [...cur, oid] };
+  const issueCert = async () => {
+    if (!enrollment.data || !profile) return;
+    let cert = certificate.data;
+    if (!cert) {
+      const certNo = `CERT-${Date.now().toString(36).toUpperCase()}`;
+      const { data, error } = await supabase
+        .from("course_certificates")
+        .insert({ enrollment_id: enrollment.data.id, certificate_no: certNo })
+        .select().single();
+      if (error) return toast.error(error.message);
+      cert = data;
+      await supabase.from("course_enrollments").update({ status: "completed", completed_at: new Date().toISOString() }).eq("id", enrollment.data.id);
+      qc.invalidateQueries({ queryKey: ["certificate"] });
+      qc.invalidateQueries({ queryKey: ["enrollment"] });
+    }
+    openCertificate({
+      recipientName: profile.full_name ?? profile.username,
+      courseTitle: course.title,
+      issuedAt: cert!.issued_at,
+      certificateNo: cert!.certificate_no,
+      backgroundUrl: course.certificate_bg_url,
     });
   };
 
+  const completedCount = allLessons.filter((l) => completedLessonIds.has(l.id)).length;
+  const lessonProgress = allLessons.length ? Math.round((completedCount / allLessons.length) * 100) : 0;
+
   return (
-    <Card className="p-4">
-      <h3 className="font-medium mb-1">Final quiz</h3>
-      <p className="text-xs text-muted-foreground mb-4">Score {passingScore}% or higher to earn your certificate.</p>
-      <div className="space-y-4">
-        {questions.map((q, i) => {
-          const opts = (q.options ?? []).slice().sort((a: any, b: any) => a.order_index - b.order_index);
-          const correctCount = opts.filter((o: any) => o.is_correct).length;
-          const multi = correctCount > 1;
-          return (
-            <div key={q.id}>
-              <p className="font-medium text-sm">{i + 1}. {q.question} {multi && <span className="text-xs text-muted-foreground">(select all that apply)</span>}</p>
-              <div className="mt-2 space-y-1">
-                {opts.map((o: any) => {
-                  const checked = (answers[q.id] ?? []).includes(o.id);
+    <div className="grid gap-4 lg:grid-cols-3">
+      <div className="lg:col-span-2 space-y-4">
+        {(modules.data ?? []).length === 0 ? (
+          <Card className="p-6 text-center text-sm text-muted-foreground">No content yet.</Card>
+        ) : (
+          (modules.data ?? []).map((m, i) => (
+            <Card key={m.id} className="p-4 space-y-3">
+              <div>
+                <div className="font-semibold">{i + 1}. {m.title}</div>
+                {m.description && <p className="text-xs text-muted-foreground mt-0.5">{m.description}</p>}
+              </div>
+              {m.lessons.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No lessons.</p>
+              ) : (
+                m.lessons.map((l: any) => {
+                  const done = completedLessonIds.has(l.id);
+                  const Icon = TYPE_ICON[l.material_type] ?? FileText;
                   return (
-                    <label key={o.id} className="flex items-center gap-2 text-sm cursor-pointer">
-                      <Checkbox checked={checked} onCheckedChange={() => toggle(q.id, o.id, multi)} />
-                      <span>{o.label}</span>
-                    </label>
+                    <Card key={l.id} className="p-3 bg-muted/40">
+                      <div className="flex items-start gap-2 mb-2">
+                        <button onClick={() => toggleLesson(l.id)} className="mt-0.5">
+                          {done ? <CheckCircle2 className="h-5 w-5 text-emerald-600" /> : <Circle className="h-5 w-5 text-muted-foreground" />}
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 font-medium">
+                            <Icon className="h-3.5 w-3.5" /> {l.title}
+                          </div>
+                          <LessonMaterial lesson={l} />
+                        </div>
+                      </div>
+                    </Card>
                   );
-                })}
+                })
+              )}
+            </Card>
+          ))
+        )}
+
+        <QuizRunner courseId={course.id} enrollment={enrollment.data} passingScore={course.passing_score} />
+      </div>
+
+      <div className="space-y-4">
+        <Card className="p-4">
+          <div className="text-xs text-muted-foreground mb-1">Lesson progress</div>
+          <Progress value={lessonProgress} className="mb-2" />
+          <div className="text-xs">{completedCount}/{allLessons.length} lessons</div>
+        </Card>
+        <Card className="p-4">
+          <div className="text-xs text-muted-foreground mb-1">Best quiz score</div>
+          <div className="text-2xl font-semibold">
+            {bestAttempt ? `${Math.round((bestAttempt.score / bestAttempt.total) * 100)}%` : "—"}
+          </div>
+          <div className="text-xs text-muted-foreground">Pass at {course.passing_score}%</div>
+        </Card>
+        {completionMet && (
+          <Card className="p-4">
+            <Button className="w-full" onClick={issueCert}>
+              <Award className="h-4 w-4 mr-2" />
+              {certificate.data ? "View certificate" : "Get certificate"}
+            </Button>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function LessonMaterial({ lesson }: { lesson: any }) {
+  const { material_type: t, url, content, downloadable } = lesson;
+  if (t === "pdf" && url) return (
+    <div className="mt-2">
+      <iframe src={url} className="w-full h-96 border rounded" />
+      {downloadable && <a href={url} target="_blank" rel="noopener" className="text-xs underline mt-1 inline-block">Download PDF</a>}
+    </div>
+  );
+  if (t === "image" && url) return <img src={url} alt={lesson.title} className="mt-2 max-w-full rounded border" />;
+  if (t === "video" && url) {
+    const embed = youtubeEmbed(url);
+    return embed
+      ? <iframe src={embed} className="mt-2 w-full aspect-video rounded border" allowFullScreen />
+      : <video src={url} controls className="mt-2 w-full rounded border" />;
+  }
+  if (t === "link" && url) return (
+    <a href={url} target="_blank" rel="noopener" className="text-xs underline text-primary inline-flex items-center gap-1 mt-1">
+      <ExternalLink className="h-3 w-3" /> {url}
+    </a>
+  );
+  if (t === "file" && url) return (
+    <a href={url} target="_blank" rel="noopener" className="text-xs underline text-primary inline-flex items-center gap-1 mt-1">
+      <Download className="h-3 w-3" /> Download
+    </a>
+  );
+  if (t === "text" && content) return <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{content}</p>;
+  return null;
+}
+
+/* helper icon */
+import { Download } from "lucide-react";
+
+/* ============================================================
+ * QUIZ RUNNER (learner)
+ * ============================================================ */
+function QuizRunner({ courseId, enrollment, passingScore }: { courseId: string; enrollment: any; passingScore: number }) {
+  const qc = useQueryClient();
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [showResult, setShowResult] = useState<{ score: number; total: number; passed: boolean } | null>(null);
+
+  const questions = useQuery({
+    queryKey: ["quiz-q", courseId],
+    queryFn: async () => {
+      const { data: qs } = await supabase.from("course_quiz_questions").select("*").eq("course_id", courseId).order("order_index");
+      if (!qs?.length) return [];
+      const { data: opts } = await supabase.from("course_quiz_options").select("*").in("question_id", qs.map((q) => q.id)).order("order_index");
+      return qs.map((q) => ({ ...q, options: (opts ?? []).filter((o) => o.question_id === q.id) }));
+    },
+  });
+
+  if (!questions.data || questions.data.length === 0) return null;
+
+  const submit = async () => {
+    let score = 0;
+    for (const q of questions.data!) {
+      const chosenId = answers[q.id];
+      const correct = q.options.find((o: any) => o.is_correct)?.id;
+      if (chosenId && chosenId === correct) score++;
+    }
+    const total = questions.data!.length;
+    const pct = Math.round((score / total) * 100);
+    const passed = pct >= passingScore;
+    await supabase.from("course_quiz_attempts").insert({
+      enrollment_id: enrollment.id, score, total, passed, answers,
+    });
+    setShowResult({ score, total, passed });
+    qc.invalidateQueries({ queryKey: ["quiz-attempts"] });
+  };
+
+  return (
+    <Card className="p-4 space-y-4">
+      <div className="font-semibold flex items-center gap-2"><ClipboardList className="h-4 w-4" /> Final quiz</div>
+      {showResult ? (
+        <div className="text-center py-4">
+          <div className="text-3xl font-bold">{Math.round((showResult.score / showResult.total) * 100)}%</div>
+          <div className="text-sm text-muted-foreground mb-3">{showResult.score}/{showResult.total} correct</div>
+          <Badge variant={showResult.passed ? "default" : "destructive"}>{showResult.passed ? "Passed" : "Failed"}</Badge>
+          <div className="mt-3">
+            <Button variant="outline" size="sm" onClick={() => { setShowResult(null); setAnswers({}); }}>Try again</Button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {questions.data.map((q, i) => (
+            <div key={q.id} className="space-y-2">
+              <div className="font-medium text-sm">{i + 1}. {q.question}</div>
+              <div className="space-y-1.5 pl-2">
+                {q.options.map((o: any) => (
+                  <label key={o.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input type="radio" name={q.id} checked={answers[q.id] === o.id}
+                      onChange={() => setAnswers({ ...answers, [q.id]: o.id })} />
+                    {o.label}
+                  </label>
+                ))}
               </div>
             </div>
-          );
-        })}
-      </div>
-      {result && (
-        <div className={`mt-4 p-3 rounded-md text-sm ${result.passed ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>
-          You scored {Math.round((result.score / Math.max(result.total, 1)) * 100)}% ({result.score}/{result.total}).{" "}
-          {result.passed ? "You passed! Generate your certificate above." : "Try again to reach the passing score."}
-        </div>
+          ))}
+          <Button onClick={submit} disabled={Object.keys(answers).length < questions.data.length}>Submit quiz</Button>
+        </>
       )}
-      <div className="mt-4 flex justify-end">
-        <Button
-          disabled={submitting}
-          onClick={async () => {
-            setSubmitting(true);
-            let score = 0;
-            for (const q of questions) {
-              const opts = q.options ?? [];
-              const correctIds = opts.filter((o: any) => o.is_correct).map((o: any) => o.id).sort();
-              const chosen = (answers[q.id] ?? []).slice().sort();
-              if (correctIds.length === chosen.length && correctIds.every((id: string, i: number) => id === chosen[i])) {
-                score += 1;
-              }
-            }
-            const total = questions.length;
-            const pct = Math.round((score / Math.max(total, 1)) * 100);
-            const passed = pct >= passingScore;
-            const { error } = await supabase.from("course_quiz_attempts").insert({
-              assignment_id: assignmentId, score, total, passed, answers,
-            });
-            setSubmitting(false);
-            if (error) return toast.error(error.message);
-            setResult({ score, total, passed });
-            toast[passed ? "success" : "error"](`Scored ${pct}%`);
-            onSubmitted();
-          }}
-        >Submit quiz</Button>
-      </div>
     </Card>
   );
 }
 
-function AssignmentsPanel({ courseId }: { courseId: string }) {
+/* ============================================================
+ * CONTENT EDITOR (admin)
+ * ============================================================ */
+function ContentEditor({ courseId }: { courseId: string }) {
   const qc = useQueryClient();
-  const [staffId, setStaffId] = useState("");
-  const [dueDate, setDueDate] = useState("");
+  const [moduleTitle, setModuleTitle] = useState("");
 
-  const staff = useQuery({
-    queryKey: ["staff-min"],
-    queryFn: async () => (await supabase.from("profiles").select("id,full_name").order("full_name")).data ?? [],
+  const modules = useQuery({
+    queryKey: ["modules-edit", courseId],
+    queryFn: async () => (await supabase.from("course_modules").select("*").eq("course_id", courseId).order("order_index")).data ?? [],
   });
 
-  // No FK defined between course_assignments.profile_id and profiles — manual join below.
-  const assignmentsFallback = useQuery({
-    queryKey: ["course-assignments-fallback", courseId, staff.data?.length],
-    enabled: !!staff.data,
-    queryFn: async () => {
-      const rows = (await supabase.from("course_assignments").select("*").eq("course_id", courseId).order("assigned_at", { ascending: false })).data ?? [];
-      const ids = rows.map((r) => r.id);
-      const certs = ids.length ? (await supabase.from("course_certificates").select("*").in("assignment_id", ids)).data ?? [] : [];
-      return rows.map((r) => ({
-        ...r,
-        profile: staff.data?.find((s) => s.id === r.profile_id),
-        certificate: certs.find((c) => c.assignment_id === r.id),
-      }));
-    },
+  const lessons = useQuery({
+    queryKey: ["lessons-edit", courseId],
+    queryFn: async () => (await supabase.from("course_lessons").select("*").eq("course_id", courseId).order("order_index")).data ?? [],
   });
 
-  const list = assignmentsFallback.data ?? [];
+  const addModule = async () => {
+    if (!moduleTitle.trim()) return;
+    const order = (modules.data?.length ?? 0);
+    await supabase.from("course_modules").insert({ course_id: courseId, title: moduleTitle.trim(), order_index: order });
+    setModuleTitle("");
+    qc.invalidateQueries({ queryKey: ["modules-edit"] });
+  };
+
+  const removeModule = async (id: string) => {
+    if (!confirm("Delete module and its lessons?")) return;
+    await supabase.from("course_modules").delete().eq("id", id);
+    qc.invalidateQueries({ queryKey: ["modules-edit"] });
+    qc.invalidateQueries({ queryKey: ["lessons-edit"] });
+  };
 
   return (
     <div className="space-y-4">
       <Card className="p-4">
-        <h3 className="font-medium text-sm mb-3">Assign to employee</h3>
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault();
-            if (!staffId) return;
-            const { error } = await supabase.from("course_assignments").insert({
-              course_id: courseId, profile_id: staffId, due_date: dueDate || null,
-              assigned_by: (await supabase.auth.getUser()).data.user?.id,
-            });
-            if (error) return toast.error(error.message);
-            toast.success("Assigned");
-            setStaffId(""); setDueDate("");
-            qc.invalidateQueries({ queryKey: ["course-assignments-fallback", courseId] });
-          }}
-          className="flex flex-wrap items-end gap-3"
-        >
-          <div className="space-y-2 flex-1 min-w-[200px]">
-            <Label>Staff</Label>
-            <Select value={staffId} onValueChange={setStaffId}>
-              <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
-              <SelectContent>{staff.data?.map((s) => <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Due date</Label>
-            <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-          </div>
-          <Button type="submit">Assign</Button>
-        </form>
+        <div className="flex gap-2">
+          <Input placeholder="New module title…" value={moduleTitle} onChange={(e) => setModuleTitle(e.target.value)} />
+          <Button onClick={addModule}><Plus className="h-4 w-4 mr-1" />Add module</Button>
+        </div>
       </Card>
 
-      <Card>
-        {list.length ? (
-          <ul className="divide-y divide-border">
-            {list.map((a: any) => (
-              <li key={a.id} className="p-4 flex flex-wrap items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm">{a.profile?.full_name ?? "Unknown"}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Assigned {new Date(a.assigned_at).toLocaleDateString()}
-                    {a.due_date && ` • Due ${new Date(a.due_date).toLocaleDateString()}`}
-                    {a.completed_at && ` • Completed ${new Date(a.completed_at).toLocaleDateString()}`}
-                  </p>
+      {(modules.data ?? []).map((m, i) => (
+        <Card key={m.id} className="p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="font-semibold">{i + 1}. {m.title}</div>
+            <Button size="sm" variant="ghost" onClick={() => removeModule(m.id)}><Trash2 className="h-4 w-4" /></Button>
+          </div>
+          <LessonList
+            courseId={courseId}
+            moduleId={m.id}
+            lessons={(lessons.data ?? []).filter((l) => l.module_id === m.id)}
+          />
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function LessonList({ courseId, moduleId, lessons }: { courseId: string; moduleId: string; lessons: any[] }) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<any | null>(null);
+
+  const remove = async (id: string) => {
+    if (!confirm("Delete lesson?")) return;
+    await supabase.from("course_lessons").delete().eq("id", id);
+    qc.invalidateQueries({ queryKey: ["lessons-edit"] });
+  };
+
+  return (
+    <div className="space-y-2">
+      {lessons.map((l, i) => {
+        const Icon = TYPE_ICON[l.material_type] ?? FileText;
+        return (
+          <div key={l.id} className="flex items-center gap-2 p-2 rounded bg-muted/40">
+            <Icon className="h-4 w-4 text-muted-foreground" />
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium truncate">{i + 1}. {l.title}</div>
+              <div className="text-xs text-muted-foreground capitalize">{l.material_type}</div>
+            </div>
+            <Button size="sm" variant="ghost" onClick={() => { setEditing(l); setOpen(true); }}>Edit</Button>
+            <Button size="sm" variant="ghost" onClick={() => remove(l.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+          </div>
+        );
+      })}
+      <Button size="sm" variant="outline" onClick={() => { setEditing(null); setOpen(true); }}>
+        <Plus className="h-3 w-3 mr-1" /> Add lesson
+      </Button>
+      <LessonDialog
+        open={open}
+        onOpenChange={setOpen}
+        courseId={courseId}
+        moduleId={moduleId}
+        lesson={editing}
+        nextOrder={lessons.length}
+      />
+    </div>
+  );
+}
+
+function LessonDialog({ open, onOpenChange, courseId, moduleId, lesson, nextOrder }: {
+  open: boolean; onOpenChange: (v: boolean) => void; courseId: string; moduleId: string; lesson: any | null; nextOrder: number;
+}) {
+  const qc = useQueryClient();
+  const [title, setTitle] = useState(lesson?.title ?? "");
+  const [type, setType] = useState(lesson?.material_type ?? "video");
+  const [url, setUrl] = useState(lesson?.url ?? "");
+  const [content, setContent] = useState(lesson?.content ?? "");
+  const [downloadable, setDownloadable] = useState<boolean>(lesson?.downloadable ?? false);
+  const [uploading, setUploading] = useState(false);
+
+  // reset when opened
+  useMemo(() => {
+    if (open) {
+      setTitle(lesson?.title ?? "");
+      setType(lesson?.material_type ?? "video");
+      setUrl(lesson?.url ?? "");
+      setContent(lesson?.content ?? "");
+      setDownloadable(lesson?.downloadable ?? false);
+    }
+  }, [open, lesson]);
+
+  const acceptFor = type === "pdf" ? "application/pdf" : type === "image" ? "image/*" : type === "video" ? "video/*" : "*/*";
+
+  const handleUpload = async (file: File) => {
+    setUploading(true);
+    try {
+      const path = `${courseId}/${Date.now()}-${file.name}`;
+      const { error } = await supabase.storage.from("course-materials").upload(path, file, { upsert: true });
+      if (error) throw error;
+      const { data } = supabase.storage.from("course-materials").getPublicUrl(path);
+      setUrl(data.publicUrl);
+      toast.success("Uploaded");
+    } catch (e: any) { toast.error(e.message); }
+    finally { setUploading(false); }
+  };
+
+  const save = async () => {
+    if (!title.trim()) return toast.error("Title required");
+    const payload = {
+      course_id: courseId, module_id: moduleId, title: title.trim(),
+      material_type: type, url: url || null, content: content || null, downloadable,
+    };
+    if (lesson) {
+      await supabase.from("course_lessons").update(payload).eq("id", lesson.id);
+    } else {
+      await supabase.from("course_lessons").insert({ ...payload, order_index: nextOrder });
+    }
+    qc.invalidateQueries({ queryKey: ["lessons-edit"] });
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>{lesson ? "Edit lesson" : "New lesson"}</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div><Label>Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
+          <div>
+            <Label>Material type</Label>
+            <Select value={type} onValueChange={setType}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="video">Video</SelectItem>
+                <SelectItem value="pdf">PDF</SelectItem>
+                <SelectItem value="image">Image</SelectItem>
+                <SelectItem value="file">Downloadable file</SelectItem>
+                <SelectItem value="link">External link</SelectItem>
+                <SelectItem value="text">Text / manual</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {type !== "text" && (
+            <>
+              <div>
+                <Label>URL</Label>
+                <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://… or upload below" />
+              </div>
+              {type !== "link" && (
+                <div>
+                  <Label>Or upload</Label>
+                  <Input type="file" accept={acceptFor} disabled={uploading} onChange={(e) => {
+                    const f = e.target.files?.[0]; if (f) handleUpload(f);
+                  }} />
                 </div>
-                <Badge variant={a.status === "completed" ? "default" : a.status === "in_progress" ? "secondary" : "outline"}>{a.status}</Badge>
-                {a.certificate && <Badge variant="secondary" className="gap-1"><Award className="h-3 w-3" /> {a.certificate.certificate_no}</Badge>}
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={async () => {
-                  if (!confirm("Remove this assignment?")) return;
-                  const { error } = await supabase.from("course_assignments").delete().eq("id", a.id);
-                  if (error) return toast.error(error.message);
-                  qc.invalidateQueries({ queryKey: ["course-assignments-fallback", courseId] });
-                }}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
-              </li>
-            ))}
-          </ul>
+              )}
+              {(type === "pdf" || type === "file" || type === "video") && (
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox checked={downloadable} onCheckedChange={(v) => setDownloadable(!!v)} />
+                  Allow learners to download
+                </label>
+              )}
+            </>
+          )}
+          {type === "text" && (
+            <div>
+              <Label>Content</Label>
+              <Textarea value={content} onChange={(e) => setContent(e.target.value)} rows={6} />
+            </div>
+          )}
+        </div>
+        <DialogFooter><Button onClick={save} disabled={uploading}>Save</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ============================================================
+ * QUIZ EDITOR
+ * ============================================================ */
+function QuizEditor({ courseId }: { courseId: string }) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [questionText, setQuestionText] = useState("");
+  const [opts, setOpts] = useState<{ label: string; correct: boolean }[]>([
+    { label: "", correct: true }, { label: "", correct: false },
+  ]);
+
+  const questions = useQuery({
+    queryKey: ["quiz-edit", courseId],
+    queryFn: async () => {
+      const { data: qs } = await supabase.from("course_quiz_questions").select("*").eq("course_id", courseId).order("order_index");
+      if (!qs?.length) return [];
+      const { data: o } = await supabase.from("course_quiz_options").select("*").in("question_id", qs.map((x) => x.id)).order("order_index");
+      return qs.map((q) => ({ ...q, options: (o ?? []).filter((x) => x.question_id === q.id) }));
+    },
+  });
+
+  const addQuestion = async () => {
+    if (!questionText.trim()) return toast.error("Question required");
+    const valid = opts.filter((o) => o.label.trim());
+    if (valid.length < 2) return toast.error("At least 2 options");
+    if (!valid.some((o) => o.correct)) return toast.error("Mark one option correct");
+    const order = questions.data?.length ?? 0;
+    const { data: q, error } = await supabase
+      .from("course_quiz_questions")
+      .insert({ course_id: courseId, question: questionText.trim(), order_index: order })
+      .select().single();
+    if (error) return toast.error(error.message);
+    await supabase.from("course_quiz_options").insert(
+      valid.map((o, i) => ({ question_id: q.id, label: o.label.trim(), is_correct: o.correct, order_index: i }))
+    );
+    setOpen(false); setQuestionText(""); setOpts([{ label: "", correct: true }, { label: "", correct: false }]);
+    qc.invalidateQueries({ queryKey: ["quiz-edit"] });
+  };
+
+  const removeQuestion = async (id: string) => {
+    if (!confirm("Delete question?")) return;
+    await supabase.from("course_quiz_questions").delete().eq("id", id);
+    qc.invalidateQueries({ queryKey: ["quiz-edit"] });
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" />Add question</Button></DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>New question</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <div><Label>Question</Label><Textarea value={questionText} onChange={(e) => setQuestionText(e.target.value)} /></div>
+              <Label>Options (mark the correct one)</Label>
+              {opts.map((o, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input type="radio" name="correct" checked={o.correct} onChange={() => setOpts(opts.map((x, j) => ({ ...x, correct: i === j })))} />
+                  <Input value={o.label} onChange={(e) => setOpts(opts.map((x, j) => j === i ? { ...x, label: e.target.value } : x))} placeholder={`Option ${i + 1}`} />
+                  {opts.length > 2 && <Button size="sm" variant="ghost" onClick={() => setOpts(opts.filter((_, j) => j !== i))}><Trash2 className="h-3 w-3" /></Button>}
+                </div>
+              ))}
+              <Button size="sm" variant="outline" onClick={() => setOpts([...opts, { label: "", correct: false }])}>
+                <Plus className="h-3 w-3 mr-1" />Add option
+              </Button>
+            </div>
+            <DialogFooter><Button onClick={addQuestion}>Save</Button></DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+      <Card className="divide-y">
+        {(questions.data ?? []).length === 0 ? (
+          <div className="p-6 text-center text-sm text-muted-foreground">No questions yet.</div>
         ) : (
-          <p className="p-6 text-center text-sm text-muted-foreground">No assignments yet.</p>
+          (questions.data ?? []).map((q, i) => (
+            <div key={q.id} className="p-3 flex items-start gap-3">
+              <div className="flex-1">
+                <div className="font-medium text-sm">{i + 1}. {q.question}</div>
+                <ul className="mt-1.5 text-xs space-y-0.5">
+                  {q.options.map((o: any) => (
+                    <li key={o.id} className={o.is_correct ? "text-emerald-700 font-medium" : "text-muted-foreground"}>
+                      {o.is_correct ? "✓" : "○"} {o.label}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <Button size="sm" variant="ghost" onClick={() => removeQuestion(q.id)}><Trash2 className="h-4 w-4" /></Button>
+            </div>
+          ))
         )}
       </Card>
     </div>
   );
 }
 
-function CourseSettings({ course, onSaved }: { course: any; onSaved: () => void }) {
+/* ============================================================
+ * ENROLLMENTS TAB
+ * ============================================================ */
+function EnrollmentsTab({ courseId }: { courseId: string }) {
+  const qc = useQueryClient();
+  const [profileId, setProfileId] = useState("");
+  const [groupId, setGroupId] = useState("");
+  const [dueDate, setDueDate] = useState("");
+
+  const enrollments = useQuery({
+    queryKey: ["course-enrollments", courseId],
+    queryFn: async () => (await supabase
+      .from("course_enrollments")
+      .select("*, profile:profiles(id, full_name, email, department), course_quiz_attempts(score, total, passed, attempted_at)")
+      .eq("course_id", courseId)
+      .order("enrolled_at", { ascending: false })).data ?? [],
+  });
+
+  const profiles = useQuery({
+    queryKey: ["profiles-all"],
+    queryFn: async () => (await supabase.from("profiles").select("id, full_name, email, department").order("full_name")).data ?? [],
+  });
+
+  const groups = useQuery({
+    queryKey: ["learning-groups-list"],
+    queryFn: async () => (await supabase.from("learning_groups").select("*, members:learning_group_members(profile_id)")).data ?? [],
+  });
+
+  const assignOne = async () => {
+    if (!profileId) return;
+    const { error } = await supabase.from("course_enrollments").insert({
+      course_id: courseId, profile_id: profileId, source: "manual",
+      due_date: dueDate || null, status: "enrolled",
+    });
+    if (error) return toast.error(error.message);
+    setProfileId("");
+    qc.invalidateQueries({ queryKey: ["course-enrollments"] });
+  };
+
+  const assignGroup = async () => {
+    if (!groupId) return;
+    const grp = groups.data?.find((g) => g.id === groupId);
+    if (!grp?.members?.length) return toast.error("Group is empty");
+    const rows = grp.members.map((m: any) => ({
+      course_id: courseId, profile_id: m.profile_id, source: "group",
+      due_date: dueDate || null, status: "enrolled",
+    }));
+    const { error } = await supabase.from("course_enrollments").upsert(rows, { onConflict: "course_id,profile_id", ignoreDuplicates: true });
+    if (error) return toast.error(error.message);
+    setGroupId("");
+    qc.invalidateQueries({ queryKey: ["course-enrollments"] });
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("Remove enrollment?")) return;
+    await supabase.from("course_enrollments").delete().eq("id", id);
+    qc.invalidateQueries({ queryKey: ["course-enrollments"] });
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card className="p-4 space-y-3">
+        <div className="font-semibold text-sm">Assign learners</div>
+        <div className="grid gap-2 md:grid-cols-3">
+          <Select value={profileId} onValueChange={setProfileId}>
+            <SelectTrigger><SelectValue placeholder="Pick a person…" /></SelectTrigger>
+            <SelectContent>
+              {(profiles.data ?? []).map((p) => <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} placeholder="Due date (optional)" />
+          <Button onClick={assignOne}>Assign individual</Button>
+        </div>
+        <div className="grid gap-2 md:grid-cols-3">
+          <Select value={groupId} onValueChange={setGroupId}>
+            <SelectTrigger><SelectValue placeholder="Pick a group…" /></SelectTrigger>
+            <SelectContent>
+              {(groups.data ?? []).map((g) => <SelectItem key={g.id} value={g.id}>{g.name} ({g.members?.length ?? 0})</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <div />
+          <Button variant="outline" onClick={assignGroup}>Assign whole group</Button>
+        </div>
+      </Card>
+
+      <Card className="divide-y">
+        {(enrollments.data ?? []).length === 0 ? (
+          <div className="p-6 text-center text-sm text-muted-foreground">No enrollments yet.</div>
+        ) : (
+          (enrollments.data ?? []).map((e) => {
+            const best = (e.course_quiz_attempts ?? []).reduce<any>((b: any, a: any) => (!b || a.score / a.total > b.score / b.total ? a : b), null);
+            const pct = best ? Math.round((best.score / best.total) * 100) : null;
+            return (
+              <div key={e.id} className="p-3 flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm">{e.profile?.full_name}</div>
+                  <div className="text-xs text-muted-foreground">{e.profile?.email} · {e.profile?.department ?? "—"}</div>
+                </div>
+                <Badge variant="outline" className="capitalize">{e.source}</Badge>
+                <Badge variant={e.status === "completed" ? "default" : "secondary"} className="capitalize">{e.status.replace("_", " ")}</Badge>
+                <div className="text-xs text-muted-foreground w-16 text-right">{pct !== null ? `${pct}%` : "—"}</div>
+                {e.due_date && <div className="text-xs text-muted-foreground">Due {new Date(e.due_date).toLocaleDateString()}</div>}
+                <Button size="sm" variant="ghost" onClick={() => remove(e.id)}><Trash2 className="h-4 w-4" /></Button>
+              </div>
+            );
+          })
+        )}
+      </Card>
+    </div>
+  );
+}
+
+/* ============================================================
+ * COURSE SETTINGS (admin)
+ * ============================================================ */
+function CourseSettings({ course }: { course: any }) {
+  const qc = useQueryClient();
   const settings = useAppSettings();
   const [title, setTitle] = useState(course.title);
   const [description, setDescription] = useState(course.description ?? "");
-  const [passing, setPassing] = useState<number>(course.passing_score);
-  const [published, setPublished] = useState<boolean>(course.published);
-  const [autoAssign, setAutoAssign] = useState<boolean>(!!course.auto_assign_new_joiners);
-  const [bgUrl, setBgUrl] = useState<string | null>(course.certificate_bg_url ?? null);
+  const [passingScore, setPassingScore] = useState<number>(course.passing_score);
+  const [completionCriteria, setCompletionCriteria] = useState<string>(course.completion_criteria);
+  const [categoryId, setCategoryId] = useState<string>(course.category_id ?? "none");
+  const [autoAssign, setAutoAssign] = useState<boolean>(course.auto_assign_new_joiners);
+  const [bgUrl, setBgUrl] = useState<string | null>(course.certificate_bg_url);
   const [uploading, setUploading] = useState(false);
 
-  const effectiveBg = bgUrl ?? settings.default_certificate_bg_url ?? null;
+  const categories = useQuery({
+    queryKey: ["course-categories"],
+    queryFn: async () => (await supabase.from("course_categories").select("*").order("order_index")).data ?? [],
+  });
+
+  const allCourses = useQuery({
+    queryKey: ["all-courses-for-prereqs"],
+    queryFn: async () => (await supabase.from("courses").select("id, title").neq("id", course.id)).data ?? [],
+  });
+
+  const prereqs = useQuery({
+    queryKey: ["course-prereqs", course.id],
+    queryFn: async () => (await supabase.from("course_prerequisites").select("*").eq("course_id", course.id)).data ?? [],
+  });
+
+  const save = async () => {
+    const { error } = await supabase.from("courses").update({
+      title, description: description || null,
+      passing_score: passingScore,
+      completion_criteria: completionCriteria,
+      category_id: categoryId === "none" ? null : categoryId,
+      auto_assign_new_joiners: autoAssign,
+      certificate_bg_url: bgUrl,
+    }).eq("id", course.id);
+    if (error) return toast.error(error.message);
+    toast.success("Saved");
+    qc.invalidateQueries({ queryKey: ["course", course.id] });
+    qc.invalidateQueries({ queryKey: ["admin-courses"] });
+  };
+
+  const onBgUpload = async (file: File) => {
+    setUploading(true);
+    try {
+      const path = `cert-bg/${course.id}-${Date.now()}-${file.name}`;
+      const { error } = await supabase.storage.from("branding").upload(path, file, { upsert: true });
+      if (error) throw error;
+      const { data } = supabase.storage.from("branding").getPublicUrl(path);
+      setBgUrl(data.publicUrl);
+    } catch (e: any) { toast.error(e.message); }
+    finally { setUploading(false); }
+  };
+
+  const addPrereq = async (preId: string) => {
+    const { error } = await supabase.from("course_prerequisites").insert({ course_id: course.id, prerequisite_course_id: preId });
+    if (error) return toast.error(error.message);
+    qc.invalidateQueries({ queryKey: ["course-prereqs"] });
+  };
+
+  const removePrereq = async (preId: string) => {
+    await supabase.from("course_prerequisites").delete().eq("course_id", course.id).eq("prerequisite_course_id", preId);
+    qc.invalidateQueries({ queryKey: ["course-prereqs"] });
+  };
+
+  const prereqIds = new Set((prereqs.data ?? []).map((p) => p.prerequisite_course_id));
 
   return (
-    <Card className="p-4 space-y-3 max-w-xl">
-      <div className="space-y-2"><Label>Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} /></div>
-      <div className="space-y-2"><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} maxLength={1000} /></div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-2">
-          <Label>Passing score (%)</Label>
-          <Input type="number" min={1} max={100} value={passing} onChange={(e) => setPassing(Number(e.target.value))} />
+    <div className="space-y-4 max-w-3xl">
+      <Card className="p-4 space-y-3">
+        <div className="font-semibold">Details</div>
+        <div><Label>Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
+        <div><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} /></div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <div>
+            <Label>Category</Label>
+            <Select value={categoryId} onValueChange={setCategoryId}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">— none —</SelectItem>
+                {(categories.data ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Passing score (%)</Label>
+            <Input type="number" min={0} max={100} value={passingScore} onChange={(e) => setPassingScore(Number(e.target.value))} />
+          </div>
+          <div>
+            <Label>Completion criteria</Label>
+            <Select value={completionCriteria} onValueChange={setCompletionCriteria}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pass_quiz">Pass the quiz</SelectItem>
+                <SelectItem value="all_lessons">Complete all lessons</SelectItem>
+                <SelectItem value="both">Both</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-end">
+            <label className="flex items-center gap-2 text-sm">
+              <Switch checked={autoAssign} onCheckedChange={setAutoAssign} />
+              Auto-assign to new joiners
+            </label>
+          </div>
         </div>
-        <div className="space-y-2">
-          <Label>Published</Label>
-          <div className="flex items-center gap-2 h-9"><Switch checked={published} onCheckedChange={setPublished} /></div>
-        </div>
-      </div>
-      <div className="space-y-1 rounded-md border p-3">
-        <div className="flex items-center justify-between gap-3">
-          <Label className="cursor-pointer">Auto-assign to new joiners</Label>
-          <Switch checked={autoAssign} onCheckedChange={setAutoAssign} />
-        </div>
-        <p className="text-xs text-muted-foreground">
-          When enabled, any newly created staff profile will be automatically assigned this course (only if published).
-        </p>
-      </div>
+      </Card>
 
-      <div className="space-y-2 rounded-md border p-3">
-        <Label>Certificate background</Label>
-        {effectiveBg ? (
-          <div className="relative rounded-md overflow-hidden border bg-muted">
-            <img src={effectiveBg} alt="Certificate background" className="w-full h-40 object-cover" />
-            {!bgUrl && (
-              <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-background/90 border text-[10px] uppercase tracking-wide text-muted-foreground">
-                Using default
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="h-40 rounded-md border border-dashed flex items-center justify-center text-xs text-muted-foreground">
-            No background — plain template will be used
-          </div>
-        )}
-        <div className="flex items-center gap-2">
-          <Input
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            disabled={uploading}
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              e.target.value = "";
-              if (!file) return;
-              if (file.size > 5 * 1024 * 1024) return toast.error("Image must be under 5MB");
-              setUploading(true);
-              const ext = file.name.split(".").pop() || "png";
-              const path = `certificates/courses/${course.id}-${Date.now()}.${ext}`;
-              const { error: upErr } = await supabase.storage.from("branding").upload(path, file, { upsert: true, contentType: file.type });
-              if (upErr) { setUploading(false); return toast.error(upErr.message); }
-              const { data: pub } = supabase.storage.from("branding").getPublicUrl(path);
-              setBgUrl(pub.publicUrl);
-              setUploading(false);
-              toast.success("Background uploaded — remember to Save");
-            }}
-          />
-          {bgUrl && (
-            <Button variant="outline" size="sm" onClick={() => setBgUrl(null)}>Reset to default</Button>
-          )}
+      <Card className="p-4 space-y-3">
+        <div className="font-semibold">Prerequisites</div>
+        <div className="flex flex-wrap gap-1">
+          {(prereqs.data ?? []).map((p) => {
+            const c = (allCourses.data ?? []).find((x) => x.id === p.prerequisite_course_id);
+            return (
+              <Badge key={p.prerequisite_course_id} variant="secondary" className="cursor-pointer" onClick={() => removePrereq(p.prerequisite_course_id)}>
+                {c?.title ?? p.prerequisite_course_id} ✕
+              </Badge>
+            );
+          })}
         </div>
+        <Select value="" onValueChange={addPrereq}>
+          <SelectTrigger className="max-w-sm"><SelectValue placeholder="Add prerequisite…" /></SelectTrigger>
+          <SelectContent>
+            {(allCourses.data ?? []).filter((c) => !prereqIds.has(c.id)).map((c) => (
+              <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Card>
+
+      <Card className="p-4 space-y-3">
+        <div className="font-semibold">Certificate background</div>
         <p className="text-xs text-muted-foreground">
-          Recommended: landscape image, ~1400×990. When empty, the global default background is used.
+          Defaults to the system-wide image. Upload a course-specific one to override.
         </p>
-      </div>
+        {bgUrl && <img src={bgUrl} alt="bg" className="max-h-32 border rounded" />}
+        <div className="flex gap-2">
+          <Input type="file" accept="image/*" disabled={uploading} onChange={(e) => {
+            const f = e.target.files?.[0]; if (f) onBgUpload(f);
+          }} />
+          {bgUrl && <Button variant="outline" onClick={() => setBgUrl(settings.default_certificate_bg_url ?? null)}>Reset to default</Button>}
+        </div>
+      </Card>
 
       <div className="flex justify-end">
-        <Button onClick={async () => {
-          const { error } = await supabase.from("courses").update({
-            title, description: description || null, passing_score: passing, published,
-            auto_assign_new_joiners: autoAssign,
-            certificate_bg_url: bgUrl,
-          }).eq("id", course.id);
-          if (error) return toast.error(error.message);
-          toast.success("Saved"); onSaved();
-        }}>Save</Button>
+        <Button onClick={save}>Save changes</Button>
       </div>
-    </Card>
+    </div>
   );
 }
