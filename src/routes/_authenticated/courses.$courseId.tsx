@@ -50,6 +50,43 @@ function youtubeEmbed(url: string): string | null {
   return null;
 }
 
+function uploadCourseMaterialWithProgress(
+  path: string,
+  file: File,
+  token: string,
+  onProgress: (value: number) => void,
+) {
+  const baseUrl = import.meta.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+  const apiKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
+  if (!baseUrl || !apiKey) throw new Error("Storage is not configured.");
+
+  const encodedPath = path.split("/").map(encodeURIComponent).join("/");
+  const uploadUrl = `${baseUrl}/storage/v1/object/course-materials/${encodedPath}`;
+
+  return new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", uploadUrl);
+    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    xhr.setRequestHeader("apikey", apiKey);
+    xhr.setRequestHeader("x-upsert", "true");
+    xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress(Math.max(1, Math.round((event.loaded / event.total) * 100)));
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) return resolve();
+      try {
+        const body = JSON.parse(xhr.responseText);
+        reject(new Error(body.message || body.error || "Upload failed"));
+      } catch {
+        reject(new Error(xhr.responseText || "Upload failed"));
+      }
+    };
+    xhr.onerror = () => reject(new Error("Upload failed. Please check your connection and try again."));
+    xhr.send(file);
+  });
+}
+
 function CourseDetailPage() {
   const { courseId } = Route.useParams();
   const { tab } = Route.useSearch();
@@ -544,6 +581,7 @@ function LessonDialog({ open, onOpenChange, courseId, moduleId, lesson, nextOrde
   const [content, setContent] = useState(lesson?.content ?? "");
   const [downloadable, setDownloadable] = useState<boolean>(lesson?.downloadable ?? false);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // reset when opened
   useEffect(() => {
@@ -553,6 +591,8 @@ function LessonDialog({ open, onOpenChange, courseId, moduleId, lesson, nextOrde
       setUrl(lesson?.url ?? "");
       setContent(lesson?.content ?? "");
       setDownloadable(lesson?.downloadable ?? false);
+      setUploading(false);
+      setUploadProgress(0);
     }
   }, [open, lesson]);
 
@@ -560,13 +600,18 @@ function LessonDialog({ open, onOpenChange, courseId, moduleId, lesson, nextOrde
 
   const handleUpload = async (file: File) => {
     setUploading(true);
+    setUploadProgress(0);
     try {
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
       const path = `${courseId}/${Date.now()}-${safeName}`;
-      const { error } = await supabase.storage.from("course-materials").upload(path, file, { upsert: true, contentType: file.type || undefined });
-      if (error) throw error;
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("Please sign in again before uploading materials.");
+
+      await uploadCourseMaterialWithProgress(path, file, token, setUploadProgress);
       const { data } = supabase.storage.from("course-materials").getPublicUrl(path);
       setUrl(data.publicUrl);
+      setUploadProgress(100);
       toast.success("Uploaded");
     } catch (e: any) { toast.error(e.message ?? "Upload failed"); }
     finally { setUploading(false); }
@@ -625,6 +670,12 @@ function LessonDialog({ open, onOpenChange, courseId, moduleId, lesson, nextOrde
                   <Input type="file" accept={acceptFor} disabled={uploading} onChange={(e) => {
                     const f = e.target.files?.[0]; if (f) handleUpload(f);
                   }} />
+                  {uploading && (
+                    <div className="mt-2 space-y-1">
+                      <Progress value={uploadProgress} />
+                      <div className="text-xs text-muted-foreground">Uploading {uploadProgress}%</div>
+                    </div>
+                  )}
                 </div>
               )}
               {(type === "pdf" || type === "file" || type === "video") && (
