@@ -389,7 +389,7 @@ function ManageCourses() {
                   <Switch checked={c.published} onCheckedChange={(v) => togglePublish(c.id, v)} />
                   <span className="text-muted-foreground">{c.published ? "Published" : "Draft"}</span>
                 </div>
-                <Button asChild size="sm" variant="outline"><Link to="/courses/$courseId" params={{ courseId: c.id }}>Edit</Link></Button>
+                <Button asChild size="sm" variant="outline"><Link to="/courses/$courseId" params={{ courseId: c.id }} search={{ tab: "content" }}>Edit</Link></Button>
                 <Button size="sm" variant="ghost" onClick={() => remove(c.id)}><Trash2 className="h-4 w-4" /></Button>
               </div>
             </div>

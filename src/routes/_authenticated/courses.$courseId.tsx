@@ -29,6 +29,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/_authenticated/courses/$courseId")({
+  validateSearch: (s: Record<string, unknown>) => ({ tab: (s.tab as string) || undefined }),
   component: CourseDetailPage,
 });
 
@@ -51,8 +52,10 @@ function youtubeEmbed(url: string): string | null {
 
 function CourseDetailPage() {
   const { courseId } = Route.useParams();
+  const { tab } = Route.useSearch();
   const { isAdmin, canEdit } = useAuth();
   const canManage = isAdmin || canEdit("learning");
+  const defaultTab = tab || (canManage ? "content" : "learn");
 
   const course = useQuery({
     queryKey: ["course", courseId],
@@ -77,7 +80,7 @@ function CourseDetailPage() {
         {course.data.description && <p className="text-muted-foreground">{course.data.description}</p>}
       </div>
 
-      <Tabs defaultValue="learn">
+      <Tabs defaultValue={defaultTab}>
         <TabsList>
           <TabsTrigger value="learn"><BookOpen className="h-3 w-3 mr-1" />Learn</TabsTrigger>
           {canManage && <TabsTrigger value="content"><ListChecks className="h-3 w-3 mr-1" />Content</TabsTrigger>}
