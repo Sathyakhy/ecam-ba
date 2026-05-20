@@ -22,6 +22,9 @@ export function openCertificate(opts: {
     const bgUrl = opts.backgroundUrl!.replace(/'/g, "%27");
     const html = `<!doctype html><html><head><meta charset="utf-8"/>
 <title>Certificate - ${escapeHTML(opts.recipientName)}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet"/>
 <style>
   @page { size: A4 landscape; margin: 0 }
   *{box-sizing:border-box;margin:0;padding:0}
@@ -30,8 +33,8 @@ export function openCertificate(opts: {
   .cert{position:relative;width:1123px;height:794px;max-width:100%;background:#fff url('${bgUrl}') center/cover no-repeat;box-shadow:0 12px 48px rgba(0,0,0,.12)}
   /* Recipient name — exact center of the A4 landscape canvas */
   .name{position:absolute;left:8%;right:8%;top:50%;transform:translateY(-50%);text-align:center;
-        font-family:'Brush Script MT','Lucida Handwriting','Segoe Script',cursive;
-        font-size:64px;color:#1a2a4a;letter-spacing:.02em;line-height:1}
+        font-family:'Great Vibes','Brush Script MT',cursive;
+        font-size:88px;color:#1a2a4a;letter-spacing:.02em;line-height:1}
   /* Course title — closer to the "FOR SUCCESSFULLY COMPLETING THE COURSE" text */
   .course{position:absolute;left:10%;right:10%;top:64%;text-align:center;
           font-size:30px;font-weight:700;color:#1a2a4a;letter-spacing:.01em}
