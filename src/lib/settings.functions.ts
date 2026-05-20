@@ -14,6 +14,7 @@ export const getAppSettings = createServerFn({ method: "GET" }).handler(async ()
       hero_description:
         "A single internal workspace to onboard new staff, run training, track tasks and keep your department coordinated.",
       logo_url: null,
+      default_certificate_bg_url: null,
     },
   };
 });
@@ -28,6 +29,7 @@ export const updateAppSettings = createServerFn({ method: "POST" })
         hero_title: z.string().trim().min(1).max(200),
         hero_description: z.string().trim().min(1).max(600),
         logo_url: z.string().trim().max(2048).nullable().optional(),
+        default_certificate_bg_url: z.string().trim().max(2048).nullable().optional(),
       })
       .parse(input),
   )
@@ -43,6 +45,7 @@ export const updateAppSettings = createServerFn({ method: "POST" })
         hero_title: data.hero_title,
         hero_description: data.hero_description,
         logo_url: data.logo_url ?? null,
+        default_certificate_bg_url: data.default_certificate_bg_url ?? null,
       })
       .eq("id", 1);
     if (error) throw new Error(error.message);

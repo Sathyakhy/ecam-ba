@@ -1,10 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { Plus, BookOpen, Trash2, Pencil, Award } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { useAppSettings } from "@/hooks/use-app-settings";
+import { updateAppSettings } from "@/lib/settings.functions";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -133,7 +136,8 @@ function CoursesPage() {
         </TabsContent>
 
         {canManage && (
-          <TabsContent value="manage" className="mt-4">
+          <TabsContent value="manage" className="mt-4 space-y-4">
+            <DefaultCertificateBgCard />
             <Card>
               {courses.data?.length ? (
                 <ul className="divide-y divide-border">
@@ -182,6 +186,7 @@ function CoursesPage() {
 
 function NewCourseDialog({ onCreated }: { onCreated: () => void }) {
   const { profile } = useAuth();
+  const settings = useAppSettings();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
@@ -198,6 +203,7 @@ function NewCourseDialog({ onCreated }: { onCreated: () => void }) {
             e.preventDefault();
             const { error } = await supabase.from("courses").insert({
               title, description: desc || null, passing_score: passing, published, created_by: profile?.id,
+              certificate_bg_url: settings.default_certificate_bg_url ?? null,
             });
             if (error) return toast.error(error.message);
             toast.success("Course created");
@@ -218,9 +224,92 @@ function NewCourseDialog({ onCreated }: { onCreated: () => void }) {
               <div className="flex items-center gap-2 h-9"><Switch checked={published} onCheckedChange={setPublished} /><span className="text-xs text-muted-foreground">Visible in catalog</span></div>
             </div>
           </div>
+          {settings.default_certificate_bg_url && (
+            <p className="text-xs text-muted-foreground">The default certificate background will be applied to this course.</p>
+          )}
           <DialogFooter><Button type="submit">Create</Button></DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function DefaultCertificateBgCard() {
+  const settings = useAppSettings();
+  const qc = useQueryClient();
+  const updateFn = useServerFn(updateAppSettings);
+  const [uploading, setUploading] = useState(false);
+
+  const save = async (newUrl: string | null) => {
+    await updateFn({
+      data: {
+        app_name: settings.app_name,
+        tagline: settings.tagline,
+        hero_title: settings.hero_title,
+        hero_description: settings.hero_description,
+        logo_url: settings.logo_url,
+        default_certificate_bg_url: newUrl,
+      },
+    });
+    qc.invalidateQueries({ queryKey: ["app-settings"] });
+  };
+
+  return (
+    <Card className="p-4 space-y-3">
+      <div>
+        <h3 className="font-medium text-sm">Default certificate background</h3>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Used as the template for every new course until you replace it. Existing courses keep whatever background they already have.
+        </p>
+      </div>
+      {settings.default_certificate_bg_url ? (
+        <div className="rounded-md overflow-hidden border bg-muted">
+          <img src={settings.default_certificate_bg_url} alt="Default certificate background" className="w-full h-44 object-cover" />
+        </div>
+      ) : (
+        <div className="h-44 rounded-md border border-dashed flex items-center justify-center text-xs text-muted-foreground">
+          No default background uploaded
+        </div>
+      )}
+      <div className="flex items-center gap-2">
+        <Input
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          disabled={uploading}
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (!file) return;
+            if (file.size > 5 * 1024 * 1024) return toast.error("Image must be under 5MB");
+            setUploading(true);
+            try {
+              const ext = file.name.split(".").pop() || "png";
+              const path = `certificates/default-${Date.now()}.${ext}`;
+              const { error: upErr } = await supabase.storage.from("branding").upload(path, file, { upsert: true, contentType: file.type });
+              if (upErr) throw upErr;
+              const { data: pub } = supabase.storage.from("branding").getPublicUrl(path);
+              await save(pub.publicUrl);
+              toast.success("Default background saved");
+            } catch (err: any) {
+              toast.error(err.message ?? "Upload failed");
+            } finally {
+              setUploading(false);
+            }
+          }}
+        />
+        {settings.default_certificate_bg_url && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              await save(null);
+              toast.success("Default background cleared");
+            }}
+          >
+            Remove
+          </Button>
+        )}
+      </div>
+    </Card>
   );
 }

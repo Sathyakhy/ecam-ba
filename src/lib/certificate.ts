@@ -8,17 +8,21 @@ export function openCertificate(opts: {
   organization?: string;
   signatoryName?: string;
   signatoryTitle?: string;
+  backgroundUrl?: string | null;
 }) {
   const date = new Date(opts.issuedAt).toLocaleDateString(undefined, {
     year: "numeric", month: "long", day: "numeric",
   });
+  const bg = opts.backgroundUrl
+    ? `background-image:url('${opts.backgroundUrl.replace(/'/g, "%27")}');background-size:cover;background-position:center;background-repeat:no-repeat;`
+    : "";
   const html = `<!doctype html><html><head><meta charset="utf-8"/>
 <title>Certificate - ${escapeHTML(opts.recipientName)}</title>
 <style>
   @page { size: A4 landscape; margin: 0 }
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:Georgia,'Times New Roman',serif;background:#f6f3ec;padding:24px;display:flex;justify-content:center;min-height:100vh}
-  .cert{width:1120px;max-width:100%;background:#fffdf7;border:14px double #c9a449;padding:56px 72px;position:relative;box-shadow:0 12px 48px rgba(0,0,0,.12)}
+  .cert{width:1120px;max-width:100%;background:#fffdf7;${bg}border:14px double #c9a449;padding:56px 72px;position:relative;box-shadow:0 12px 48px rgba(0,0,0,.12)}
   .corner{position:absolute;width:60px;height:60px;border:3px solid #c9a449}
   .corner.tl{top:24px;left:24px;border-right:0;border-bottom:0}
   .corner.tr{top:24px;right:24px;border-left:0;border-bottom:0}

@@ -52,6 +52,7 @@ export type Database = {
       app_settings: {
         Row: {
           app_name: string
+          default_certificate_bg_url: string | null
           hero_description: string
           hero_title: string
           id: number
@@ -61,6 +62,7 @@ export type Database = {
         }
         Insert: {
           app_name?: string
+          default_certificate_bg_url?: string | null
           hero_description?: string
           hero_title?: string
           id?: number
@@ -70,6 +72,7 @@ export type Database = {
         }
         Update: {
           app_name?: string
+          default_certificate_bg_url?: string | null
           hero_description?: string
           hero_title?: string
           id?: number
@@ -382,6 +385,7 @@ export type Database = {
       courses: {
         Row: {
           auto_assign_new_joiners: boolean
+          certificate_bg_url: string | null
           cover_url: string | null
           created_at: string
           created_by: string | null
@@ -394,6 +398,7 @@ export type Database = {
         }
         Insert: {
           auto_assign_new_joiners?: boolean
+          certificate_bg_url?: string | null
           cover_url?: string | null
           created_at?: string
           created_by?: string | null
@@ -406,6 +411,7 @@ export type Database = {
         }
         Update: {
           auto_assign_new_joiners?: boolean
+          certificate_bg_url?: string | null
           cover_url?: string | null
           created_at?: string
           created_by?: string | null

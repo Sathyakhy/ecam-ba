@@ -158,6 +158,7 @@ function CourseDetailPage() {
                         issuedAt: certificate.data!.issued_at,
                         certificateNo: certificate.data!.certificate_no,
                         organization: settings.app_name,
+                        backgroundUrl: course.data!.certificate_bg_url ?? settings.default_certificate_bg_url ?? null,
                       })}
                     >
                       <Award className="h-4 w-4 mr-1" /> View certificate
@@ -182,6 +183,7 @@ function CourseDetailPage() {
                           issuedAt: data.issued_at,
                           certificateNo: data.certificate_no,
                           organization: settings.app_name,
+                          backgroundUrl: course.data!.certificate_bg_url ?? settings.default_certificate_bg_url ?? null,
                         });
                       }}
                     >
@@ -615,11 +617,17 @@ function AssignmentsPanel({ courseId }: { courseId: string }) {
 }
 
 function CourseSettings({ course, onSaved }: { course: any; onSaved: () => void }) {
+  const settings = useAppSettings();
   const [title, setTitle] = useState(course.title);
   const [description, setDescription] = useState(course.description ?? "");
   const [passing, setPassing] = useState<number>(course.passing_score);
   const [published, setPublished] = useState<boolean>(course.published);
   const [autoAssign, setAutoAssign] = useState<boolean>(!!course.auto_assign_new_joiners);
+  const [bgUrl, setBgUrl] = useState<string | null>(course.certificate_bg_url ?? null);
+  const [uploading, setUploading] = useState(false);
+
+  const effectiveBg = bgUrl ?? settings.default_certificate_bg_url ?? null;
+
   return (
     <Card className="p-4 space-y-3 max-w-xl">
       <div className="space-y-2"><Label>Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} /></div>
@@ -643,11 +651,59 @@ function CourseSettings({ course, onSaved }: { course: any; onSaved: () => void 
           When enabled, any newly created staff profile will be automatically assigned this course (only if published).
         </p>
       </div>
+
+      <div className="space-y-2 rounded-md border p-3">
+        <Label>Certificate background</Label>
+        {effectiveBg ? (
+          <div className="relative rounded-md overflow-hidden border bg-muted">
+            <img src={effectiveBg} alt="Certificate background" className="w-full h-40 object-cover" />
+            {!bgUrl && (
+              <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-background/90 border text-[10px] uppercase tracking-wide text-muted-foreground">
+                Using default
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="h-40 rounded-md border border-dashed flex items-center justify-center text-xs text-muted-foreground">
+            No background — plain template will be used
+          </div>
+        )}
+        <div className="flex items-center gap-2">
+          <Input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            disabled={uploading}
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (!file) return;
+              if (file.size > 5 * 1024 * 1024) return toast.error("Image must be under 5MB");
+              setUploading(true);
+              const ext = file.name.split(".").pop() || "png";
+              const path = `certificates/courses/${course.id}-${Date.now()}.${ext}`;
+              const { error: upErr } = await supabase.storage.from("branding").upload(path, file, { upsert: true, contentType: file.type });
+              if (upErr) { setUploading(false); return toast.error(upErr.message); }
+              const { data: pub } = supabase.storage.from("branding").getPublicUrl(path);
+              setBgUrl(pub.publicUrl);
+              setUploading(false);
+              toast.success("Background uploaded — remember to Save");
+            }}
+          />
+          {bgUrl && (
+            <Button variant="outline" size="sm" onClick={() => setBgUrl(null)}>Reset to default</Button>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Recommended: landscape image, ~1400×990. When empty, the global default background is used.
+        </p>
+      </div>
+
       <div className="flex justify-end">
         <Button onClick={async () => {
           const { error } = await supabase.from("courses").update({
             title, description: description || null, passing_score: passing, published,
             auto_assign_new_joiners: autoAssign,
+            certificate_bg_url: bgUrl,
           }).eq("id", course.id);
           if (error) return toast.error(error.message);
           toast.success("Saved"); onSaved();
