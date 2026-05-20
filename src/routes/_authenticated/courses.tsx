@@ -41,7 +41,6 @@ function CoursesPage() {
       <PageHeader
         title="Learning"
         description="Browse courses, track progress, earn certificates."
-        icon={GraduationCap}
       />
       <Tabs defaultValue="my" className="space-y-4">
         <TabsList>
