@@ -14,6 +14,7 @@ export const getAppSettings = createServerFn({ method: "GET" }).handler(async ()
       hero_description:
         "A single internal workspace to onboard new staff, run training, track tasks and keep your department coordinated.",
       logo_url: null,
+      default_certificate_bg_url: null,
     },
   };
 });
