@@ -13,16 +13,65 @@ export function openCertificate(opts: {
   const date = new Date(opts.issuedAt).toLocaleDateString(undefined, {
     year: "numeric", month: "long", day: "numeric",
   });
-  const bg = opts.backgroundUrl
-    ? `background-image:url('${opts.backgroundUrl.replace(/'/g, "%27")}');background-size:cover;background-position:center;background-repeat:no-repeat;`
-    : "";
+  const hasBg = !!opts.backgroundUrl;
+
+  // When a background image is supplied, render ONLY the dynamic fields
+  // (name, course title, date) overlaid on the image — the image already
+  // contains the title, decorations, seal, organization, etc.
+  if (hasBg) {
+    const bgUrl = opts.backgroundUrl!.replace(/'/g, "%27");
+    const html = `<!doctype html><html><head><meta charset="utf-8"/>
+<title>Certificate - ${escapeHTML(opts.recipientName)}</title>
+<style>
+  @page { size: A4 landscape; margin: 0 }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#f1f5f9}
+  body{font-family:Georgia,'Times New Roman',serif;padding:24px;display:flex;justify-content:center;min-height:100vh}
+  .cert{position:relative;width:1123px;height:794px;max-width:100%;background:#fff url('${bgUrl}') center/cover no-repeat;box-shadow:0 12px 48px rgba(0,0,0,.12)}
+  /* Recipient name — centered vertically between the two printed lines */
+  .name{position:absolute;left:8%;right:8%;top:46%;transform:translateY(-50%);text-align:center;
+        font-family:'Brush Script MT','Lucida Handwriting','Segoe Script',cursive;
+        font-size:64px;color:#1a2a4a;letter-spacing:.02em;line-height:1}
+  /* Course title — sits below "FOR SUCCESSFULLY COMPLETING THE COURSE" */
+  .course{position:absolute;left:10%;right:10%;top:70%;text-align:center;
+          font-size:30px;font-weight:700;color:#1a2a4a;letter-spacing:.01em}
+  /* Date — below the course title */
+  .date{position:absolute;left:10%;right:10%;top:77%;text-align:center;
+        font-size:18px;color:#334155;letter-spacing:.05em;font-style:italic}
+  .cert-no{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);
+           font-size:10px;color:#94a3b8;letter-spacing:.15em}
+  .no-print{margin-top:18px;text-align:center}
+  @media print{
+    .no-print{display:none}
+    body{background:#fff;padding:0}
+    .cert{box-shadow:none;width:100vw;height:100vh}
+  }
+</style></head><body>
+<div class="cert">
+  <div class="name">${escapeHTML(opts.recipientName)}</div>
+  <div class="course">${escapeHTML(opts.courseTitle)}</div>
+  <div class="date">on ${escapeHTML(date)}</div>
+  <div class="cert-no">Certificate No. ${escapeHTML(opts.certificateNo)}</div>
+</div>
+<div class="no-print">
+  <button onclick="window.print()" style="padding:10px 18px;background:#0f172a;color:#fff;border:0;border-radius:6px;cursor:pointer;font-family:inherit">Print / Save as PDF</button>
+</div>
+</body></html>`;
+    const w = window.open("", "_blank", "noopener,noreferrer,width=1200,height=900");
+    if (!w) return;
+    w.document.write(html);
+    w.document.close();
+    return;
+  }
+
+  // Fallback: no background image — render the built-in decorative certificate.
   const html = `<!doctype html><html><head><meta charset="utf-8"/>
 <title>Certificate - ${escapeHTML(opts.recipientName)}</title>
 <style>
   @page { size: A4 landscape; margin: 0 }
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:Georgia,'Times New Roman',serif;background:#f6f3ec;padding:24px;display:flex;justify-content:center;min-height:100vh}
-  .cert{width:1120px;max-width:100%;background:#fffdf7;${bg}border:14px double #c9a449;padding:56px 72px;position:relative;box-shadow:0 12px 48px rgba(0,0,0,.12)}
+  .cert{width:1120px;max-width:100%;background:#fffdf7;border:14px double #c9a449;padding:56px 72px;position:relative;box-shadow:0 12px 48px rgba(0,0,0,.12)}
   .corner{position:absolute;width:60px;height:60px;border:3px solid #c9a449}
   .corner.tl{top:24px;left:24px;border-right:0;border-bottom:0}
   .corner.tr{top:24px;right:24px;border-left:0;border-bottom:0}
@@ -31,7 +80,6 @@ export function openCertificate(opts: {
   .eyebrow{text-align:center;letter-spacing:.4em;color:#9a7b1f;font-size:13px;text-transform:uppercase}
   h1{text-align:center;font-size:54px;margin:14px 0 6px;color:#1a2a4a;letter-spacing:.02em}
   .subtitle{text-align:center;color:#4a5568;font-size:16px;margin-bottom:36px}
-  .presented{text-align:center;font-style:italic;color:#475569;font-size:15px}
   .name{text-align:center;font-size:42px;margin:14px 0 8px;color:#0f172a;border-bottom:1px solid #cbd5e1;padding-bottom:10px;display:inline-block;min-width:60%;font-family:'Brush Script MT','Lucida Handwriting',cursive;font-weight:400}
   .name-wrap{text-align:center;margin:0 auto}
   .completed{text-align:center;color:#475569;margin-top:18px;font-size:15px}
