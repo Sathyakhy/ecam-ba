@@ -1,11 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useRef } from "react";
-import { Search, UserPlus, Download, Upload, Settings2, Mail, Calendar, Briefcase, Network } from "lucide-react";
+import { Search, UserPlus, Download, Upload, Settings2, Mail, Calendar, Briefcase, Network, Trash2 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
-import { adminBulkImportStaff, adminUpdateUser } from "@/lib/auth.functions";
+import { adminBulkImportStaff, adminUpdateUser, adminDeleteUser } from "@/lib/auth.functions";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
