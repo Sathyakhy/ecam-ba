@@ -132,6 +132,19 @@ function StaffPage() {
   };
 
   const bulkImport = useServerFn(adminBulkImportStaff);
+  const deleteUserFn = useServerFn(adminDeleteUser);
+
+  const handleDelete = async (p: Profile) => {
+    if (!confirm(`Delete ${p.full_name}? This permanently removes their account and cannot be undone.`)) return;
+    try {
+      await deleteUserFn({ data: { user_id: p.id } });
+      toast.success(`${p.full_name} deleted`);
+      qc.invalidateQueries({ queryKey: ["staff-full"] });
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to delete");
+    }
+  };
 
   const handleImport = async (file: File) => {
     setImporting(true);
