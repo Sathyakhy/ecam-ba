@@ -1,11 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useRef } from "react";
-import { Search, UserPlus, Download, Upload, Settings2, Mail, Calendar, Briefcase, Network } from "lucide-react";
+import { Search, UserPlus, Download, Upload, Settings2, Mail, Calendar, Briefcase, Network, Trash2 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
-import { adminBulkImportStaff, adminUpdateUser } from "@/lib/auth.functions";
+import { adminBulkImportStaff, adminUpdateUser, adminDeleteUser } from "@/lib/auth.functions";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -132,6 +132,19 @@ function StaffPage() {
   };
 
   const bulkImport = useServerFn(adminBulkImportStaff);
+  const deleteUserFn = useServerFn(adminDeleteUser);
+
+  const handleDelete = async (p: Profile) => {
+    if (!confirm(`Delete ${p.full_name}? This permanently removes their account and cannot be undone.`)) return;
+    try {
+      await deleteUserFn({ data: { user_id: p.id } });
+      toast.success(`${p.full_name} deleted`);
+      qc.invalidateQueries({ queryKey: ["staff-full"] });
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to delete");
+    }
+  };
 
   const handleImport = async (file: File) => {
     setImporting(true);
@@ -350,9 +363,14 @@ function StaffPage() {
                   <Mail className="h-3 w-3 shrink-0" /><span className="truncate">{p.email}</span>
                 </a>
                 {isAdmin && (
-                  <Button size="sm" variant="ghost" className="h-7 text-xs shrink-0" onClick={() => setEditing(p)}>
-                    <Settings2 className="h-3.5 w-3.5 mr-1" />Edit
-                  </Button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditing(p)}>
+                      <Settings2 className="h-3.5 w-3.5 mr-1" />Edit
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => handleDelete(p)} aria-label={`Delete ${p.full_name}`}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 )}
               </div>
             </Card>
