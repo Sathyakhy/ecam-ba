@@ -31,7 +31,58 @@ export const Route = createFileRoute("/_authenticated/courses/$courseId")({
   component: CourseDetailPage,
 });
 
-const ICON: Record<string, typeof FileText> = { document: FileText, video: Video, link: LinkIcon };
+const ICON: Record<string, typeof FileText> = {
+  document: FileText, pdf: FileText, video: Video, link: LinkIcon, image: ImageIcon, manual: NotebookText,
+};
+
+function youtubeEmbed(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes("youtube.com")) {
+      const v = u.searchParams.get("v");
+      if (v) return `https://www.youtube.com/embed/${v}`;
+    }
+    if (u.hostname === "youtu.be") return `https://www.youtube.com/embed/${u.pathname.slice(1)}`;
+    if (u.hostname.includes("vimeo.com")) return `https://player.vimeo.com/video/${u.pathname.split("/").filter(Boolean).pop()}`;
+  } catch {}
+  return null;
+}
+
+function LessonMaterial({ lesson }: { lesson: any }) {
+  const url: string | null = lesson.url ?? null;
+  const type: string = lesson.material_type ?? "document";
+  if (type === "manual") return null;
+  if (!url) return null;
+  if (type === "image") {
+    return <img src={url} alt={lesson.title} className="mt-3 rounded-md border max-h-[480px] w-auto" />;
+  }
+  if (type === "video") {
+    const embed = youtubeEmbed(url);
+    if (embed) {
+      return (
+        <div className="mt-3 aspect-video rounded-md overflow-hidden border">
+          <iframe src={embed} className="w-full h-full" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen />
+        </div>
+      );
+    }
+    return <video src={url} controls className="mt-3 rounded-md border w-full max-h-[480px] bg-black" />;
+  }
+  if (type === "pdf" || type === "document") {
+    const isPdf = type === "pdf" || /\.pdf(\?|$)/i.test(url);
+    if (isPdf) {
+      return (
+        <div className="mt-3 rounded-md overflow-hidden border">
+          <iframe src={url} className="w-full h-[600px]" title={lesson.title} />
+        </div>
+      );
+    }
+  }
+  return (
+    <a href={url} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1 mt-2">
+      <ExternalLink className="h-3 w-3" /> Open material
+    </a>
+  );
+}
 
 function CourseDetailPage() {
   const { courseId } = Route.useParams();
