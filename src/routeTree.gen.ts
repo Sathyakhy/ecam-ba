@@ -29,11 +29,13 @@ import { Route as AuthenticatedNewJoinersRouteImport } from './routes/_authentic
 import { Route as AuthenticatedLearningRouteImport } from './routes/_authenticated/learning'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCustomersRouteImport } from './routes/_authenticated/customers'
+import { Route as AuthenticatedCoursesRouteImport } from './routes/_authenticated/courses'
 import { Route as AuthenticatedAuditLogsRouteImport } from './routes/_authenticated/audit-logs'
 import { Route as AuthenticatedAnnouncementsRouteImport } from './routes/_authenticated/announcements'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedProjectsProjectIdRouteImport } from './routes/_authenticated/projects.$projectId'
 import { Route as AuthenticatedOnboardingProfileIdRouteImport } from './routes/_authenticated/onboarding.$profileId'
+import { Route as AuthenticatedCoursesCourseIdRouteImport } from './routes/_authenticated/courses.$courseId'
 import { Route as AuthenticatedProjectsProjectIdIndexRouteImport } from './routes/_authenticated/projects.$projectId.index'
 import { Route as AuthenticatedProjectsProjectIdTimelineRouteImport } from './routes/_authenticated/projects.$projectId.timeline'
 import { Route as AuthenticatedProjectsProjectIdTasksRouteImport } from './routes/_authenticated/projects.$projectId.tasks'
@@ -143,6 +145,11 @@ const AuthenticatedCustomersRoute = AuthenticatedCustomersRouteImport.update({
   path: '/customers',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedCoursesRoute = AuthenticatedCoursesRouteImport.update({
+  id: '/courses',
+  path: '/courses',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAuditLogsRoute = AuthenticatedAuditLogsRouteImport.update({
   id: '/audit-logs',
   path: '/audit-logs',
@@ -170,6 +177,12 @@ const AuthenticatedOnboardingProfileIdRoute =
     id: '/$profileId',
     path: '/$profileId',
     getParentRoute: () => AuthenticatedOnboardingRoute,
+  } as any)
+const AuthenticatedCoursesCourseIdRoute =
+  AuthenticatedCoursesCourseIdRouteImport.update({
+    id: '/$courseId',
+    path: '/$courseId',
+    getParentRoute: () => AuthenticatedCoursesRoute,
   } as any)
 const AuthenticatedProjectsProjectIdIndexRoute =
   AuthenticatedProjectsProjectIdIndexRouteImport.update({
@@ -223,6 +236,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRoute
   '/announcements': typeof AuthenticatedAnnouncementsRoute
   '/audit-logs': typeof AuthenticatedAuditLogsRoute
+  '/courses': typeof AuthenticatedCoursesRouteWithChildren
   '/customers': typeof AuthenticatedCustomersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/learning': typeof AuthenticatedLearningRoute
@@ -237,6 +251,7 @@ export interface FileRoutesByFullPath {
   '/staff': typeof AuthenticatedStaffRoute
   '/system-roles': typeof AuthenticatedSystemRolesRoute
   '/tasks': typeof AuthenticatedTasksRoute
+  '/courses/$courseId': typeof AuthenticatedCoursesCourseIdRoute
   '/onboarding/$profileId': typeof AuthenticatedOnboardingProfileIdRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRouteWithChildren
   '/projects/$projectId/activity': typeof AuthenticatedProjectsProjectIdActivityRoute
@@ -256,6 +271,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminRoute
   '/announcements': typeof AuthenticatedAnnouncementsRoute
   '/audit-logs': typeof AuthenticatedAuditLogsRoute
+  '/courses': typeof AuthenticatedCoursesRouteWithChildren
   '/customers': typeof AuthenticatedCustomersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/learning': typeof AuthenticatedLearningRoute
@@ -270,6 +286,7 @@ export interface FileRoutesByTo {
   '/staff': typeof AuthenticatedStaffRoute
   '/system-roles': typeof AuthenticatedSystemRolesRoute
   '/tasks': typeof AuthenticatedTasksRoute
+  '/courses/$courseId': typeof AuthenticatedCoursesCourseIdRoute
   '/onboarding/$profileId': typeof AuthenticatedOnboardingProfileIdRoute
   '/projects/$projectId/activity': typeof AuthenticatedProjectsProjectIdActivityRoute
   '/projects/$projectId/gantt': typeof AuthenticatedProjectsProjectIdGanttRoute
@@ -290,6 +307,7 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/announcements': typeof AuthenticatedAnnouncementsRoute
   '/_authenticated/audit-logs': typeof AuthenticatedAuditLogsRoute
+  '/_authenticated/courses': typeof AuthenticatedCoursesRouteWithChildren
   '/_authenticated/customers': typeof AuthenticatedCustomersRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/learning': typeof AuthenticatedLearningRoute
@@ -304,6 +322,7 @@ export interface FileRoutesById {
   '/_authenticated/staff': typeof AuthenticatedStaffRoute
   '/_authenticated/system-roles': typeof AuthenticatedSystemRolesRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
+  '/_authenticated/courses/$courseId': typeof AuthenticatedCoursesCourseIdRoute
   '/_authenticated/onboarding/$profileId': typeof AuthenticatedOnboardingProfileIdRoute
   '/_authenticated/projects/$projectId': typeof AuthenticatedProjectsProjectIdRouteWithChildren
   '/_authenticated/projects/$projectId/activity': typeof AuthenticatedProjectsProjectIdActivityRoute
@@ -325,6 +344,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/announcements'
     | '/audit-logs'
+    | '/courses'
     | '/customers'
     | '/dashboard'
     | '/learning'
@@ -339,6 +359,7 @@ export interface FileRouteTypes {
     | '/staff'
     | '/system-roles'
     | '/tasks'
+    | '/courses/$courseId'
     | '/onboarding/$profileId'
     | '/projects/$projectId'
     | '/projects/$projectId/activity'
@@ -358,6 +379,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/announcements'
     | '/audit-logs'
+    | '/courses'
     | '/customers'
     | '/dashboard'
     | '/learning'
@@ -372,6 +394,7 @@ export interface FileRouteTypes {
     | '/staff'
     | '/system-roles'
     | '/tasks'
+    | '/courses/$courseId'
     | '/onboarding/$profileId'
     | '/projects/$projectId/activity'
     | '/projects/$projectId/gantt'
@@ -391,6 +414,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/announcements'
     | '/_authenticated/audit-logs'
+    | '/_authenticated/courses'
     | '/_authenticated/customers'
     | '/_authenticated/dashboard'
     | '/_authenticated/learning'
@@ -405,6 +429,7 @@ export interface FileRouteTypes {
     | '/_authenticated/staff'
     | '/_authenticated/system-roles'
     | '/_authenticated/tasks'
+    | '/_authenticated/courses/$courseId'
     | '/_authenticated/onboarding/$profileId'
     | '/_authenticated/projects/$projectId'
     | '/_authenticated/projects/$projectId/activity'
@@ -567,6 +592,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCustomersRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/courses': {
+      id: '/_authenticated/courses'
+      path: '/courses'
+      fullPath: '/courses'
+      preLoaderRoute: typeof AuthenticatedCoursesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/audit-logs': {
       id: '/_authenticated/audit-logs'
       path: '/audit-logs'
@@ -601,6 +633,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/onboarding/$profileId'
       preLoaderRoute: typeof AuthenticatedOnboardingProfileIdRouteImport
       parentRoute: typeof AuthenticatedOnboardingRoute
+    }
+    '/_authenticated/courses/$courseId': {
+      id: '/_authenticated/courses/$courseId'
+      path: '/$courseId'
+      fullPath: '/courses/$courseId'
+      preLoaderRoute: typeof AuthenticatedCoursesCourseIdRouteImport
+      parentRoute: typeof AuthenticatedCoursesRoute
     }
     '/_authenticated/projects/$projectId/': {
       id: '/_authenticated/projects/$projectId/'
@@ -653,6 +692,17 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AuthenticatedCoursesRouteChildren {
+  AuthenticatedCoursesCourseIdRoute: typeof AuthenticatedCoursesCourseIdRoute
+}
+
+const AuthenticatedCoursesRouteChildren: AuthenticatedCoursesRouteChildren = {
+  AuthenticatedCoursesCourseIdRoute: AuthenticatedCoursesCourseIdRoute,
+}
+
+const AuthenticatedCoursesRouteWithChildren =
+  AuthenticatedCoursesRoute._addFileChildren(AuthenticatedCoursesRouteChildren)
 
 interface AuthenticatedOnboardingRouteChildren {
   AuthenticatedOnboardingProfileIdRoute: typeof AuthenticatedOnboardingProfileIdRoute
@@ -720,6 +770,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedAnnouncementsRoute: typeof AuthenticatedAnnouncementsRoute
   AuthenticatedAuditLogsRoute: typeof AuthenticatedAuditLogsRoute
+  AuthenticatedCoursesRoute: typeof AuthenticatedCoursesRouteWithChildren
   AuthenticatedCustomersRoute: typeof AuthenticatedCustomersRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedLearningRoute: typeof AuthenticatedLearningRoute
@@ -740,6 +791,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedAnnouncementsRoute: AuthenticatedAnnouncementsRoute,
   AuthenticatedAuditLogsRoute: AuthenticatedAuditLogsRoute,
+  AuthenticatedCoursesRoute: AuthenticatedCoursesRouteWithChildren,
   AuthenticatedCustomersRoute: AuthenticatedCustomersRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedLearningRoute: AuthenticatedLearningRoute,
@@ -771,13 +823,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
