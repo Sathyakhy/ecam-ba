@@ -183,6 +183,7 @@ function CourseDetailPage() {
                           issuedAt: data.issued_at,
                           certificateNo: data.certificate_no,
                           organization: settings.app_name,
+                          backgroundUrl: course.data!.certificate_bg_url ?? settings.default_certificate_bg_url ?? null,
                         });
                       }}
                     >
