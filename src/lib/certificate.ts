@@ -57,7 +57,7 @@ export function openCertificate(opts: {
   <button onclick="window.print()" style="padding:10px 18px;background:#0f172a;color:#fff;border:0;border-radius:6px;cursor:pointer;font-family:inherit">Print / Save as PDF</button>
 </div>
 </body></html>`;
-    const w = window.open("", "_blank", "noopener,noreferrer,width=1200,height=900");
+    const w = window.open("", "_blank", "width=1200,height=900");
     if (!w) return;
     w.document.write(html);
     w.document.close();
@@ -116,7 +116,7 @@ export function openCertificate(opts: {
   <button onclick="window.print()" style="padding:10px 18px;background:#0f172a;color:#fff;border:0;border-radius:6px;cursor:pointer;font-family:inherit">Print / Save as PDF</button>
 </div>
 </body></html>`;
-  const w = window.open("", "_blank", "noopener,noreferrer,width=1200,height=900");
+  const w = window.open("", "_blank", "width=1200,height=900");
   if (!w) return;
   w.document.write(html);
   w.document.close();
