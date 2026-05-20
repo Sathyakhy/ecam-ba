@@ -363,9 +363,14 @@ function StaffPage() {
                   <Mail className="h-3 w-3 shrink-0" /><span className="truncate">{p.email}</span>
                 </a>
                 {isAdmin && (
-                  <Button size="sm" variant="ghost" className="h-7 text-xs shrink-0" onClick={() => setEditing(p)}>
-                    <Settings2 className="h-3.5 w-3.5 mr-1" />Edit
-                  </Button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditing(p)}>
+                      <Settings2 className="h-3.5 w-3.5 mr-1" />Edit
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => handleDelete(p)} aria-label={`Delete ${p.full_name}`}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 )}
               </div>
             </Card>
