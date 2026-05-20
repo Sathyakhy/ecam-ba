@@ -952,7 +952,7 @@ function CourseSettings({ course }: { course: any }) {
     setUploading(true);
     try {
       const path = `cert-bg/${course.id}-${Date.now()}-${file.name}`;
-      const { error } = await supabase.storage.from("branding").upload(path, file, { upsert: true });
+      const { error } = await supabase.storage.from("branding").upload(path, file, { upsert: false });
       if (error) throw error;
       const { data } = supabase.storage.from("branding").getPublicUrl(path);
       setBgUrl(data.publicUrl);

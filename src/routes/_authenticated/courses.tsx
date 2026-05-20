@@ -641,7 +641,7 @@ function DefaultCertificateBgCard() {
     setUploading(true);
     try {
       const path = `cert-bg/${Date.now()}-${file.name}`;
-      const { error } = await supabase.storage.from("branding").upload(path, file, { upsert: true });
+      const { error } = await supabase.storage.from("branding").upload(path, file, { upsert: false });
       if (error) throw error;
       const { data } = supabase.storage.from("branding").getPublicUrl(path);
       await update({ data: { default_certificate_bg_url: data.publicUrl } });
