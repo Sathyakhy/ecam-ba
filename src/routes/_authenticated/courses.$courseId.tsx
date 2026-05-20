@@ -275,11 +275,7 @@ function CourseDetailPage() {
                             <p className="font-medium text-sm">{l.title}</p>
                           </div>
                           {l.content && <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">{l.content}</p>}
-                          {l.url && (
-                            <a href={l.url} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1 mt-1">
-                              <ExternalLink className="h-3 w-3" /> Open material
-                            </a>
-                          )}
+                          <LessonMaterial lesson={l} />
                         </div>
                       </li>
                     );
