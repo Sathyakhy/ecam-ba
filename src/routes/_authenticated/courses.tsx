@@ -133,7 +133,8 @@ function CoursesPage() {
         </TabsContent>
 
         {canManage && (
-          <TabsContent value="manage" className="mt-4">
+          <TabsContent value="manage" className="mt-4 space-y-4">
+            <DefaultCertificateBgCard />
             <Card>
               {courses.data?.length ? (
                 <ul className="divide-y divide-border">
