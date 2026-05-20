@@ -158,6 +158,7 @@ function CourseDetailPage() {
                         issuedAt: certificate.data!.issued_at,
                         certificateNo: certificate.data!.certificate_no,
                         organization: settings.app_name,
+                        backgroundUrl: course.data!.certificate_bg_url ?? settings.default_certificate_bg_url ?? null,
                       })}
                     >
                       <Award className="h-4 w-4 mr-1" /> View certificate
