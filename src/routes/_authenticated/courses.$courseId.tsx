@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import {
   ArrowLeft, Plus, Trash2, CheckCircle2, Circle, ExternalLink, Award,
   FileText, Video, Link as LinkIcon, Image as ImageIcon, NotebookText, File,
