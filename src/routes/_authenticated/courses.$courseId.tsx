@@ -1044,8 +1044,8 @@ function CourseSettings({ course }: { course: any }) {
             size="sm"
             onClick={() =>
               openCertificate({
-                recipientName: "Sample Recipient",
-                courseTitle: title || course.title,
+                recipientName: "[ Recipient Name ]",
+                courseTitle: title || course.title || "[ Course Title ]",
                 issuedAt: new Date(),
                 certificateNo: "PREVIEW-0000",
                 organization: settings.app_name,
