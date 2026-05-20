@@ -544,6 +544,7 @@ function LessonDialog({ open, onOpenChange, courseId, moduleId, lesson, nextOrde
   const [content, setContent] = useState(lesson?.content ?? "");
   const [downloadable, setDownloadable] = useState<boolean>(lesson?.downloadable ?? false);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // reset when opened
   useEffect(() => {
@@ -553,6 +554,8 @@ function LessonDialog({ open, onOpenChange, courseId, moduleId, lesson, nextOrde
       setUrl(lesson?.url ?? "");
       setContent(lesson?.content ?? "");
       setDownloadable(lesson?.downloadable ?? false);
+      setUploading(false);
+      setUploadProgress(0);
     }
   }, [open, lesson]);
 
@@ -560,13 +563,18 @@ function LessonDialog({ open, onOpenChange, courseId, moduleId, lesson, nextOrde
 
   const handleUpload = async (file: File) => {
     setUploading(true);
+    setUploadProgress(0);
     try {
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
       const path = `${courseId}/${Date.now()}-${safeName}`;
-      const { error } = await supabase.storage.from("course-materials").upload(path, file, { upsert: true, contentType: file.type || undefined });
-      if (error) throw error;
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("Please sign in again before uploading materials.");
+
+      await uploadCourseMaterialWithProgress(path, file, token, setUploadProgress);
       const { data } = supabase.storage.from("course-materials").getPublicUrl(path);
       setUrl(data.publicUrl);
+      setUploadProgress(100);
       toast.success("Uploaded");
     } catch (e: any) { toast.error(e.message ?? "Upload failed"); }
     finally { setUploading(false); }
