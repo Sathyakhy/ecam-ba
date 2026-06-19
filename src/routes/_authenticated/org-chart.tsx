@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -295,12 +295,57 @@ function OrgChartPage() {
   }, [positions]);
   const tree = useMemo(() => buildTree(data ?? [], priorityOf), [data, priorityOf]);
   const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const dragStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
   const chartRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const zoomIn = () => setZoom((z) => Math.min(2, +(z + 0.1).toFixed(2)));
   const zoomOut = () => setZoom((z) => Math.max(0.4, +(z - 0.1).toFixed(2)));
-  const reset = () => setZoom(1);
+  const reset = () => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  };
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest("button, a, [role='button']")) return;
+    setIsDragging(true);
+    dragStartRef.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y };
+  }, [pan]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDragging) return;
+    setPan({
+      x: dragStartRef.current.panX + (e.clientX - dragStartRef.current.x),
+      y: dragStartRef.current.panY + (e.clientY - dragStartRef.current.y),
+    });
+  }, [isDragging]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if ((e.target as HTMLElement).closest("button, a, [role='button']")) return;
+    const touch = e.touches[0];
+    setIsDragging(true);
+    dragStartRef.current = { x: touch.clientX, y: touch.clientY, panX: pan.x, panY: pan.y };
+  }, [pan]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const touch = e.touches[0];
+    setPan({
+      x: dragStartRef.current.panX + (touch.clientX - dragStartRef.current.x),
+      y: dragStartRef.current.panY + (touch.clientY - dragStartRef.current.y),
+    });
+  }, [isDragging]);
+
+  const handleTouchEnd = useCallback(() => {
+    setIsDragging(false);
+  }, []);
 
   const exportImage = async (kind: "jpeg" | "pdf") => {
     if (!chartRef.current) return;
@@ -376,11 +421,25 @@ function OrgChartPage() {
               <Maximize2 className="h-3.5 w-3.5" />
             </Button>
           </div>
-          <div className="overflow-auto max-h-[80vh]">
+          <div
+            ref={containerRef}
+            className={`overflow-hidden max-h-[80vh] flex items-center justify-center relative select-none ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
             <div
               ref={chartRef}
-              className="min-w-max p-10 origin-top transition-transform"
-              style={{ transform: `scale(${zoom})`, background: "#ffffff" }}
+              className="min-w-max p-10 transition-transform"
+              style={{
+                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                transformOrigin: "center center",
+                background: "#ffffff",
+              }}
             >
               {/* Title banner */}
               <div className="flex items-center gap-4 mb-10 px-4">
