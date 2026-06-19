@@ -303,7 +303,7 @@ function OrgChartPage() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const zoomIn = () => setZoom((z) => Math.min(2, +(z + 0.1).toFixed(2)));
-  const zoomOut = () => setZoom((z) => Math.max(0.4, +(z - 0.1).toFixed(2)));
+  const zoomOut = () => setZoom((z) => Math.max(0.1, +(z - 0.1).toFixed(2)));
   const reset = () => {
     setZoom(1);
     setPan({ x: 0, y: 0 });
