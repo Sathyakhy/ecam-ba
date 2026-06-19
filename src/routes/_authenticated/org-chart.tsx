@@ -421,11 +421,25 @@ function OrgChartPage() {
               <Maximize2 className="h-3.5 w-3.5" />
             </Button>
           </div>
-          <div className="overflow-auto max-h-[80vh]">
+          <div
+            ref={containerRef}
+            className={`overflow-hidden max-h-[80vh] flex items-center justify-center relative select-none ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
             <div
               ref={chartRef}
-              className="min-w-max p-10 origin-top transition-transform"
-              style={{ transform: `scale(${zoom})`, background: "#ffffff" }}
+              className="min-w-max p-10 transition-transform"
+              style={{
+                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                transformOrigin: "center center",
+                background: "#ffffff",
+              }}
             >
               {/* Title banner */}
               <div className="flex items-center gap-4 mb-10 px-4">
