@@ -233,7 +233,7 @@ function LearnerView({ course }: { course: any }) {
         <ul className="space-y-1">
           {unmetPrereqs.map((p: any) => (
             <li key={p.prerequisite_course_id} className="text-sm">
-              <Link to="/courses/$courseId" params={{ courseId: p.prerequisite_course_id }} search={{}} className="underline">
+              <Link to="/courses/$courseId" params={{ courseId: p.prerequisite_course_id }} search={{ tab: undefined }} className="underline">
                 {p.prerequisite?.title}
               </Link>
             </li>
