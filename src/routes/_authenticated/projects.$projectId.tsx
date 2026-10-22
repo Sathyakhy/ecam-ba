@@ -26,7 +26,7 @@ import { useQuery } from "@tanstack/react-query";
 export const Route = createFileRoute("/_authenticated/projects/$projectId")({
   component: ProjectLayout,
   pendingComponent: ProjectPending,
-  errorComponent: ProjectError,
+  errorComponent: ProjectError as never,
   pendingMs: 200,
 });
 
