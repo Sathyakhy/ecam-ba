@@ -131,7 +131,7 @@ function MyLearning() {
 
 function EnrollmentCard({ enrollment, certificate }: { enrollment: any; certificate?: any }) {
   return (
-    <Link to="/courses/$courseId" params={{ courseId: enrollment.course_id }}>
+    <Link to="/courses/$courseId" params={{ courseId: enrollment.course_id }} search={{ tab: undefined }}>
       <Card className="p-4 hover:border-primary transition-colors h-full">
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="font-semibold line-clamp-2">{enrollment.course?.title}</div>
@@ -250,7 +250,7 @@ function Catalog() {
               <div className="mt-3 flex gap-2">
                 {enrolledIds.has(c.id) ? (
                   <Button asChild size="sm" variant="secondary" className="flex-1">
-                    <Link to="/courses/$courseId" params={{ courseId: c.id }}>Open</Link>
+                    <Link to="/courses/$courseId" params={{ courseId: c.id }} search={{ tab: undefined }}>Open</Link>
                   </Button>
                 ) : (
                   <Button size="sm" className="flex-1" onClick={() => enroll(c.id)}>Enroll</Button>
@@ -382,7 +382,7 @@ function ManageCourses() {
           (courses.data ?? []).map((c) => (
             <div key={c.id} className="p-3 flex items-center gap-3">
               <div className="flex-1 min-w-0">
-                <Link to="/courses/$courseId" params={{ courseId: c.id }} className="font-medium hover:underline truncate block">
+                <Link to="/courses/$courseId" params={{ courseId: c.id }} search={{ tab: undefined }} className="font-medium hover:underline truncate block">
                   {c.title}
                 </Link>
                 <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mt-0.5">
